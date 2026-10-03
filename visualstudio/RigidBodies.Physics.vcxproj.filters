@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{DCCDBA82-2EE2-5627-B147-6BF9070B9A4E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{CC93CAB4-EBE3-5CAE-9B73-4BD65FDA6021}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\aerodynamic.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\authored_body.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\benchmark.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\body_properties.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\broad_phase.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\collider.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\compound_mass.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\constraint.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\constraint_graph.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\contact.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\contact_solver.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\content_json.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\continuous_collision.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\convex_distance.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\education.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\education_accounting.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\energy_drift.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\force_generator.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\integrator.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\joint.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\kinematic_motion.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\mass_properties.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\material.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\narrow_phase.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\parallel_executor.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\restitution_comparison.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\rigid_body.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\scenario.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\scenario_document.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_authoring.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_document.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\simulation_island.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\spring.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\time_stepper.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\units.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\world.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\world_profile.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\benchmark.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\aerodynamic.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\authored_body.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\body_properties.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\education.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\education_accounting.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\broad_phase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\collider.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\content_json.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\compound_mass.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\constraint_graph.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\collision_pipeline.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\continuous_collision.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\convex_distance.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\dynamic_tree.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\energy_drift.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\force_generator.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\integrator.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\joint.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\kinematic_motion.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\mass_properties.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\material.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\narrow_phase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\parallel_executor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\rigid_body.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\restitution_comparison.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\scenario.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\scenario_document.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape_document.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\sequential_impulse_solver.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape_authoring.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\spring.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\time_stepper.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_step.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_islands.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_parallel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_collision.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_ccd.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_dynamics.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

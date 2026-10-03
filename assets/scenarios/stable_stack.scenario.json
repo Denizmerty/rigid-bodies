@@ -1,0 +1,475 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "friction_and_support",
+    "collection_order": 2,
+    "hook": "Six boxes settle into a stack.",
+    "lab": false,
+    "level": "intro",
+    "tags": ["contact impulses","stacking","sleeping","simulator"],
+    "concepts": ["contact impulses", "stacking", "sleeping"],
+    "id": "stable_stack",
+    "prerequisites": ["free_fall"],
+    "suggested_order": 80,
+    "summary": "Six boxes settle into a stack. Contact forces support the boxes through the pile. Once they have stayed still long enough, the simulator puts them to sleep.",
+    "title": "A resting stack"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"Follow the contact forces through the stack as the boxes settle and come to rest.","predict":{"prompt":"After making the lowest box heavier, will the upper boxes fall through it?","options":["No, the stack remains supported","Yes, they fall through","The lowest box rises"]},"variables":[{"control":"object.properties.mass","label":"Lowest box mass","body":"body-1-2"}],"steps":[{"text":"Run until the boxes stop moving and the stack has settled."},{"text":"Increase the lowest box's mass, press R, and watch how the stack responds.","control":"object.properties.mass","body":"body-1-2"},{"text":"Open Collisions to inspect the impacts recorded as the boxes settled.","open":"measure.collisions.list"}],"expect":"Contacts support the stack. Once the boxes stay below the motion thresholds long enough, they go to sleep and remain supported.","limits":"The boxes are perfectly rigid. Speed and time thresholds determine when they can be treated as resting."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-1-2",
+        "label": "Stack box 1",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_1",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -1.05],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_1",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-2-3",
+        "label": "Stack box 2",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_2",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -0.748],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_2",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-3-4",
+        "label": "Stack box 3",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_3",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -0.44600000000000006],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_3",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-4-5",
+        "label": "Stack box 4",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_4",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -0.14400000000000013],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_4",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-5-6",
+        "label": "Stack box 5",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_5",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, 0.15799999999999992],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_5",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-6-7",
+        "label": "Stack box 6",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_box_6",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.29999999999999999,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.22500000000000001, -0.14999999999999999], [0.22500000000000001, -0.14999999999999999], [0.22500000000000001, 0.14999999999999999], [-0.22500000000000001, 0.14999999999999999]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, 0.45999999999999996],
+        "sleep_enabled": true,
+        "stable_key": "stack_box_6",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Stack floor",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "stack_floor",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.5,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-1.75, -0.050000000000000003], [1.75, -0.050000000000000003], [1.75, 0.050000000000000003], [-1.75, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -1.25],
+        "sleep_enabled": true,
+        "stable_key": "stack_floor",
+        "type": "static"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

@@ -1,0 +1,1 @@
+{"format":"rigid-bodies.scenario","version":{"major":1,"minor":0},"metadata":{"id":"fuzz-circle","title":"Circle","concepts":["gravity"]},"world":{"bodies":[{"id":"ball","type":"dynamic","position_m":[1,3],"parts":[{"type":"primitive","shape":{"type":"circle","radius_m":0.5,"center_m":[0,0]}}]}],"forces":[{"type":"uniform_gravity"}]}}

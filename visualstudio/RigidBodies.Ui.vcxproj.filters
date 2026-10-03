@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{68303827-FA7E-5464-991B-74325ECF9875}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{7E0E501A-86FF-5F7C-A577-8FC3FF2B9CBF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\command_search.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\control_spec.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\document_backend.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\education_model.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\experiment_content.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\geometry.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\icons.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\layout.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\notifications.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\overlay_backend.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\panel.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\panels.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\plot.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\run_compare.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\run_types.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\toast_presenter.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\ui_backend.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\ui_command.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\ui_context.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\ui_event.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\ui_model.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\view_state.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\control_specs.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\command_search.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\present_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\hover_card_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\context_menu_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\command_search_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\hints_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\add_menu_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\banner_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\draw_bar_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\guide_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\inspector_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\layout.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\measure_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\overlay_backend.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\panels.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\save_details_panel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\ui_context.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\toast_presenter.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\view_state.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\document_backend.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\plot_element.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

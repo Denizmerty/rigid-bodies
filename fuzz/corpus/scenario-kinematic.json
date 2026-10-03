@@ -1,0 +1,1 @@
+{"format":"rigid-bodies.scenario","version":{"major":1,"minor":0},"metadata":{"id":"fuzz-kinematic","title":"Prescribed motion"},"world":{"bodies":[{"id":"moving","type":"kinematic","parts":[{"type":"primitive","shape":{"type":"circle","radius_m":0.5,"center_m":[0,0]}}],"motion":{"type":"circular","center_m":[0,0],"radius_m":2,"angular_speed_rad_s":1,"elapsed_s":0.5}}]}}

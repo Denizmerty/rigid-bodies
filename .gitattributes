@@ -1,0 +1,53 @@
+* text=auto
+
+*.c text eol=lf
+*.cc text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.in text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.cfg text eol=lf
+*.md text eol=lf
+*.rml text eol=lf
+*.rcss text eol=lf
+*.css text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.cmake text eol=lf
+*.nsi text eol=lf
+*.rc text eol=lf
+*.code-workspace text eol=lf
+CMakeLists.txt text eol=lf
+LICENSE text eol=lf
+
+# Preserve upstream dependency text while keeping repository whitespace checks focused on owned code.
+vendor/** -whitespace
+assets/licenses/** -whitespace
+assets/fonts/OFL-*.txt -whitespace
+
+.clang-format text eol=lf
+.clang-tidy text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.props text eol=crlf
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.filters text eol=crlf
+*.targets text eol=crlf
+
+*.ico binary
+*.bmp binary
+*.jpg binary
+*.png binary
+*.ttf binary
+*.dll binary
+*.lib binary
+*.svg text eol=lf

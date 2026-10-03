@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="assets">
+      <UniqueIdentifier>{86207272-B0F7-5056-A473-A6DADAEE8CD8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\branding">
+      <UniqueIdentifier>{68A72CE8-9776-5BCC-BBD0-18077C0FC4AB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\fonts">
+      <UniqueIdentifier>{86B9AA9C-C1BA-5A10-92F7-5D69A9878515}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\licenses">
+      <UniqueIdentifier>{01607CBE-CD0B-5CB2-9389-F28C696DAA58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\scenarios">
+      <UniqueIdentifier>{0045621C-9D3D-579C-8AB7-CFA6452F487B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets\ui">
+      <UniqueIdentifier>{3C53A926-767F-550A-A200-8D1B5B0AFBCA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{24EBBFEB-3A8C-5586-B335-B8BAA3C02A26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{98CB6028-EC2F-5DA3-A10F-2A5EAFE1A5E3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{1024D613-5963-5C04-AD27-FE54C4683E2A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{DB3513CC-E9F6-52E4-A441-9DA22E66D2A7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\application.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\developer_overlay.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\frame_capture.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\input.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\window.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\window_chrome.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.App\src\application.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\content_dialog.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\frame_capture.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\input.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\window.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\window_chrome.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\RigidBodies.App\resources\rigid_bodies.rc">
+      <Filter>resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\RigidBodies.App\src\developer_overlay.cpp">
+      <Filter>src</Filter>
+    </None>
+    <None Include="..\assets\README.md">
+      <Filter>assets</Filter>
+    </None>
+    <None Include="..\assets\fonts\Inter-Medium.ttf">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\fonts\Inter-Regular.ttf">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\fonts\Inter-SemiBold.ttf">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\fonts\OFL-Inter.txt">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\fonts\Phosphor-Regular-subset.ttf">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\fonts\README.md">
+      <Filter>assets\fonts</Filter>
+    </None>
+    <None Include="..\assets\licenses\DearImGui-MIT.txt">
+      <Filter>assets\licenses</Filter>
+    </None>
+    <None Include="..\assets\licenses\FreeType-FTL.txt">
+      <Filter>assets\licenses</Filter>
+    </None>
+    <None Include="..\assets\licenses\Phosphor-MIT.txt">
+      <Filter>assets\licenses</Filter>
+    </None>
+    <None Include="..\assets\licenses\RmlUi-MIT.txt">
+      <Filter>assets\licenses</Filter>
+    </None>
+    <None Include="..\assets\licenses\SDL-zlib.txt">
+      <Filter>assets\licenses</Filter>
+    </None>
+    <None Include="..\assets\scenarios\README.md">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\aerodynamic_profiles.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\asymmetric_aerodynamics.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\breakable_joint.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\collision_comparison.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\compound_object.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\distance_chain.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\empty_lab.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\fast_projectile.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\free_fall.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\friction_comparison.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\gravity_scales.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\magnus_effect.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\mass_distribution.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\prescribed_motion.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\prismatic_drive.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\ramp.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\restitution_drop.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\revolute_drive.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\shape_workshop.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\spinning_shapes.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\spring_damping.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\stable_stack.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\targeted_force.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\scenarios\welded_assembly.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
+    <None Include="..\assets\ui\components.rcss">
+      <Filter>assets\ui</Filter>
+    </None>
+    <None Include="..\assets\ui\geometry.rcss">
+      <Filter>assets\ui</Filter>
+    </None>
+    <None Include="..\assets\ui\playground.rcss">
+      <Filter>assets\ui</Filter>
+    </None>
+    <None Include="..\assets\ui\playground.rml">
+      <Filter>assets\ui</Filter>
+    </None>
+    <None Include="..\assets\ui\themes.rcss">
+      <Filter>assets\ui</Filter>
+    </None>
+    <None Include="..\config\application.cfg">
+      <Filter>config</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\assets\branding\rigid-bodies.ico">
+      <Filter>assets\branding</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

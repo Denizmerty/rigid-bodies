@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings shared by every project in RigidBodies.sln, third-party libraries included.
+
+  The solution and build.ps1 (CMake) produce the same build\rigid_bodies.exe: both compile the same
+  files with the same MSVC toolset and code-generation options and link them in the same order.
+  Change a code-generation setting here only together with CMakeLists.txt and cmake\dependencies.cmake.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Layout">
+    <RigidBodiesRootDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RigidBodiesRootDir>
+    <RigidBodiesRoot>$(RigidBodiesRootDir)\</RigidBodiesRoot>
+    <!-- The repository root as CMake writes it, for definitions that embed a source path. -->
+    <RigidBodiesRootForward>$(RigidBodiesRootDir.Replace('\', '/'))</RigidBodiesRootForward>
+    <!-- One output directory for both build systems: the application, SDL3.dll, assets and config. -->
+    <RigidBodiesOutputDir>$(RigidBodiesRoot)build\</RigidBodiesOutputDir>
+    <!-- MSBuild's own intermediate files; CMake keeps its intermediates in build\cmake. -->
+    <RigidBodiesIntermediateRoot>$(RigidBodiesOutputDir)msbuild\</RigidBodiesIntermediateRoot>
+    <RigidBodiesLibraryDir>$(RigidBodiesIntermediateRoot)lib\</RigidBodiesLibraryDir>
+    <RigidBodiesSdlDir>$(RigidBodiesRoot)vendor\SDL3\</RigidBodiesSdlDir>
+    <RigidBodiesSdlLibrary>$(RigidBodiesSdlDir)lib\x64\SDL3.lib</RigidBodiesSdlLibrary>
+    <RigidBodiesSdlRuntime>$(RigidBodiesSdlDir)bin\x64\SDL3.dll</RigidBodiesSdlRuntime>
+    <!-- CMake's default MSVC system libraries, in its order. -->
+    <RigidBodiesSystemLibraries>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</RigidBodiesSystemLibraries>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir Condition="'$(ConfigurationType)' == 'StaticLibrary'">$(RigidBodiesLibraryDir)</OutDir>
+    <IntDir>$(RigidBodiesIntermediateRoot)obj\$(ProjectName)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- CMake's Release flags: /O2 /Ob2 /DNDEBUG with the static runtime and no debug information. -->
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <SDLCheck>false</SDLCheck>
+      <!-- MSBuild otherwise adds /Zc:inline, which CMake does not pass and which changes the program. -->
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Lib>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Lib>
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

@@ -1,0 +1,197 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "bounces_and_collisions",
+    "collection_order": 3,
+    "hook": "A small ball travels many diameters in one step towards a thin segment.",
+    "lab": false,
+    "level": "intro",
+    "tags": ["continuous collision","swept shapes","tunnelling","simulator"],
+    "concepts": ["continuous collision", "swept shapes", "tunnelling"],
+    "id": "fast_projectile",
+    "prerequisites": ["free_fall"],
+    "suggested_order": 100,
+    "summary": "A small ball can travel many times its diameter in one step. Continuous collision detection checks its path for the thin wall, so the impact can be resolved before the ball passes through.",
+    "title": "A fast projectile"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"Can a fast ball pass through a wall between collision checks? Compare the same launch with Catch fast objects on and off.","predict":{"prompt":"With Catch fast objects off, what may happen?","options":["The ball tunnels through","The wall becomes thicker","The ball slows before contact"]},"variables":[{"control":"world.collisions.catch_fast","label":"Catch fast objects"}],"steps":[{"text":"Run once with Catch fast objects on and inspect the impact."},{"text":"Turn it off, press R, and repeat the same launch.","control":"world.collisions.catch_fast"},{"text":"Turn it back on before leaving the experiment."}],"expect":"Swept collision detection checks the path between steps. With it turned off, the ball can pass through the wall if none of its checked positions overlaps the wall.","limits":"Swept checks use finite tolerances and support the convex shapes and motion handled by the collision system."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 0,
+        "id": "body-1-2",
+        "label": "Fast ball",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [40, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "fast_ball",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 7850,
+              "drag_coefficient": 1,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0,
+              "name": "steel",
+              "restitution": 0.59999999999999998,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.025000000000000001,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-1.2, 0],
+        "sleep_enabled": true,
+        "stable_key": "fast_ball",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Thin target wall",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "thin_target_wall",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 7850,
+              "drag_coefficient": 1,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0,
+              "name": "steel",
+              "restitution": 0.59999999999999998,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0
+            },
+            "shape": {
+              "end_m": [0, 0.69999999999999996],
+              "start_m": [0, -0.69999999999999996],
+              "type": "segment"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [1.2, 0],
+        "sleep_enabled": true,
+        "stable_key": "thin_target_wall",
+        "type": "static"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

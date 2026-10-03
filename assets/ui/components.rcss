@@ -1,0 +1,384 @@
+/* Shell components: toolbar strips, rails, menus, dialogs and transient feedback. Geometry only;
+   colour comes from themes.rcss. */
+
+/* ---- Strips: command bar, draw bar, Present strip, status line ----------------------------- */
+.command-bar .panel, .draw-bar .panel, .present-strip .panel, .status-line .panel
+{
+    display: flex; flex-direction: row; align-items: center; column-gap: 2dp;
+    box-sizing: border-box; width: 100%; height: 100%; margin: 0dp; padding: 0dp 8dp; border-width: 0dp; border-radius: 0dp;
+    overflow: hidden; white-space: nowrap; animation: none;
+}
+.command-bar .row, .draw-bar .row, .present-strip .row, .status-line .row { flex: 0 0 auto; margin: 0dp; padding: 0dp; white-space: nowrap; }
+.command-bar .row.is-overflowed, .draw-bar .row.is-overflowed, .present-strip .row.is-overflowed, .status-line .row.is-overflowed { display: none; }
+.command-bar .row-spacer, .draw-bar .row-spacer, .present-strip .row-spacer, .status-line .row-spacer { flex: 1 1 auto; height: 1dp; }
+.command-bar .group-start, .draw-bar .group-start, .present-strip .group-start { margin-left: 14dp; }
+.command-bar .row.first-visible, .draw-bar .row.first-visible, .present-strip .row.first-visible { margin-left: 0dp; }
+.status-line .group-start { margin-left: 10dp; }
+.command-bar .control-label, .draw-bar .control-label, .present-strip .control-label, .status-line .control-label { display: none; }
+
+/* Toolbar buttons: ghost by default, the primary action filled. */
+.command-bar button.row, .draw-bar button.row, .present-strip button.row
+{
+    min-height: 30dp; height: 30dp; padding: 0dp 9dp; margin: 0dp 1dp; column-gap: 6dp;
+    border-radius: 6dp; font-weight: 500;
+}
+.command-bar button.row .label, .draw-bar button.row .label, .present-strip button.row .label { flex: 0 0 auto; }
+.command-bar button.row.label-hidden .label, .draw-bar button.row.label-hidden .label, .present-strip button.row.label-hidden .label { display: none; }
+.command-bar button.row.label-hidden, .draw-bar button.row.label-hidden, .present-strip button.row.label-hidden { width: 30dp; padding: 0dp; justify-content: center; }
+/* The primary action keeps one width as Play becomes Pause, so nothing beside it moves. */
+.command-bar button.row.is-primary { min-width: 92dp; padding: 0dp 14dp 0dp 11dp; margin: 0dp 4dp; justify-content: center; }
+.command-bar button.row.is-primary.label-hidden { width: 38dp; min-width: 38dp; padding: 0dp; }
+/* A count rides on the button's corner and takes no width, so the first impact of a run never
+   makes the bar shed labels or shift its controls. */
+.command-bar button.row { position: relative; }
+.command-bar button.row.has-badge .badge { position: absolute; top: -6dp; right: -8dp; min-width: 14dp; height: 14dp; padding: 0dp 3dp; line-height: 14dp; font-size: 10dp; }
+
+/* Scenario identity and run state. */
+.command-bar .row-title { flex: 0 0 auto; max-width: 260dp; overflow: hidden; padding: 0dp 6dp 0dp 4dp; font-size: 13.5dp; font-weight: 600; }
+/* Past its shrink step a title gives up width down to a readable stub; the backend shortens its
+   text to fit with an ellipsis. */
+.command-bar .row-title.is-shrinkable { flex-shrink: 1; min-width: 96dp; }
+.command-bar .row-readout, .status-line .row-readout { display: flex; align-items: center; column-gap: 6dp; padding: 0dp; border-radius: 0dp; }
+.command-bar .row-readout .name { display: none; }
+.command-bar .row-readout .value { min-width: 64dp; padding: 3dp 9dp; border-radius: 10dp; font-size: 11.5dp; font-weight: 600; text-align: center; }
+
+/* Selects and segmented controls in strips are compact, and a strip sheds labels rather than
+   wrapping a control onto a second row. */
+.command-bar .segmented, .draw-bar .segmented, .present-strip .segmented { flex-wrap: nowrap; }
+.command-bar .select, .draw-bar .select { width: 72dp; min-width: 0dp; height: 28dp; line-height: 26dp; }
+.draw-bar .select { width: 96dp; }
+.command-bar .row-select, .draw-bar .row-select { padding: 0dp; margin: 0dp 2dp; }
+.command-bar .row-segmented .segment, .draw-bar .row-segmented .segment { min-height: 26dp; padding: 0dp 9dp; }
+.command-bar .row-segmented.label-hidden .segment .label { display: none; }
+.command-bar .row-segmented.label-hidden .segment { padding: 0dp 7dp; }
+
+/* Status line: one quiet line of facts, with view affordances at the end. */
+.status-line .panel { padding: 0dp 10dp; column-gap: 4dp; }
+.status-line .row-readout { margin-right: 12dp; font-size: 12dp; }
+.status-line .row-readout .name { display: none; }
+.status-line .row-readout .value { font-weight: 500; text-align: left; }
+.status-line button.row { min-height: 22dp; height: 22dp; padding: 0dp 8dp; margin: 0dp; column-gap: 6dp; border-radius: 5dp; font-size: 12dp; font-weight: 500; }
+.status-line button.row .icon, .status-line .row-readout .icon { width: 14dp; font-size: 14dp; }
+.status-line button.row.label-hidden .label { display: none; }
+.status-line button.row.label-hidden { width: 24dp; padding: 0dp; justify-content: center; }
+
+/* Draw bar: a compact options strip under the command bar while a shape is drafted. */
+.draw-bar .panel { padding: 0dp 10dp; }
+.draw-bar .row-label { font-weight: 600; padding: 0dp 8dp 0dp 0dp; }
+.draw-bar button.row { min-height: 26dp; height: 26dp; padding: 0dp 8dp; }
+.draw-bar button.row-switch_control { column-gap: 6dp; padding: 0dp 8dp; }
+.draw-bar .switch-label { flex: 0 0 auto; }
+.draw-bar button.row-section { margin: 0dp; padding: 0dp 8dp; min-height: 26dp; border-top-width: 0dp; border-radius: 6dp; font-size: 12dp; text-transform: none; letter-spacing: 0dp; }
+.draw-bar .row-label.tone-danger, .draw-bar .row-label.tone-warning { font-weight: 500; }
+.draw-bar .row-segmented.label-hidden .segment .label { display: none; }
+.draw-bar .row-segmented.label-hidden .segment { padding: 0dp 7dp; }
+.draw-bar .row-readout { display: flex; align-items: center; column-gap: 6dp; padding: 0dp 8dp; font-size: 12dp; }
+.draw-bar .row-readout .name { display: none; }
+.draw-bar .row-readout .icon { display: block; width: 15dp; font-size: 15dp; }
+.draw-bar .row-readout .value { font-weight: 500; text-align: left; }
+.draw-bar .group-commit.group-start { margin-left: 8dp; }
+
+/* Present strip: a quiet title, centred transport and the presenter's toggles, all sized to be
+   hit reliably from a lectern. */
+.present-strip .panel { padding: 0dp 16dp; column-gap: 4dp; }
+.present-strip .row-title { flex: 0 0 auto; max-width: 360dp; overflow: hidden; padding: 0dp 12dp 0dp 4dp; font-size: 18dp; font-weight: 600; }
+.present-strip .row-title.is-shrinkable { flex-shrink: 1; min-width: 140dp; }
+.present-strip button.row { min-height: 42dp; height: 42dp; padding: 0dp 14dp; margin: 0dp 2dp; column-gap: 8dp; border-radius: 8dp; font-size: 16dp; font-weight: 500; }
+.present-strip button.row .icon { width: 21dp; font-size: 21dp; }
+.present-strip button.row.label-hidden { width: 42dp; padding: 0dp; justify-content: center; }
+.present-strip button.row.is-primary { min-width: 132dp; padding: 0dp 22dp 0dp 18dp; margin: 0dp 8dp; justify-content: center; font-size: 17dp; font-weight: 600; }
+.present-strip button.row.is-primary.label-hidden { width: 58dp; min-width: 58dp; padding: 0dp; }
+.present-strip .row-readout { display: flex; align-items: center; column-gap: 8dp; padding: 0dp 4dp 0dp 12dp; font-size: 19dp; }
+.present-strip .row-readout .name { display: none; }
+.present-strip .row-readout .icon { display: block; width: 18dp; font-size: 18dp; }
+.present-strip .row-readout .value { min-width: 70dp; font-weight: 600; text-align: left; }
+.present-strip .group-presenter.group-start, .present-strip .group-projector.group-start { margin-left: 0dp; }
+.present-strip .group-projector.group-start ~ .group-presenter.group-start { margin-left: 14dp; }
+
+/* ---- Window title bar: the top strip as the window's own title bar ----------------------------
+   One surface spans the window under the app mark, the strip's content and the window controls.
+   Besides its title and the gaps between groups, the command bar keeps a little empty width to
+   drag the window by: it sheds detail before giving that up. */
+.window-title-bar .command-bar .row-spacer { min-width: 16dp; }
+/* The mark sits 12 dp from the scenario title, as the toolbar's own groups sit apart. */
+.window-title-bar .command-bar .panel, .window-title-bar .present-strip .panel { padding-left: 4dp; }
+.window-brand { display: flex; flex-direction: row; align-items: center; box-sizing: border-box; padding-left: 12dp; }
+/* The app icon as its small sizes draw it (packaging/icon/s16.svg), in plain boxes: the turned
+   block with its deep-amber shaded edges and the upright centre-of-mass roundel, whose quarters are
+   exact quarter discs. Like the 16 px icon it leaves out the trail, which at this size would read
+   as a fuse rather than a path. */
+.window-mark { position: relative; flex: 0 0 auto; width: 20dp; height: 20dp; }
+.window-mark div { position: absolute; }
+.window-mark-block { left: 4dp; top: 4dp; width: 12dp; height: 11dp; border-radius: 1.5dp; border-bottom-width: 1dp; transform: rotate(-26.57deg); }
+.window-mark-rim-right { left: 11dp; top: 5dp; width: 1dp; height: 6dp; }
+.window-mark-rim-left { left: 0dp; top: 7dp; width: 1dp; height: 4dp; }
+.window-mark-com { left: 8dp; top: 8dp; width: 4dp; height: 4dp; border-radius: 2dp; }
+.window-mark-com-a { left: 10dp; top: 8dp; width: 2dp; height: 2dp; border-top-right-radius: 2dp; }
+.window-mark-com-b { left: 8dp; top: 10dp; width: 2dp; height: 2dp; border-bottom-left-radius: 2dp; }
+/* The controls stop short of the strip's hairline, so a hover fill never cuts it. */
+.window-controls { display: flex; flex-direction: row; align-items: stretch; box-sizing: border-box; padding-bottom: 1dp; }
+.window-divider { flex: 0 0 auto; align-self: center; width: 1dp; height: 20dp; margin: 0dp 8dp; }
+/* Caption buttons, flush and full height like the platform's own: out of the Tab order, and the
+   close button's fill reaches the window's corner. */
+.window-control
+{
+    display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 46dp;
+    margin: 0dp; padding: 0dp; border-width: 0dp; border-radius: 0dp; tab-index: none;
+    transition: background-color 0.1s cubic-out;
+}
+.window-glyph { width: 14dp; font-size: 14dp; line-height: 14dp; text-align: center; }
+/* Phosphor's x is drawn smaller than its square; this size matches their extent and stroke. */
+.window-close .window-glyph { width: 16dp; font-size: 16dp; line-height: 16dp; }
+
+/* ---- Present caption: the lesson step on a card over the foot of the stage ------------------- */
+.present-caption { z-index: 35; overflow: visible; }
+.present-caption .panel
+{
+    display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 8dp; row-gap: 8dp;
+    box-sizing: border-box; width: 100%; margin: 0dp; padding: 14dp 16dp 18dp 22dp;
+    border-width: 1dp; border-radius: 14dp; animation: 0.2s cubic-out panel-in;
+}
+.present-caption .row { flex: 0 0 auto; margin: 0dp; padding: 0dp; }
+.present-caption .row-label.group-caption_header { flex: 1 1 auto; font-size: 14dp; font-weight: 600; text-transform: uppercase; letter-spacing: 1dp; }
+.present-caption button.row { min-height: 40dp; height: 40dp; padding: 0dp 16dp; column-gap: 8dp; border-radius: 9dp; font-size: 16dp; font-weight: 500; }
+.present-caption button.row .icon { width: 18dp; font-size: 18dp; }
+.present-caption button.row.label-hidden { width: 38dp; padding: 0dp; justify-content: center; }
+.present-caption button.row.label-hidden .label { display: none; }
+.present-caption button.row.is-primary { padding: 0dp 18dp 0dp 14dp; font-weight: 600; }
+.present-caption button.row.is-primary.icon-after { padding: 0dp 14dp 0dp 18dp; }
+.present-caption .row-paragraph { flex: 1 1 100%; width: 100%; padding: 2dp 6dp 2dp 0dp; font-size: 27dp; font-weight: 500; line-height: 1.36; white-space: normal; }
+.present-caption .row-label.group-caption_notice { flex: 1 1 100%; width: 100%; margin-top: 6dp; padding-top: 12dp; border-top-width: 1dp; font-size: 13.5dp; }
+/* The step's control sits under the caption on its own line, sized to be operated at a lectern. */
+.present-caption .row.group-caption_control { flex: 1 1 100%; width: 100%; max-width: 560dp; padding-top: 4dp; }
+.present-caption button.row.group-caption_control { flex: 0 0 auto; width: auto; }
+.present-caption .group-caption_control .control-label, .present-caption .group-caption_control .switch-label { font-size: 15dp; }
+.present-caption .group-caption_control .number-field, .present-caption .group-caption_control .select { height: 34dp; line-height: 32dp; font-size: 16dp; }
+.present-caption .group-caption_control .number-field { padding-top: 6dp; padding-bottom: 6dp; line-height: 20dp; }
+.present-caption .group-caption_control .select { min-width: 240dp; }
+.present-caption .group-caption_control .control-line .field-placeholder { height: 34dp; line-height: 34dp; font-size: 16dp; }
+.present-caption .group-caption_control .unit { font-size: 14dp; }
+.present-caption .group-caption_control .segment { min-height: 34dp; font-size: 15dp; }
+.present-caption button.row-switch_control.group-caption_control { height: auto; margin: 0dp; padding: 4dp 0dp; background-color: transparent; }
+/* A narrow or short window sets the card compactly: smaller step text and buttons, and the step's
+   field without its slider. */
+.compact .present-caption .group-caption_control .slider, .present-short .present-caption .group-caption_control .slider { display: none; }
+.present-caption .panel { overflow-y: auto; max-height: 100%; }
+.compact .present-caption .panel, .present-short .present-caption .panel { padding: 10dp 12dp 12dp 16dp; row-gap: 6dp; }
+.compact .present-caption .row-paragraph, .present-short .present-caption .row-paragraph { font-size: 17dp; line-height: 1.35; }
+.compact .present-caption button.row, .present-short .present-caption button.row { min-height: 34dp; height: 34dp; padding: 0dp 12dp; font-size: 14dp; }
+/* A narrow card keeps the step's own action named; only the quiet way back shrinks to its glyph. */
+.compact .present-caption button.row.group-caption_header.is-quiet .label { display: none; }
+.compact .present-caption button.row.group-caption_header.is-quiet { width: 34dp; padding: 0dp; justify-content: center; }
+.compact .present-caption .row-label.group-caption_notice, .present-short .present-caption .row-label.group-caption_notice { font-size: 12.5dp; }
+.present-caption .row-label.group-caption_notice:first-child { margin-top: 0dp; padding-top: 2dp; border-top-width: 0dp; }
+
+/* A docked panel's title wraps short of the hide control in its header. */
+.guide .row-title, .inspector .row-title { padding-right: 36dp; }
+
+/* ---- Actions inside docked panels and dialogs: compact buttons that flow side by side -------- */
+.guide button.row-action, .inspector button.row-action, .measure button.row-action, .sheets button.row-action, .hint button.row-action
+{
+    display: inline-flex; width: auto; min-height: 30dp; height: 30dp; margin: 4dp 6dp 4dp 0dp; padding: 0dp 12dp 0dp 10dp;
+    column-gap: 7dp; border-radius: 7dp; font-weight: 500; white-space: nowrap;
+}
+.guide button.row-action .label, .inspector button.row-action .label, .measure button.row-action .label, .sheets button.row-action .label, .hint button.row-action .label { flex: 0 0 auto; }
+.guide button.row-action:not(.has-icon), .inspector button.row-action:not(.has-icon), .measure button.row-action:not(.has-icon), .sheets button.row-action:not(.has-icon) { padding: 0dp 12dp; }
+.guide button.row-action.is-primary, .inspector button.row-action.is-primary, .sheets button.row-action.is-primary { height: 32dp; padding: 0dp 16dp 0dp 13dp; }
+.guide button.row-action.header-action, .inspector button.row-action.header-action, .measure button.row-action.header-action, .sheets button.row-action.header-action
+{
+    display: flex; position: absolute; top: 11dp; right: 10dp; width: 28dp; min-height: 28dp; height: 28dp; margin: 0dp; padding: 0dp; justify-content: center;
+}
+.sheets button.row-action.header-action { top: 18dp; right: 16dp; width: 30dp; height: 30dp; min-height: 30dp; }
+
+/* Command search results are a list: full-width rows, location and shortcut trailing. */
+.sheets button.row-action.group-results { display: flex; width: 100%; height: auto; min-height: 34dp; margin: 1dp 0dp; padding: 0dp 10dp; border-radius: 6dp; font-weight: 500; }
+.sheets button.row-action.group-results .label { flex: 1 1 auto; }
+.sheets button.row-action.group-results .shortcut { display: block; font-size: 12dp; font-weight: 400; }
+#panel-command_search .text-field { height: 36dp; padding-top: 7dp; padding-bottom: 7dp; line-height: 20dp; font-size: 15dp; }
+#panel-command_search .field-wrap .field-icon, #panel-command_search .field-wrap .field-placeholder { height: 36dp; line-height: 36dp; font-size: 15dp; }
+#panel-command_search .row-heading { padding-top: 14dp; }
+
+/* Shortcut chords read as key caps beside each description. */
+#panel-shortcuts .row-readout { align-items: center; padding: 3dp 0dp; }
+#panel-shortcuts .row-readout .value { padding: 1dp 7dp; border-width: 1dp; border-radius: 5dp; font-size: 11.5dp; font-weight: 600; }
+
+/* Library filters are pills: they describe the list rather than act on the setup. */
+.sheets button.row-action.group-filters { height: 28dp; min-height: 28dp; margin: 2dp 6dp 4dp 0dp; padding: 0dp 12dp; border-radius: 14dp; font-size: 12.5dp; }
+/* The selected card's actions sit inside its highlight, beneath its description. */
+.list-actions { display: none; }
+button.row-list_item.has-actions .list-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; margin-top: 8dp; }
+.sheets button.row-list_item .list-action { margin: 2dp 8dp 0dp 0dp; }
+
+/* The selected object's name heads the Inspector in sentence case, not as a caps divider. */
+.row-heading.group-object_name { padding: 4dp 0dp 0dp 0dp; font-size: 15dp; font-weight: 600; text-transform: none; letter-spacing: 0dp; }
+.row-label.group-object_name { padding: 1dp 0dp 6dp 0dp; }
+
+/* Prediction choices stack as equal options; Skip falls to its own line beneath them. */
+.guide button.row-action.group-choices { display: flex; width: 100%; margin: 3dp 0dp; }
+
+/* Guide steps read as body text beside their check box. */
+.guide button.row-checkbox { align-items: flex-start; column-gap: 10dp; padding: 6dp 0dp; }
+.guide button.row-checkbox .checkbox-box { margin-top: 2dp; }
+.guide button.row-checkbox .checkbox-label { font-size: 13.5dp; line-height: 1.45; }
+
+/* Measure content is one column: its tabs, rows, lists and graph share a right edge, capped in a
+   very wide drawer so tables stay readable. A sheet is already narrow, and a graph uses the width. */
+.measure .panel { max-width: 880dp; }
+.measure.is-sheet .panel, .measure.is-graph .panel { max-width: none; }
+/* The tab labels end before the close control, which sits on their row and above their rule. */
+.measure .row-tabs .tabs { padding-right: 36dp; }
+.measure button.row.header-action { top: 19dp; }
+.compact .measure button.row.header-action { top: 15dp; }
+/* A choice whose label sits beside it on one line. */
+.measure .row-segmented.group-inline_control { display: flex; flex-direction: row; align-items: center; column-gap: 12dp; }
+.measure .row-segmented.group-inline_control .control-label { flex: 0 0 auto; margin-bottom: 0dp; }
+.measure .row-segmented.group-inline_control .segmented { flex: 0 1 360dp; }
+/* A wide drawer sets the energy shares, headed by the scope, beside the figures, so both are in
+   view together. Each share is one line: name, percentage, bar. */
+.measure .group-energy_side { float: right; clear: right; box-sizing: border-box; width: 42%; }
+.measure .row-segmented.group-energy_side { padding: 0dp 0dp 2dp 0dp; }
+.measure .row-segmented.group-energy_side .control-label { display: none; }
+.measure .row-heading.group-energy_side { padding: 10dp 0dp 2dp 0dp; }
+.measure .row-meter.group-energy_side { flex-wrap: nowrap; align-items: center; column-gap: 10dp; padding: 4dp 0dp; }
+.measure .row-meter.group-energy_side .name { flex: 0 0 auto; width: 36%; }
+.measure .row-meter.group-energy_side .meter { flex: 1 1 auto; width: auto; margin-top: 0dp; }
+.measure .row-meter.group-energy_side .meter-value { flex: 0 0 auto; min-width: 38dp; text-align: right; }
+.measure .row-paragraph.group-energy_side { padding-top: 6dp; font-size: 12dp; line-height: 1.45; }
+/* The figures stay in normal flow beside the floated shares, so their name and value are set
+   inline rather than by a flex row, which would not sit beside a float. */
+.measure .row-readout.group-energy_main { display: block; box-sizing: border-box; width: 54%; }
+.measure .row-readout.group-energy_main .name { display: inline-block; width: 64%; }
+.measure .row-readout.group-energy_main .value { display: inline-block; width: 36%; }
+/* Subtotals (mechanical energy, and the balance against the start) sit under a rule. */
+.measure .row-readout.is-primary { margin-top: 4dp; padding-top: 6dp; border-top-width: 1dp; border-radius: 0dp; }
+.measure .row-readout.is-primary .name, .measure .row-readout.is-primary .value { font-weight: 600; }
+/* A wide drawer sets the graph's controls in a column beside it, so what it plots stays in view. */
+.measure .group-graph_side { float: right; clear: right; box-sizing: border-box; width: 272dp; }
+.measure .row-plot.group-graph_main { margin-right: 292dp; }
+/* Clipping would make the canvas a layout root, which RmlUi sets below floats, not beside them;
+   the plot keeps its own drawing inside its frame. */
+.measure .row-plot.group-graph_main .plot-canvas { overflow: visible; }
+/* The impact controls share one line above the list. */
+.measure .group-collision_controls { display: inline-flex; flex-direction: row; align-items: center; width: auto; margin: 2dp 18dp 4dp 0dp; vertical-align: middle; }
+.measure button.row-switch_control.group-collision_controls { column-gap: 10dp; margin: 2dp 12dp 4dp -6dp; }
+.measure .row-segmented.group-collision_controls { column-gap: 10dp; }
+.measure .row-segmented.group-collision_controls .control-label { margin-bottom: 0dp; }
+/* Measure selects fit their longest usual choice, and a longer object name is clipped before the
+   chevron rather than running beneath it. */
+.measure .row-select .select { min-width: 168dp; max-width: 260dp; }
+.measure select selectvalue { overflow: hidden; white-space: nowrap; }
+
+/* Command search is a palette: the title names it, so the field needs no caption. */
+#panel-command_search .row-text_field .control-label { display: none; }
+
+/* The Measure drawer's resize grip: a centred pill on its top edge. */
+.measure-grip { position: absolute; z-index: 26; cursor: ns-resize; }
+.measure-grip.is-sheet { z-index: 51; }
+.measure-grip-pill { display: block; width: 40dp; height: 4dp; margin: 3dp auto 0dp auto; border-radius: 2dp; }
+
+/* Concept tags in the Guide read as chips rather than loose lines of text. */
+.row-label.group-concepts { display: inline-block; margin: 3dp 4dp 3dp 0dp; padding: 3dp 9dp; border-radius: 11dp; font-size: 11.5dp; font-weight: 500; }
+
+/* Material and energy meters: name and value on one line, the bar beneath. */
+.row-meter { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 12dp; padding: 5dp 0dp 3dp 0dp; }
+.row-meter .name { flex: 1 1 auto; font-size: 12.5dp; }
+.row-meter .meter-value { flex: 0 0 auto; font-size: 12.5dp; }
+.row-meter .meter { flex: 1 1 100%; width: 100%; }
+
+/* ---- Rails: collapsed side surfaces ---------------------------------------------------------- */
+.rail-expand
+{
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; row-gap: 10dp;
+    box-sizing: border-box; width: 100%; height: 100%; margin: 0dp; padding: 12dp 0dp 0dp 0dp; border-width: 2dp; border-radius: 0dp;
+    cursor: pointer; transition: background-color 0.12s cubic-out;
+}
+.rail-expand .icon { width: 28dp; font-size: 16dp; text-align: center; }
+.rail-label { display: block; width: 64dp; font-size: 11.5dp; font-weight: 600; text-align: center; margin-top: 26dp; transform: rotate(90deg); }
+#region-guide-rail { border-right-width: 1dp; }
+#region-inspector-rail { border-left-width: 1dp; }
+.rail-horizontal .rail-expand { flex-direction: row; justify-content: flex-start; column-gap: 8dp; padding: 0dp 12dp; }
+.rail-horizontal .rail-label { flex: 0 1 auto; width: auto; min-width: 0dp; margin-top: 0dp; overflow: hidden; white-space: nowrap; transform: none; font-size: 12.5dp; }
+.rail-chevron { display: none; }
+.rail-horizontal .rail-chevron { display: block; flex: 0 0 auto; width: 16dp; margin-left: auto; font-size: 14dp; }
+
+/* ---- Popovers and menus ------------------------------------------------------------------- */
+.popovers { box-sizing: border-box; padding: 6dp; border-width: 1dp; border-radius: 10dp; animation: 0.12s cubic-out popover-in; }
+.popovers .panel { margin: 0dp; padding: 0dp; border-width: 0dp; border-radius: 0dp; animation: none; }
+@keyframes popover-in { from { opacity: 0.0; } to { opacity: 1.0; } }
+.popovers .row-title { font-size: 12.5dp; font-weight: 600; text-transform: none; letter-spacing: 0dp; padding: 6dp 8dp 6dp 8dp; }
+.popovers .row-heading { padding: 10dp 8dp 4dp 8dp; }
+.popovers .row-heading:first-child { padding-top: 4dp; }
+.popovers .row-paragraph { font-size: 12.5dp; line-height: 1.45; padding: 2dp 8dp; }
+.popovers button.row { min-height: 30dp; padding: 0dp 8dp; margin: 0dp; column-gap: 10dp; border-radius: 6dp; font-weight: 400; }
+.popovers button.row .shortcut { display: block; }
+.popovers button.row .icon { display: block; width: 16dp; }
+.popovers button.row-switch_control { padding: 0dp 8dp; }
+.popovers .row-readout, .popovers .row-number, .popovers .row-select, .popovers .row-segmented, .popovers .row-radio_list, .popovers .row-stepper, .popovers .row-label { padding-left: 8dp; padding-right: 8dp; }
+.popovers button.row-switch_control { padding: 0dp 6dp; }
+.popovers button.row-section { margin: 8dp 0dp 2dp 0dp; padding: 8dp 8dp 4dp 8dp; }
+.popovers .menu-overflow { margin-bottom: 6dp; padding-bottom: 6dp; border-bottom-width: 1dp; }
+#panel-hover_card { padding: 2dp 4dp; }
+#panel-hover_card .row-title { padding: 0dp 0dp 4dp 0dp; }
+#panel-hover_card .row-paragraph { padding: 1dp 0dp; font-size: 12dp; }
+#panel-visualization { padding: 2dp 4dp 4dp 4dp; }
+
+/* Popover shadow: translucent rounded layers beneath the card, drawn in the interface layer so
+   the shadow also falls across docked panels. */
+.shadow-layer { position: absolute; z-index: 59; display: none; }
+.shadow-layer div { position: absolute; display: block; }
+.shadow-layer .s1 { left: -1dp; top: 0dp; right: -1dp; bottom: -2dp; border-radius: 11dp; }
+.shadow-layer .s2 { left: -3dp; top: 1dp; right: -3dp; bottom: -5dp; border-radius: 13dp; }
+.shadow-layer .s3 { left: -6dp; top: 2dp; right: -6dp; bottom: -9dp; border-radius: 16dp; }
+.shadow-layer .s4 { left: -10dp; top: 3dp; right: -10dp; bottom: -14dp; border-radius: 20dp; }
+.shadow-layer .s5 { left: -15dp; top: 4dp; right: -15dp; bottom: -20dp; border-radius: 25dp; }
+
+/* ---- Sheets and dialogs -------------------------------------------------------------------- */
+/* The dialog box spans the window between margins; a shorter card sits centred within it. */
+.sheets { display: flex; flex-direction: column; justify-content: center; }
+#panel-command_search { width: 560dp; max-width: 100%; margin: 6% auto auto auto; }
+.sheets .panel
+{
+    flex: 0 1 auto; box-sizing: border-box; max-height: 100%; overflow-x: hidden; overflow-y: auto;
+    padding: 22dp 24dp 24dp 24dp; border-width: 1dp; border-radius: 12dp; animation: 0.16s cubic-out panel-in;
+}
+.sheets .row-title { font-size: 18dp; padding: 2dp 44dp 12dp 0dp; }
+.sheets .panel scrollbarvertical { margin: 14dp 3dp 14dp 0dp; }
+/* The Library meets the window's left and bottom edges, so it has neither border nor rounding
+   there: a translucent edge would show the docked Guide's text through it. */
+.sheets #panel-library { height: 100%; border-width: 0dp 1dp 0dp 0dp; border-radius: 0dp 12dp 0dp 0dp; }
+.compact .sheets #panel-library { border-width: 0dp; border-radius: 0dp; }
+.sheets .select { min-width: 168dp; }
+.sheets .row-select .select, .inspector .row-select .select, .guide .row-select .select { min-width: 150dp; }
+.scrim { position: absolute; left: 0dp; top: 0dp; right: 0dp; bottom: 0dp; }
+
+/* ---- Banner, hint card, toasts, tooltip ------------------------------------------------------ */
+.banner .panel { padding: 0dp; background-color: transparent; }
+.banner .row-notice { margin: 0dp; padding: 9dp 14dp; border-left-width: 0dp; border-radius: 8dp; border-width: 1dp; font-size: 13dp; }
+.hint .panel { padding: 14dp 16dp; border-width: 1dp; border-radius: 10dp; }
+.hint .row-title { font-size: 13dp; padding-bottom: 4dp; }
+.hint .row-paragraph { font-size: 12.5dp; }
+.hint button.row { display: inline-flex; min-height: 28dp; padding: 0dp 12dp; margin-top: 6dp; }
+.toast { display: block; margin-top: 8dp; padding: 10dp 12dp 10dp 14dp; border-width: 1dp; border-left-width: 3dp; border-radius: 8dp; font-size: 12.5dp; }
+.toast-dismiss { float: right; min-width: 22dp; min-height: 22dp; margin: -4dp -6dp 0dp 8dp; padding: 0dp; border-width: 2dp; border-radius: 5dp; }
+.toast-action { display: inline-block; min-height: 24dp; margin-top: 6dp; padding: 0dp 10dp; border-width: 1dp; border-radius: 6dp; font-weight: 500; }
+.tooltip { padding: 5dp 8dp; border-radius: 6dp; font-size: 12dp; font-weight: 500; white-space: nowrap; }
+.tooltip-key { margin-left: 8dp; font-size: 11.5dp; font-weight: 400; }
+.status-chip { display: inline-block; padding: 3dp 8dp; border-radius: 10dp; }
+.icon { font-family: Phosphor; font-weight: 400; text-transform: none; letter-spacing: 0dp; }
+.icon-mirror { transform: scale(-1, 1); }
+
+/* ---- Plot ------------------------------------------------------------------------------------ */
+/* The <plot> element paints its axes, legend, series and read-out itself. Its hidden plotpart
+   children carry the colours (themes.rcss) and type sizes (below) that it paints with. With a
+   max-height the canvas fills the visible height of its scrolling region, between the min and max. */
+.row-plot { padding: 4dp 0dp 8dp 0dp; }
+.plot-canvas { display: block; box-sizing: border-box; height: 168dp; min-height: 124dp; max-height: 520dp; margin: 0dp; padding: 8dp 12dp 6dp 10dp; border-width: 1dp; border-radius: 8dp; overflow: hidden; font-size: 10.5dp; cursor: crosshair; }
+.plot-caption { font-size: 11.5dp; font-weight: 500; }
+.plot-key { font-size: 11.5dp; }
+.plot-tick { font-size: 10.5dp; }
+.plot-marker { font-size: 11dp; font-weight: 500; }
+.plot-tooltip { font-size: 11.5dp; font-weight: 600; }
+.plot-tooltip-muted { font-size: 11.5dp; }
+.plot-empty { font-size: 13dp; font-weight: 500; }
+.plot-empty-detail { font-size: 11.5dp; }
+.plot-icon { font-family: Phosphor; font-size: 22dp; font-weight: 400; }

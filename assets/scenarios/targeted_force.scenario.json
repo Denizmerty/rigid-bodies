@@ -1,0 +1,316 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "motion_and_gravity",
+    "collection_order": 3,
+    "hook": "Two equal balls start side by side. An extra force pulls one towards a marker.",
+    "lab": false,
+    "level": "intro",
+    "tags": ["body forces","force superposition","attraction"],
+    "concepts": ["body forces", "force superposition", "attraction"],
+    "id": "targeted_force",
+    "prerequisites": ["free_fall"],
+    "suggested_order": 50,
+    "summary": "Both balls feel gravity. The free ball falls to the floor, while an extra force pulls the right ball up and sideways towards the marker.",
+    "title": "A force on one object"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"Compare the two balls' forces. Both feel gravity, and the right ball also feels a pull towards the marker.","predict":{"prompt":"With gravity turned off, how does the attracted ball move?","options":["Toward the marker","Straight down","It remains still"]},"variables":[{"control":"world.gravity.enabled","label":"Gravity"}],"steps":[{"text":"Inspect the applied-force rows for the free ball and the attracted ball.","control":"object.forces.channels","body":"body-2-3"},{"text":"Turn gravity off and press R to see the attraction on its own.","control":"world.gravity.enabled"},{"text":"Graph velocity x to compare the attracted and free balls.","open":"measure.graph"}],"expect":"Only the attracted ball feels the pull towards the marker. Turning off gravity removes the downward force shared by both balls.","limits":"This example applies a prescribed attraction to one ball. The objects do not attract one another through gravity."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "view": {"center_x_m":0.45,"center_y_m":0.8,"width_m":2.7,"height_m":2.4},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [{
+            "enabled": true,
+            "position_m": [1, 1.2],
+            "stiffness_n_m": 8,
+            "type": "point_attractor"
+          }],
+        "gravity_scale": 1,
+        "id": "body-2-3",
+        "label": "Attracted ball",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.5,
+        "motion": null,
+        "name": "attracted_ball",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0.29999999999999999,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.080000000000000002,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0.59999999999999998, 0.5],
+        "sleep_enabled": true,
+        "stable_key": "attracted_ball",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Attraction point",
+        "role": "marker",
+        "caption": "Reference marker; it is not selectable and is excluded from measurements.",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "attraction_point",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": true,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 7850,
+              "drag_coefficient": 1,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.55000000000000004,
+              "name": "steel",
+              "restitution": 0.55000000000000004,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.69999999999999996
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.025000000000000001,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [1, 1.2],
+        "sleep_enabled": true,
+        "stable_key": "attraction_point",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-1-2",
+        "label": "Free ball",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.5,
+        "motion": null,
+        "name": "free_ball",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0.29999999999999999,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.080000000000000002,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-0.59999999999999998, 0.5],
+        "sleep_enabled": true,
+        "stable_key": "free_ball",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-3-4",
+        "label": "Floor",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "floor",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0.29999999999999999,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-1.45, -0.050000000000000003], [1.45, -0.050000000000000003], [1.45, 0.050000000000000003], [-1.45, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0.45000000000000001, -0.050000000000000003],
+        "sleep_enabled": true,
+        "stable_key": "floor",
+        "type": "static"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{6A4CBF30-023F-5A0C-AD5F-08454CF5FA55}</ProjectGuid>
+    <ProjectName>RigidBodies.Core</ProjectName>
+    <RootNamespace>RigidBodiesCore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="RigidBodies.props" />
+    <Import Project="RigidBodies.Code.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(RigidBodiesRoot)src\RigidBodies.Core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\project_identity.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\core\application_config.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\core\display_units.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\core\log.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\core\resource_paths.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Core\include\rigidbodies\core\text_format.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.Core\src\application_config.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Core\src\log.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Core\src\resource_paths.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Core\src\quantity_format.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Core\src\text_format.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

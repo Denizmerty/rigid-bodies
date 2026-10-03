@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{FA4120F0-3B82-58C1-82D6-91CDF5DA2270}</ProjectGuid>
+    <ProjectName>RigidBodies.App</ProjectName>
+    <RootNamespace>RigidBodiesApp</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="RigidBodies.props" />
+    <Import Project="RigidBodies.Code.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(RigidBodiesOutputDir)</OutDir>
+    <TargetName>rigid_bodies</TargetName>
+    <RigidBodiesStageApplicationFiles>true</RigidBodiesStageApplicationFiles>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(RigidBodiesRoot)src\RigidBodies.App\include;$(RigidBodiesRoot)src\RigidBodies.Ui\include;$(RigidBodiesRoot)src\RigidBodies.Render\include;$(RigidBodiesRoot)src\RigidBodies.Core\include;$(RigidBodiesRoot)src\RigidBodies.Physics\include;$(RigidBodiesRoot)src\RigidBodies.Math\include;$(RigidBodiesSdlDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>RIGIDBODIES_HAS_RMLUI=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <!-- CMake's link order, which fixes the layout of the program. The project references only order the build. -->
+      <AdditionalDependencies>$(RigidBodiesLibraryDir)RigidBodies.AppCore.lib;$(RigidBodiesLibraryDir)RigidBodies.Ui.lib;$(RigidBodiesLibraryDir)RigidBodies.Render.lib;$(RigidBodiesLibraryDir)RigidBodies.Physics.lib;$(RigidBodiesLibraryDir)RigidBodies.Core.lib;$(RigidBodiesSdlLibrary);$(RigidBodiesLibraryDir)RigidBodies.Math.lib;$(RigidBodiesLibraryDir)rmlui.lib;$(RigidBodiesLibraryDir)freetype.lib;$(RigidBodiesSystemLibraries)</AdditionalDependencies>
+    </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(RigidBodiesRoot)src\RigidBodies.Core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\application.hpp" />
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\developer_overlay.hpp" />
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\frame_capture.hpp" />
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\input.hpp" />
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\window.hpp" />
+    <ClInclude Include="..\src\RigidBodies.App\include\rigidbodies\app\window_chrome.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.App\src\application.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\content_dialog.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\frame_capture.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\input.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\main.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\window.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\window_chrome.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\RigidBodies.App\resources\rigid_bodies.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\RigidBodies.App\src\developer_overlay.cpp" />
+    <None Include="..\assets\README.md" />
+    <None Include="..\assets\fonts\Inter-Medium.ttf" />
+    <None Include="..\assets\fonts\Inter-Regular.ttf" />
+    <None Include="..\assets\fonts\Inter-SemiBold.ttf" />
+    <None Include="..\assets\fonts\OFL-Inter.txt" />
+    <None Include="..\assets\fonts\Phosphor-Regular-subset.ttf" />
+    <None Include="..\assets\fonts\README.md" />
+    <None Include="..\assets\licenses\DearImGui-MIT.txt" />
+    <None Include="..\assets\licenses\FreeType-FTL.txt" />
+    <None Include="..\assets\licenses\Phosphor-MIT.txt" />
+    <None Include="..\assets\licenses\RmlUi-MIT.txt" />
+    <None Include="..\assets\licenses\SDL-zlib.txt" />
+    <None Include="..\assets\scenarios\README.md" />
+    <None Include="..\assets\scenarios\aerodynamic_profiles.scenario.json" />
+    <None Include="..\assets\scenarios\asymmetric_aerodynamics.scenario.json" />
+    <None Include="..\assets\scenarios\breakable_joint.scenario.json" />
+    <None Include="..\assets\scenarios\collision_comparison.scenario.json" />
+    <None Include="..\assets\scenarios\compound_object.scenario.json" />
+    <None Include="..\assets\scenarios\distance_chain.scenario.json" />
+    <None Include="..\assets\scenarios\empty_lab.scenario.json" />
+    <None Include="..\assets\scenarios\fast_projectile.scenario.json" />
+    <None Include="..\assets\scenarios\free_fall.scenario.json" />
+    <None Include="..\assets\scenarios\friction_comparison.scenario.json" />
+    <None Include="..\assets\scenarios\gravity_scales.scenario.json" />
+    <None Include="..\assets\scenarios\magnus_effect.scenario.json" />
+    <None Include="..\assets\scenarios\mass_distribution.scenario.json" />
+    <None Include="..\assets\scenarios\prescribed_motion.scenario.json" />
+    <None Include="..\assets\scenarios\prismatic_drive.scenario.json" />
+    <None Include="..\assets\scenarios\ramp.scenario.json" />
+    <None Include="..\assets\scenarios\restitution_drop.scenario.json" />
+    <None Include="..\assets\scenarios\revolute_drive.scenario.json" />
+    <None Include="..\assets\scenarios\shape_workshop.scenario.json" />
+    <None Include="..\assets\scenarios\spinning_shapes.scenario.json" />
+    <None Include="..\assets\scenarios\spring_damping.scenario.json" />
+    <None Include="..\assets\scenarios\stable_stack.scenario.json" />
+    <None Include="..\assets\scenarios\targeted_force.scenario.json" />
+    <None Include="..\assets\scenarios\welded_assembly.scenario.json" />
+    <None Include="..\assets\ui\components.rcss" />
+    <None Include="..\assets\ui\geometry.rcss" />
+    <None Include="..\assets\ui\playground.rcss" />
+    <None Include="..\assets\ui\playground.rml" />
+    <None Include="..\assets\ui\themes.rcss" />
+    <None Include="..\config\application.cfg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\assets\branding\rigid-bodies.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="RigidBodies.AppCore.vcxproj">
+      <Project>{E87FF981-58DF-57F0-A4BD-F31B08D4DB99}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="RigidBodies.Ui.vcxproj">
+      <Project>{3E03CC98-6BBC-5F1F-B496-5F3EE6A423CE}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="RigidBodies.Render.vcxproj">
+      <Project>{BAA3470E-FD0B-5902-9D14-54AF7E767586}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="RigidBodies.Physics.vcxproj">
+      <Project>{E1146FAB-08BA-53C7-AB59-B05CBDD7FF2A}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="RigidBodies.Core.vcxproj">
+      <Project>{6A4CBF30-023F-5A0C-AD5F-08454CF5FA55}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="RigidBodies.Math.vcxproj">
+      <Project>{88CEAF7A-1F10-5BFB-97A9-1ABB176DFECB}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="thirdparty\RmlUi.vcxproj">
+      <Project>{4DDF1DBB-F4BE-5AD9-B044-D21D88DF89E3}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="thirdparty\FreeType.vcxproj">
+      <Project>{D105EF62-7EB4-5DCE-A026-1636EB227C6E}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="RigidBodies.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

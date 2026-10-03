@@ -1,0 +1,24 @@
+/* Base typography and accessibility overrides. Loaded last so Reduce Motion wins over every
+   component's animation and transition.
+
+   Type scale (dp): 19 Present title, 18 dialog title, 15 panel title, 13.5 body and scenario title,
+   13 controls, 12.5 labels, 12 status and secondary text, 10.5 section headings (caps). Inter has
+   tabular figures by default, so live read-outs never shift as their digits change. */
+/* The body spans the window so regions anchored to its bottom edge (hint, lesson caption) resolve
+   against the viewport rather than an empty, zero-height box. */
+body { position: absolute; left: 0dp; top: 0dp; right: 0dp; bottom: 0dp; font-family: Inter; font-size: 13dp; font-weight: 400; line-height: 1.4; }
+.reduce-motion .present-caption .panel { animation: none; }
+input, select, button { font-family: Inter; font-size: 13dp; }
+
+/* Small styles shrink less than body text at reduced text sizes, so caps labels, chips, hints and
+   badges stay near 10 px: text-floor-1 applies from 85 to 95 % of a reference pixel per dp and
+   text-floor-2 below that. */
+.text-floor-1 .row-heading, .text-floor-1 button.row-section, .text-floor-1 .list-badges, .text-floor-1 .row-label.group-concepts, .text-floor-1 button.row .shortcut, .text-floor-1 button.row.has-badge .badge, .text-floor-1 .control-hint, .text-floor-1 .control-range, .text-floor-1 .editing-tag, .text-floor-1 .field-error, .text-floor-1 .rail-label, .text-floor-1 .command-bar .row-readout .value, .text-floor-1 .tooltip-key { font-size: 12dp; }
+.text-floor-2 .row-heading, .text-floor-2 button.row-section, .text-floor-2 .list-badges, .text-floor-2 .row-label.group-concepts, .text-floor-2 button.row .shortcut, .text-floor-2 button.row.has-badge .badge, .text-floor-2 .control-hint, .text-floor-2 .control-range, .text-floor-2 .editing-tag, .text-floor-2 .field-error, .text-floor-2 .rail-label, .text-floor-2 .command-bar .row-readout .value, .text-floor-2 .tooltip-key { font-size: 12.5dp; }
+.text-floor-2 .unit, .text-floor-2 .list-secondary, .text-floor-2 .status-line .row-readout, .text-floor-2 .status-line button.row, .text-floor-2 .tooltip, .text-floor-2 .tabs .segment, .text-floor-2 .row-label, .text-floor-2 .control-label, .text-floor-2 .switch-label, .text-floor-2 .row-readout .name { font-size: 12.5dp; }
+.text-floor-1 .row-heading.group-object_name, .text-floor-2 .row-heading.group-object_name { font-size: 15dp; }
+
+.reduce-motion .panel, .reduce-motion .popovers, .reduce-motion .popovers .panel, .reduce-motion .sheets .panel { animation: none; }
+.reduce-motion button.row, .reduce-motion .segment, .reduce-motion .rail-expand, .reduce-motion .window-control { transition: none; }
+.reduce-motion .row-value, .reduce-motion .row-readout { transition: none; }
+.reduce-motion .switch-knob { transition: none; }

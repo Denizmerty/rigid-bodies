@@ -1,0 +1,248 @@
+surface=command_bar model=spring
+kind=0	key=	instance=	label=Golden fixture	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=bar.state	instance=	label=State	value=Ready	unit=	tone=2	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=transport.back_to_start	instance=	label=Back to start	value=	unit=	tone=0	enabled=0	reason=Already at the starting setup.	live=0	spec=	command=19,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=transport.play	instance=	label=Play	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=17,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=transport.step	instance=	label=Step	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=18,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=10	key=bar.speed.choice	instance=	label=Playback speed	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=bar.speed.choice	command=25,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=transport.step_many	instance=	label=Step 10 frames	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=92,,10,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=transport.back_to_start	instance=replay	label=Replay from start	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=19,replay,0,0,1,0:0,bodies=,detail=,phase=0
+kind=6	key=measure.collisions.pause_next	instance=	label=Play until next impact	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=109,,0,0,1,0:0,bodies=,detail=,phase=0
+kind=6	key=object.menu.keep_as_start	instance=	label=Keep as starting state	value=	unit=	tone=0	enabled=0	reason=Already at the starting setup.	live=0	spec=	command=97,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=tools.mode	instance=	label=Tools	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=tools.mode	command=4,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=bar.history.undo	instance=	label=Undo	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=1,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=bar.history.redo	instance=	label=Redo	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=2,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=5	key=	instance=	label=	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=view.add	instance=	label=Add	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:add,phase=0
+kind=6	key=view.library	instance=	label=Library	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:library,phase=0
+kind=6	key=view.guide	instance=	label=Guide	value=	unit=	tone=0	enabled=0	reason=This experiment has no guide.	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:guide,phase=0
+kind=6	key=view.inspector	instance=	label=Inspector	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:inspector,phase=0
+kind=6	key=view.show	instance=	label=Show	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:show,phase=0
+kind=6	key=view.measure	instance=	label=Measure	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:measure,phase=0
+kind=6	key=view.menu	instance=	label=Menu	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:menu,phase=0
+surface=status_line model=spring
+kind=19	key=bar.time.readout	instance=	label=Time	value=0.00 s	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=status.selection	instance=	label=Selected	value=1 selected	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=status.lab.revert	instance=	label=Lab: Runge–Kutta 4	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=99,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=5	key=	instance=	label=	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=status.view_height	instance=	label=View height	value=View height 4.00 m	unit=	tone=5	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.subject	instance=	label=Frame subject	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=80,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.everything	instance=	label=Frame everything	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=76,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=library model=spring
+kind=0	key=	instance=	label=Library	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=library.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+kind=21	key=library.top.search	instance=	label=Search experiments	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=library.top.collection	instance=	label=All collections	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.collection=motion_and_gravity,phase=0
+kind=6	key=library.top.visited	instance=	label=Unopened only	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.visited=unvisited,phase=0
+kind=6	key=library.top.sort	instance=	label=Sort: By collection	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.sort=suggested,phase=0
+kind=1	key=	instance=	label=My setups	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=library.setups.open_file	instance=	label=Open setup…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=22,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c21	instance=	label=Save setup	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=21,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c24	instance=	label=Import shape	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=24,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Motion and gravity	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=free_fall	label=Free fall	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=free_fall,phase=0	action=Back to experiment,0,,detail=view:close,primary=1
+kind=20	key=library.cards.card	instance=gravity_scales	label=Gravity scales	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=gravity_scales,phase=0
+kind=20	key=library.cards.card	instance=targeted_force	label=A force on one object	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=targeted_force,phase=0
+kind=20	key=library.cards.card	instance=prescribed_motion	label=Driven motion	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=prescribed_motion,phase=0
+kind=1	key=	instance=	label=Spin and mass	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=spinning_shapes	label=Spin and inertia	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=spinning_shapes,phase=0
+kind=20	key=library.cards.card	instance=compound_object	label=Compound object	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=compound_object,phase=0
+kind=20	key=library.cards.card	instance=mass_distribution	label=Hollow and compound mass	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=mass_distribution,phase=0
+kind=1	key=	instance=	label=Friction and support	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=ramp	label=Ramp and friction	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=ramp,phase=0
+kind=20	key=library.cards.card	instance=stable_stack	label=A resting stack	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=stable_stack,phase=0
+kind=20	key=library.cards.card	instance=friction_comparison	label=Friction and rolling	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=friction_comparison,phase=0
+kind=1	key=	instance=	label=Bounces and collisions	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=restitution_drop	label=Restitution drop	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=restitution_drop,phase=0
+kind=20	key=library.cards.card	instance=collision_comparison	label=Three kinds of collision	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=collision_comparison,phase=0
+kind=20	key=library.cards.card	instance=fast_projectile	label=A fast projectile	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=fast_projectile,phase=0
+kind=1	key=	instance=	label=Moving through air	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=aerodynamic_profiles	label=Broadside and edge-on	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=aerodynamic_profiles,phase=0
+kind=20	key=library.cards.card	instance=magnus_effect	label=Spin in air	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=magnus_effect,phase=0
+kind=20	key=library.cards.card	instance=asymmetric_aerodynamics	label=Tumbling profiles	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=asymmetric_aerodynamics,phase=0
+kind=1	key=	instance=	label=Springs joints and machines	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=spring_damping	label=Springs and dampers	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=spring_damping,phase=0
+kind=20	key=library.cards.card	instance=distance_chain	label=Rods and chains	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=distance_chain,phase=0
+kind=20	key=library.cards.card	instance=revolute_drive	label=A driven hinge	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=revolute_drive,phase=0
+kind=20	key=library.cards.card	instance=prismatic_drive	label=A driven slider	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=prismatic_drive,phase=0
+kind=20	key=library.cards.card	instance=welded_assembly	label=A welded assembly	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=welded_assembly,phase=0
+kind=20	key=library.cards.card	instance=breakable_joint	label=When a joint breaks	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=breakable_joint,phase=0
+kind=1	key=	instance=	label=Make your own	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=shape_workshop	label=Shape workshop	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=shape_workshop,phase=0
+kind=20	key=library.cards.card	instance=empty_lab	label=Empty lab	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=empty_lab,phase=0
+surface=main_menu model=spring
+kind=1	key=	instance=	label=File	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=menu.file.open_setup	instance=	label=Open setup…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=22,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=menu.file.save_setup	instance=	label=Save setup	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=21,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=menu.file.save_setup_as	instance=	label=Save setup as…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=21,,0,0,1,0:0,bodies=,detail=,phase=0
+kind=6	key=world.original.restore	instance=	label=Restore original	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=96,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=changes.item.revert	instance=setup	label=Revert setup changes	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=98,setup,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=View	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=menu.view.present	instance=	label=Present	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:present,phase=0
+kind=6	key=menu.view.search	instance=	label=Command search…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:search,phase=0
+kind=6	key=menu.view.performance_overlay	instance=	label=Performance overlay	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:performance,phase=0
+kind=6	key=camera.frame.subject	instance=	label=Frame subject	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=80,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.everything	instance=	label=Frame everything	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=76,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.selection	instance=	label=Frame selection	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=77,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Capture	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c15	instance=	label=Save image	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=15,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c16	instance=	label=Record image sequence	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=16,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=menu.capture.open_folder	instance=	label=Open captures folder	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=94,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Help	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=view.shortcuts	instance=	label=Keyboard shortcuts	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:shortcuts,phase=0
+kind=6	key=view.preferences	instance=	label=Preferences…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:preferences,phase=0
+kind=6	key=view.about	instance=	label=About Rigid Bodies	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:about,phase=0
+kind=6	key=legacy.command.c79	instance=	label=Quit	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=79,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=preferences model=spring
+kind=0	key=	instance=	label=Preferences	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=prefs.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+kind=1	key=	instance=	label=Appearance	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=prefs.appearance.theme	instance=	label=Theme	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.appearance.theme	command=85,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.appearance.text_size	instance=	label=Text size	value=	unit=%	tone=0	enabled=1	reason=	live=0	spec=prefs.appearance.text_size	command=5,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Accessibility	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.accessibility.reduce_motion	instance=	label=Reduce motion	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.accessibility.reduce_motion	command=95,prefs.accessibility.reduce_motion,0,0,1,0:0,bodies=,detail=prefs.accessibility.reduce_motion,phase=0
+kind=1	key=	instance=	label=Playback	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.playback.pause_in_background	instance=	label=Pause when the window is in the background	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.playback.pause_in_background	command=95,prefs.playback.pause_in_background,0,0,1,0:0,bodies=,detail=prefs.playback.pause_in_background,phase=0
+kind=1	key=	instance=	label=Experiments	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=prefs.experiments.reset_hints	instance=	label=Show first-run hints again	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=reset-hints,phase=0
+kind=10	key=prefs.experiments.on_start	instance=	label=On start	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.experiments.on_start	command=95,prefs.experiments.on_start,0,0,0,0:0,bodies=,detail=prefs.experiments.on_start,phase=0
+kind=14	key=prefs.experiments.open_running	instance=	label=Open experiments running	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.experiments.open_running	command=95,prefs.experiments.open_running,0,0,1,0:0,bodies=,detail=prefs.experiments.open_running,phase=0
+kind=14	key=prefs.experiments.keep_lab_settings	instance=	label=Keep lab settings when changing experiment	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.experiments.keep_lab_settings	command=95,prefs.experiments.keep_lab_settings,0,0,0,0:0,bodies=,detail=prefs.experiments.keep_lab_settings,phase=0
+kind=14	key=prefs.experiments.recommended_view	instance=	label=Use recommended view	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.experiments.recommended_view	command=95,prefs.experiments.recommended_view,0,0,0,0:0,bodies=,detail=prefs.experiments.recommended_view,phase=0
+kind=14	key=prefs.experiments.ask_predictions	instance=	label=Ask for predictions	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.experiments.ask_predictions	command=95,prefs.experiments.ask_predictions,0,0,0,0:0,bodies=,detail=prefs.experiments.ask_predictions,phase=0
+kind=1	key=	instance=	label=Visual effects	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=prefs.effects.quality	instance=	label=Effects quality	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.quality	command=95,prefs.effects.quality,0,0,0,0:0,bodies=,detail=prefs.effects.quality,phase=0
+kind=14	key=prefs.effects.material_shading	instance=	label=Material shading	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.material_shading	command=13,material_shading,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.contact_shadows	instance=	label=Contact shadows	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.contact_shadows	command=13,contact_shadows,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.depth_background	instance=	label=Background depth	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.depth_background	command=13,depth_background,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.motion_trails	instance=	label=Motion trails	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.motion_trails	command=13,motion_trails,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.directional_blur	instance=	label=Directional blur	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.directional_blur	command=13,directional_blur,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.impact_flashes	instance=	label=Impact flashes	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.impact_flashes	command=13,impact_flashes,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.impact_sparks	instance=	label=Impact sparks	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.impact_sparks	command=13,impact_sparks,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.impact_dust	instance=	label=Impact dust	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.impact_dust	command=13,impact_dust,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.soft_deformation	instance=	label=Soft impact cues	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.soft_deformation	command=13,soft_deformation,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=prefs.effects.transitions	instance=	label=Smooth transitions	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.effects.transitions	command=13,transitions,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Effect limits	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.motion_body_budget	instance=	label=Objects with trails	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.motion_body_budget	command=14,motion_body_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.directional_blur_budget	instance=	label=Objects with blur	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.directional_blur_budget	command=14,directional_blur_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.shading_body_budget	instance=	label=Shaded objects	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.shading_body_budget	command=14,shading_body_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.contact_shadow_budget	instance=	label=Contact shadows	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.contact_shadow_budget	command=14,contact_shadow_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.impact_flash_budget	instance=	label=Impact flashes	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.impact_flash_budget	command=14,impact_flash_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.spark_budget	instance=	label=Sparks	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.spark_budget	command=14,spark_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.dust_budget	instance=	label=Dust particles	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.dust_budget	command=14,dust_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=prefs.limits.deformation_budget	instance=	label=Soft impact cues	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.limits.deformation_budget	command=14,deformation_budget,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=prefs.effects.restore_defaults	instance=prefs.effects.restore_defaults	label=Restore effects defaults	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=95,prefs.effects.restore_defaults,0,0,0,0:0,bodies=,detail=prefs.effects.restore_defaults,phase=0
+kind=1	key=	instance=	label=Capture	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=prefs.capture.area	instance=	label=Capture area	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.capture.area	command=95,prefs.capture.area,0,0,0,0:0,bodies=,detail=prefs.capture.area,phase=0
+kind=6	key=menu.capture.open_folder	instance=	label=Open captures folder	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=94,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Controls	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=prefs.performance.overlay	instance=	label=Toggle Performance overlay	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:performance,phase=0
+kind=8	key=prefs.controls.zoom_speed	instance=	label=Wheel zoom speed	value=	unit=×	tone=0	enabled=1	reason=	live=0	spec=prefs.controls.zoom_speed	command=12,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=save_details model=spring
+kind=0	key=	instance=	label=Save details	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=save_details.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+kind=21	key=save.title	instance=	label=Title	value=Golden fixture (my version)	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Save	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=save.mode.starting	instance=	label=The starting setup	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:save.mode=starting,phase=0
+kind=6	key=save.mode.current	instance=	label=The current moment	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:save.mode=current,phase=0
+kind=14	key=save.include_guide	instance=	label=Include the guide	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:save.include_guide=false,phase=0
+kind=6	key=save.apply	instance=	label=Save setup…	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=21,,0,0,1,0:0,bodies=,detail=Golden fixture (my version),phase=0
+kind=6	key=save.cancel	instance=	label=Cancel	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+surface=shortcuts model=spring
+kind=0	key=	instance=	label=Keyboard shortcuts	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=shortcuts.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+kind=3	key=	instance=	label=Keyboard shortcuts are off while you type in a text field. Esc closes the topmost sheet or menu.	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=about model=spring
+kind=0	key=	instance=	label=Rigid Bodies	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=about.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
+kind=3	key=	instance=	label=An interactive 2D playground for exploring how rigid bodies move.	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Version	value=1.0.0	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Author	value=Deniz Mert Yayla	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Contact	value=denizmerty@gmail.com	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=License	value=MIT License	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=3	key=	instance=	label=Copyright © 2026 Deniz Mert Yayla	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Credits	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Interface type	value=Inter, SIL Open Font License	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Icons	value=Phosphor Icons, MIT License	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=confirmation model=spring
+surface=visualization model=spring
+kind=0	key=	instance=	label=Show	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=show.presets.preset	instance=	label=Presets	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.presets.preset	command=32,,16927,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Objects	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.bodies	instance=	label=Objects	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.bodies	command=86,bodies,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.outlines	instance=	label=Outlines	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.outlines	command=86,outlines,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.labels	instance=	label=Labels	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.labels	command=86,labels,0,0,1,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Motion	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.velocity	instance=	label=Velocity	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.velocity	command=86,velocity,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.acceleration	instance=	label=Acceleration	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.acceleration	command=86,acceleration,0,0,1,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.momentum	instance=	label=Momentum	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.momentum	command=86,momentum,0,0,1,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.angular_velocity	instance=	label=Spin	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.angular_velocity	command=86,angular_velocity,0,0,1,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.trajectories	instance=	label=Trajectories	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.trajectories	command=86,trajectories,0,0,1,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Forces and contact	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.force	instance=	label=Forces	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.force	command=86,force,0,0,1,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.contact_points	instance=	label=Contact points	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.contact_points	command=86,contact_points,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.contact_normals	instance=	label=Contact normals	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.contact_normals	command=86,contact_normals,0,0,1,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.constraints	instance=	label=Joints and springs	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.constraints	command=86,constraints,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Reference	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.grid	instance=	label=Grid	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.grid	command=86,grid,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.layer.center_of_mass	instance=	label=Centre of mass	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.layer.center_of_mass	command=86,center_of_mass,0,0,0,0:0,bodies=,detail=,phase=0
+kind=17	key=show.internals	instance=	label=Engine internals	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=17	key=show.arrows	instance=	label=Arrows	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=show.arrows.scope	instance=	label=Arrow scope	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.arrows.scope	command=93,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=14	key=show.arrows.auto_length	instance=	label=Automatic arrow length	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.arrows.auto_length	command=35,,0,0,1,0:0,bodies=,detail=,phase=0
+kind=8	key=show.arrows.scale	instance=velocity	label=Velocity arrows	value=	unit=×	tone=0	enabled=1	reason=	live=0	spec=show.arrows.scale	command=36,velocity,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=show.arrows.scale	instance=acceleration	label=Acceleration arrows	value=	unit=×	tone=0	enabled=1	reason=	live=0	spec=show.arrows.scale	command=36,acceleration,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=show.arrows.scale	instance=force	label=Force arrows	value=	unit=×	tone=0	enabled=1	reason=	live=0	spec=show.arrows.scale	command=36,force,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=show.arrows.scale	instance=momentum	label=Momentum arrows	value=	unit=×	tone=0	enabled=1	reason=	live=0	spec=show.arrows.scale	command=36,momentum,0,0,0,0:0,bodies=,detail=,phase=0
+kind=11	key=show.arrows.split	instance=	label=Split arrows	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=show.arrows.split	command=83,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=17	key=show.view	instance=	label=View	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=8	key=camera.scale.height	instance=	label=View height	value=	unit=m	tone=0	enabled=1	reason=	live=0	spec=camera.scale.height	command=78,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.selection	instance=	label=Frame selection	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=77,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=13	key=prefs.units.system	instance=	label=Units	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=prefs.units.system	command=84,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=draw_bar model=spring
+surface=draw_options model=spring
+surface=guide model=spring
+surface=inspector model=spring
+kind=0	key=	instance=	label=Inspector	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=view.inspector_collapse	instance=	label=Hide Inspector	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:inspector,phase=0
+kind=16	key=inspector.target	instance=	label=inspector.target	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Damped mass	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=2	key=	instance=	label=Free object · resting	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=camera.frame.selection	instance=	label=Frame selection	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=77,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=16	key=inspector.object	instance=	label=inspector.object	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Net force	value=0 N	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=4	key=	instance=	label=	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=object.menu.keep_as_start	instance=	label=Keep as starting state	value=	unit=	tone=0	enabled=0	reason=Already at the starting setup.	live=0	spec=	command=97,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c67	instance=	label=Delete	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=67,,0,0,0,1:2,bodies=,detail=,phase=0
+kind=6	key=legacy.command.c34	instance=	label=Clear selection	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=34,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=measure model=spring
+kind=16	key=measure.header.tabs	instance=	label=measure.header.tabs	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=6	key=view.measure_collapse	instance=	label=Close Measure	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:measure,phase=0
+kind=13	key=measure.energy.scope	instance=	label=Scope	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=measure.energy.scope	command=0,,0,0,0,0:0,bodies=,detail=state-id:measure.energy.scope,phase=0
+kind=19	key=	instance=	label=Kinetic (moving)	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Kinetic (spinning)	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Potential (height)	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Potential (springs)	value=2.49 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Mechanical energy	value=2.49 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Lost in impacts	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Lost to friction	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Lost in dampers	value=0.00 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Mechanical + lost	value=2.49 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Energy at start	value=2.49 J	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Momentum x	value=0.00 kg·m/s	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Momentum y	value=0.00 kg·m/s	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=1	key=	instance=	label=Energy shares	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=7	key=	instance=	label=Kinetic	value=0 %	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=7	key=	instance=	label=Potential	value=100 %	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=7	key=	instance=	label=Lost in impacts	value=0 %	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=7	key=	instance=	label=Lost to friction	value=0 %	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=7	key=	instance=	label=Lost in dampers	value=0 %	unit=	tone=0	enabled=1	reason=	live=1	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+surface=banner model=spring
+surface=present model=spring
+surface=present_caption model=spring
+surface=hover_card model=spring
+surface=context_menu model=spring
+surface=command_search model=spring
+surface=hints model=spring
+surface=add_menu model=spring
+surface=performance model=spring

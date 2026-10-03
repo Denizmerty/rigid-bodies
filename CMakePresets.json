@@ -1,0 +1,61 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Rigid Bodies",
+      "description": "The application, built into build/ like the Visual Studio solution. CMake's own files go to build/cmake.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "RIGIDBODIES_OUTPUT_DIRECTORY": "${sourceDir}/build",
+        "RIGIDBODIES_BUILD_APP": "ON",
+        "RIGIDBODIES_BUILD_TESTS": "OFF",
+        "RIGIDBODIES_BUILD_TOOLS": "OFF",
+        "RIGIDBODIES_BUILD_FUZZERS": "OFF",
+        "RIGIDBODIES_ENABLE_RMLUI": "ON",
+        "RIGIDBODIES_ENABLE_DEVELOPER_OVERLAY": "OFF",
+        "RIGIDBODIES_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "development",
+      "displayName": "Rigid Bodies with tests and tools",
+      "description": "The same application plus the tests (build/tests) and command-line tools (build/tools).",
+      "inherits": "default",
+      "cacheVariables": {
+        "RIGIDBODIES_BUILD_TESTS": "ON",
+        "RIGIDBODIES_BUILD_TOOLS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "targets": ["RigidBodies.App"]
+    },
+    {
+      "name": "development",
+      "configurePreset": "development"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "development",
+      "configurePreset": "development",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 8
+      }
+    }
+  ]
+}

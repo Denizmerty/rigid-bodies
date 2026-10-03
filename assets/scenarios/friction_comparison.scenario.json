@@ -1,0 +1,662 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "friction_and_support",
+    "collection_order": 3,
+    "hook": "Equal blocks and balls slow down on surfaces with different grip and rolling resistance.",
+    "lab": false,
+    "level": "core",
+    "tags": ["directional friction","rolling resistance","spin resistance"],
+    "concepts": ["directional friction", "rolling resistance", "spin resistance"],
+    "id": "friction_comparison",
+    "prerequisites": ["ramp", "spinning_shapes"],
+    "suggested_order": 90,
+    "summary": "In the upper lanes, equal blocks slide along or across the preferred direction of a surface. In the lower lanes, equal balls roll with and without rolling and spinning resistance. They all start at the same speed. Contact with the surface slows them, and a low stop ends each lane.",
+    "title": "Friction and rolling"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"Compare sliding along and across the grain in the upper lanes. Then compare the lower balls with and without rolling and spinning resistance.","predict":{"prompt":"Which lower ball travels farther?","options":["Ideal rolling ball","Resisted rolling ball","They travel equally far"]},"variables":[{"control":"object.properties.material","label":"Ideal rolling ball material","body":"body-5-6"}],"steps":[{"text":"Run the original setup and compare where each object stops."},{"text":"Change the ideal rolling ball's material and read the warning before applying it.","control":"object.properties.material","body":"body-5-6"},{"text":"Press R and compare the new run with the original setup.","open":"measure.graph"}],"expect":"The sliding blocks slow at different rates along and across the grain. Rolling resistance makes the lower ball stop sooner.","limits":"Choosing a catalogue material replaces the special rolling resistance and directional grip set up for this lane. Check the warning before applying it."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "view": {"center_x_m":0,"center_y_m":-0.05,"width_m":4.7,"height_m":3.8},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Friction lane 1",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "friction_lane_1",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 1
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-2.25, -0.050000000000000003], [2.25, -0.050000000000000003], [2.25, 0.050000000000000003], [-2.25, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }, {
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 1
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[2.1499999999999999, 0.050000000000000003], [2.25, 0.050000000000000003], [2.25, 0.25], [2.1499999999999999, 0.25]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, 1.3499999999999999],
+        "sleep_enabled": true,
+        "stable_key": "friction_lane_1",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-2-3",
+        "label": "Friction lane 2",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "friction_lane_2",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 2,
+              "group": 0,
+              "mask": 2
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-2.25, -0.050000000000000003], [2.25, -0.050000000000000003], [2.25, 0.050000000000000003], [-2.25, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }, {
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 2,
+              "group": 0,
+              "mask": 2
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[2.1499999999999999, 0.050000000000000003], [2.25, 0.050000000000000003], [2.25, 0.25], [2.1499999999999999, 0.25]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, 0.39999999999999997],
+        "sleep_enabled": true,
+        "stable_key": "friction_lane_2",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-4-5",
+        "label": "Friction lane 3",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "friction_lane_3",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 4,
+              "group": 0,
+              "mask": 4
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-2.25, -0.050000000000000003], [2.25, -0.050000000000000003], [2.25, 0.050000000000000003], [-2.25, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }, {
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 4,
+              "group": 0,
+              "mask": 4
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[2.1499999999999999, 0.050000000000000003], [2.25, 0.050000000000000003], [2.25, 0.25], [2.1499999999999999, 0.25]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -0.55000000000000004],
+        "sleep_enabled": true,
+        "stable_key": "friction_lane_3",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-6-7",
+        "label": "Friction lane 4",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "friction_lane_4",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 8,
+              "group": 0,
+              "mask": 8
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0.02,
+              "spinning_friction_m": 0.0050000000000000001,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-2.25, -0.050000000000000003], [2.25, -0.050000000000000003], [2.25, 0.050000000000000003], [-2.25, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }, {
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 8,
+              "group": 0,
+              "mask": 8
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[2.1499999999999999, 0.050000000000000003], [2.25, 0.050000000000000003], [2.25, 0.25], [2.1499999999999999, 0.25]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, -1.4999999999999998],
+        "sleep_enabled": true,
+        "stable_key": "friction_lane_4",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": -12.5,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-5-6",
+        "label": "Ideal rolling ball",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [1.5, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "ideal_rolling_ball",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 4,
+              "group": 0,
+              "mask": 4
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.12,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-1.7, -0.378],
+        "sleep_enabled": true,
+        "stable_key": "ideal_rolling_ball",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": -12.5,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-7-8",
+        "label": "Resisted rolling ball",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [1.5, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "resisted_rolling_ball",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 8,
+              "group": 0,
+              "mask": 8
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0.02,
+              "spinning_friction_m": 0.0050000000000000001,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.12,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-1.7, -1.3279999999999996],
+        "sleep_enabled": true,
+        "stable_key": "resisted_rolling_ball",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": true,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-3-4",
+        "label": "Slide across grain",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [1.5, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "slide_across_grain",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 2,
+              "group": 0,
+              "mask": 2
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 0.14999999999999999,
+              "friction_axis_local": [0, 1],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.14999999999999999, -0.10000000000000001], [0.14999999999999999, -0.10000000000000001], [0.14999999999999999, 0.10000000000000001], [-0.14999999999999999, 0.10000000000000001]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-1.7, 0.55199999999999994],
+        "sleep_enabled": true,
+        "stable_key": "slide_across_grain",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": true,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-1-2",
+        "label": "Slide along grain",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [1.5, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "slide_along_grain",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 1
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 1100,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 0.14999999999999999,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "rubber",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.65000000000000002
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.14999999999999999, -0.10000000000000001], [0.14999999999999999, -0.10000000000000001], [0.14999999999999999, 0.10000000000000001], [-0.14999999999999999, 0.10000000000000001]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-1.7, 1.502],
+        "sleep_enabled": true,
+        "stable_key": "slide_along_grain",
+        "type": "dynamic"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

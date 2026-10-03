@@ -1,0 +1,28 @@
+<rml>
+<head><title>Rigid Bodies</title><link type="text/rcss" href="geometry.rcss"/><link type="text/rcss" href="themes.rcss"/><link type="text/rcss" href="components.rcss"/><link type="text/rcss" href="playground.rcss"/></head>
+<body>
+    <div id="region-title-bar" class="region title-bar"/>
+    <div id="region-window-brand" class="region window-brand"><div class="window-mark"><div class="window-mark-block"><div class="window-mark-rim-right"/><div class="window-mark-rim-left"/></div><div class="window-mark-com"/><div class="window-mark-com-a"/><div class="window-mark-com-b"/></div></div>
+    <div id="region-command-bar" class="region command-bar"/>
+    <div id="region-window-controls" class="region window-controls"/>
+    <div id="region-draw-bar" class="region draw-bar"/>
+    <div id="region-present-strip" class="region present-strip"/>
+    <div id="region-guide-rail" class="region rail"/>
+    <div id="region-guide" class="region guide"/>
+    <div id="region-stage" class="region stage"/>
+    <div id="region-banner" class="region banner"/>
+    <div id="region-present-caption" class="region present-caption"/>
+    <div id="region-inspector-rail" class="region rail"/>
+    <div id="region-inspector" class="region inspector"/>
+    <div id="region-measure" class="region measure"/>
+    <div id="measure-grip" class="measure-grip"><div class="measure-grip-pill"/></div>
+    <div id="region-status-line" class="region status-line"/>
+    <div id="region-hint" class="region hint"/>
+    <div id="region-scrim" class="region scrim"/>
+    <div id="region-sheets" class="region sheets"/>
+    <div id="popover-shadow" class="shadow-layer"><div class="s1"/><div class="s2"/><div class="s3"/><div class="s4"/><div class="s5"/></div>
+    <div id="region-popovers" class="region popovers"/>
+    <div id="toast-stack" class="toast-stack"/>
+    <div id="tooltip" class="tooltip"><span id="tooltip-text" class="tooltip-text"/><span id="tooltip-key" class="tooltip-key"/></div>
+</body>
+</rml>

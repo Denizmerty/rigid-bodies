@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{E1146FAB-08BA-53C7-AB59-B05CBDD7FF2A}</ProjectGuid>
+    <ProjectName>RigidBodies.Physics</ProjectName>
+    <RootNamespace>RigidBodiesPhysics</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="RigidBodies.props" />
+    <Import Project="RigidBodies.Code.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(RigidBodiesRoot)src\RigidBodies.Physics\include;$(RigidBodiesRoot)src\RigidBodies.Math\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>RIGIDBODIES_DEFAULT_SCENARIO_DIRECTORY="$(RigidBodiesRootForward)/assets/scenarios";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\aerodynamic.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\authored_body.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\benchmark.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\body_properties.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\broad_phase.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\collider.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\compound_mass.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\constraint.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\constraint_graph.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\contact.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\contact_solver.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\content_json.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\continuous_collision.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\convex_distance.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\education.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\education_accounting.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\energy_drift.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\force_generator.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\integrator.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\joint.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\kinematic_motion.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\mass_properties.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\material.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\narrow_phase.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\parallel_executor.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\restitution_comparison.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\rigid_body.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\scenario.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\scenario_document.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_authoring.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_document.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\simulation_island.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\spring.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\time_stepper.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\units.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\world.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\world_profile.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\benchmark.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\aerodynamic.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\authored_body.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\body_properties.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\education.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\education_accounting.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\broad_phase.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\collider.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\content_json.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\compound_mass.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\constraint_graph.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\collision_pipeline.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\continuous_collision.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\convex_distance.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\dynamic_tree.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\energy_drift.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\force_generator.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\integrator.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\joint.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\kinematic_motion.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\mass_properties.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\material.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\narrow_phase.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\parallel_executor.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\rigid_body.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\restitution_comparison.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\scenario.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\scenario_document.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape_document.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\sequential_impulse_solver.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\shape_authoring.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\spring.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\time_stepper.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_step.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_islands.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_parallel.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_collision.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_ccd.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\world_dynamics.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="RigidBodies.Math.vcxproj">
+      <Project>{88CEAF7A-1F10-5BFB-97A9-1ABB176DFECB}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,67 @@
+# Repository formatting rules.
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+# Preserve deliberate line breaks without forcing short signatures and calls apart.
+ColumnLimit: 0
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: Never
+LineEnding: LF
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyNamespace: true
+  SplitEmptyRecord: true
+
+NamespaceIndentation: All
+AccessModifierOffset: -4
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
+
+AlignAfterOpenBracket: DontAlign
+AlignOperands: DontAlign
+BinPackArguments: false
+BinPackLongBracedList: false
+BinPackParameters: BinPack
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BreakBeforeTernaryOperators: true
+BreakFunctionDefinitionParameters: false
+PackConstructorInitializers: BinPack
+PenaltyIndentedWhitespace: 10
+
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: true
+DerivePointerAlignment: false
+PointerAlignment: Left
+QualifierAlignment: Leave
+
+IncludeBlocks: Preserve
+SortIncludes: Never
+SortUsingDeclarations: Never
+FixNamespaceComments: false
+ReflowComments: false
+MaxEmptyLinesToKeep: 1

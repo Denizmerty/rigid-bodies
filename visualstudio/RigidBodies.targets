@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Files an executable needs beside it at run time, staged the way the CMake build stages them.
+  RigidBodiesStageApplicationFiles: SDL3.dll, LICENSE, assets\ and config\ (the application).
+  RigidBodiesStageSdlRuntime: SDL3.dll only (tests and tools that open SDL).
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="RigidBodiesStageRuntimeFiles"
+          AfterTargets="Build"
+          Condition="'$(RigidBodiesStageApplicationFiles)' == 'true' Or '$(RigidBodiesStageSdlRuntime)' == 'true'">
+    <ItemGroup Condition="'$(RigidBodiesStageApplicationFiles)' == 'true'">
+      <RigidBodiesStagedAsset Include="$(RigidBodiesRoot)assets\**\*" />
+      <RigidBodiesStagedConfig Include="$(RigidBodiesRoot)config\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="$(RigidBodiesSdlRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(RigidBodiesRoot)LICENSE" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true"
+          Condition="'$(RigidBodiesStageApplicationFiles)' == 'true'" />
+    <Copy SourceFiles="@(RigidBodiesStagedAsset)"
+          DestinationFiles="@(RigidBodiesStagedAsset->'$(OutDir)assets\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(RigidBodiesStagedConfig)"
+          DestinationFiles="@(RigidBodiesStagedConfig->'$(OutDir)config\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

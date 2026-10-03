@@ -1,0 +1,1 @@
+{"format":"rigid-bodies.scenario","version":{"major":1,"minor":0},"metadata":{"id":"fuzz-authored","title":"Embedded authored shape"},"world":{"bodies":[{"id":"plate","type":"dynamic","parts":[{"type":"authored","name":"Triangle","shape":{"outline":{"closed":true,"nodes":[{"position_m":[0,0]},{"position_m":[1,0]},{"position_m":[0,1]}]}}}]}]}}

@@ -1,0 +1,30 @@
+# The native Visual Studio projects in visualstudio/ are where the product's files are listed. The
+# CMake build reads the same lists, in the same order, so the solution and build.ps1 always compile
+# the same files: a file added to a project in Visual Studio is part of both builds.
+
+# Sets <out_var> to the absolute paths of the <item_type> items (ClCompile, ResourceCompile, ...)
+# listed by visualstudio/<project_file>, in project order.
+function(rigidbodies_project_files out_var project_file item_type)
+    set(project_path "${PROJECT_SOURCE_DIR}/visualstudio/${project_file}")
+    if(NOT EXISTS "${project_path}")
+        message(FATAL_ERROR "Missing Visual Studio project ${project_path}")
+    endif()
+    file(READ "${project_path}" project_text)
+    string(REGEX MATCHALL "<${item_type} Include=\"[^\"]+\"" items "${project_text}")
+    get_filename_component(project_dir "${project_path}" DIRECTORY)
+    set(files)
+    foreach(item IN LISTS items)
+        string(REGEX REPLACE "^<${item_type} Include=\"([^\"]+)\"$" "\\1" relative_path "${item}")
+        string(REPLACE "\\" "/" relative_path "${relative_path}")
+        get_filename_component(file_path "${relative_path}" ABSOLUTE BASE_DIR "${project_dir}")
+        if(NOT EXISTS "${file_path}")
+            message(FATAL_ERROR "${project_file} lists ${relative_path}, which does not exist")
+        endif()
+        list(APPEND files "${file_path}")
+    endforeach()
+    if(NOT files)
+        message(FATAL_ERROR "${project_file} lists no ${item_type} items")
+    endif()
+    set_property(DIRECTORY "${PROJECT_SOURCE_DIR}" APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${project_path}")
+    set(${out_var} "${files}" PARENT_SCOPE)
+endfunction()

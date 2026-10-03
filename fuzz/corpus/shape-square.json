@@ -1,0 +1,1 @@
+{"format":"rigid-bodies.shape","version":{"major":1,"minor":0},"metadata":{"title":"Square","summary":"Fuzz fixture"},"shape":{"outline":{"closed":true,"nodes":[{"position_m":[0,0]},{"position_m":[1,0]},{"position_m":[1,1]},{"position_m":[0,1]}]},"options":{"max_render_vertices":64,"max_collision_vertices":32,"max_subdivision_depth":8}}}

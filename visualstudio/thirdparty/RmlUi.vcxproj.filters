@@ -1,0 +1,1354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{C7C74DBF-D3BE-531A-B5E3-102B9266A60D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\RmlUi">
+      <UniqueIdentifier>{2404D09C-E88C-5F3C-B59D-6C4A11AB9875}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\RmlUi\Config">
+      <UniqueIdentifier>{798C6224-40E6-5867-9471-1229C0D7F604}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\RmlUi\Core">
+      <UniqueIdentifier>{EAF573C6-D1BB-5F87-B610-76ED9DBA9C65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\RmlUi\Core\Containers">
+      <UniqueIdentifier>{5BCBCF34-DC96-5B2B-83B1-763F4BB479E1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\RmlUi\Core\Elements">
+      <UniqueIdentifier>{1157F74C-840E-5751-8EE8-AB4195CC4CAD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{293951D7-1B0D-565E-8248-1D66BD054384}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core">
+      <UniqueIdentifier>{BA72CDC7-C2B2-514E-A229-843E9815D640}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core\Elements">
+      <UniqueIdentifier>{725BB4DF-380C-57E1-A107-7D060137694A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core\FontEngineDefault">
+      <UniqueIdentifier>{A8812006-715B-56F1-ACEE-7CD653F2B841}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Core\Layout">
+      <UniqueIdentifier>{4C249BDE-D789-58CE-9208-505D8CC3F7DB}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Animation.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\BaseXMLParser.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Box.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\CallbackTexture.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Colour.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Colour.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\CompiledFilterShader.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ComputedValues.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Context.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ContextInstancer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ConvolutionFilter.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Core.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DataModelHandle.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DataStructHandle.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DataTypeRegister.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DataTypes.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DataVariable.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Debug.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\DecorationTypes.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Decorator.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Dictionary.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\EffectSpecification.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Element.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Element.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ElementDocument.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ElementInstancer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ElementScroll.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ElementText.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ElementUtilities.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Event.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\EventInstancer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\EventListener.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\EventListenerInstancer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Factory.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FileInterface.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Filter.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FontEffect.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FontEffectInstancer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FontEngineInterface.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FontGlyph.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\FontMetrics.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Geometry.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Header.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ID.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Input.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Log.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Math.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Matrix4.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Matrix4.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Mesh.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\MeshUtilities.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\NumericValue.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ObserverPtr.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Platform.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Plugin.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Profiling.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertiesIteratorView.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Property.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertyDefinition.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertyDictionary.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertyIdSet.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertyParser.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\PropertySpecification.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Rectangle.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\RenderBox.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\RenderInterface.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\RenderInterfaceCompatibility.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\RenderManager.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ScriptInterface.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\ScrollTypes.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Span.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Spritesheet.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StableVector.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Stream.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StreamMemory.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StringUtilities.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StyleSheet.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StyleSheetContainer.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StyleSheetSpecification.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StyleSheetTypes.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\StyleTypes.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\SystemInterface.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TextInputContext.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TextInputHandler.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TextShapingContext.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Texture.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Traits.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Transform.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TransformPrimitive.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Tween.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TypeConverter.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\TypeConverter.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Types.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\URL.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\UniqueRenderResource.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Unit.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Utilities.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Variant.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Variant.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector2.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector2.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector3.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector3.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector4.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vector4.inl">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Vertex.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\XMLNodeHandler.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\XMLParser.h">
+      <Filter>Include\RmlUi\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Containers\robin_hood.h">
+      <Filter>Include\RmlUi\Core\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementForm.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementFormControl.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementFormControlInput.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementFormControlSelect.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementFormControlTextArea.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementProgress.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core\Elements\ElementTabSet.h">
+      <Filter>Include\RmlUi\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Core.h">
+      <Filter>Include\RmlUi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Include\RmlUi\Config\Config.h">
+      <Filter>Include\RmlUi\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Clock.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ComputeProperty.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ContextInstancerDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ControlledLifetimeResource.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataController.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataControllerDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataExpression.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataModel.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataView.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DataViewDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorGradient.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorNinePatch.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorShader.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorText.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiled.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledBox.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledHorizontal.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledImage.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledVertical.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DecoratorUtilities.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\DocumentHeader.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementAnimation.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementBackgroundBorder.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementDefinition.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementEffects.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementHandle.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementMeta.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ElementStyle.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\EventDispatcher.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\EventInstancerDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\EventSpecification.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FileInterfaceDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FilterBasic.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FilterBlur.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FilterDropShadow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEffectBlur.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEffectGlow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEffectOutline.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEffectShadow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\GeometryBackgroundBorder.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\GeometryBoxShadow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\IdNameMap.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\LogDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Memory.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PluginRegistry.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Pool.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Pool.inl">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertiesIterator.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserAnimation.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserBoxShadow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserColorStopList.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserColour.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserDecorator.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserFilter.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserFontEffect.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserKeyword.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserNumber.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserRatio.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserString.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyParserTransform.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\PropertyShorthandDefinition.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\RenderManagerAccess.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\ScrollController.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\StreamFile.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\StyleSheetFactory.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\StyleSheetNode.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\StyleSheetParser.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\StyleSheetSelector.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Template.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TemplateCache.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TextureDatabase.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TextureLayout.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutRectangle.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutRow.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutTexture.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TransformState.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\TransformUtilities.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\WidgetScroll.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerBody.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerDefault.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerHead.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerTemplate.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\XMLParseTools.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\precompiled.h">
+      <Filter>Source\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementImage.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementLabel.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementTextSelection.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputType.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeButton.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeCheckbox.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeRadio.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeRange.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeSubmit.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeText.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetDropDown.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetSlider.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInput.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputMultiLine.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputSingleLine.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputSingleLinePassword.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerSelect.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerTabSet.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerTextArea.h">
+      <Filter>Source\Core\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontEngineInterfaceDefault.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFace.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFaceHandleDefault.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFaceLayer.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFamily.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontProvider.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontTypes.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FreeTypeInterface.h">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\BlockContainer.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\BlockFormattingContext.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\ContainerBox.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\FlexFormattingContext.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\FloatedBoxSpace.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\FormattingContext.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineBox.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineContainer.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineLevelBox.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineTypes.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutBox.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutDetails.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutEngine.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutPools.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\LineBox.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\ReplacedFormattingContext.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\TableFormattingContext.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\vendor\RmlUi\Source\Core\Layout\TableFormattingDetails.h">
+      <Filter>Source\Core\Layout</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="rmlui_precompiled.cpp" />
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\BaseXMLParser.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Box.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\CallbackTexture.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Clock.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\CompiledFilterShader.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ComputedValues.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ComputeProperty.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Context.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ContextInstancer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ContextInstancerDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ConvolutionFilter.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Core.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataController.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataControllerDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataExpression.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataModel.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataModelHandle.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataTypeRegister.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataVariable.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataView.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DataViewDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Decorator.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorGradient.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorNinePatch.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorShader.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorText.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiled.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledBox.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledHorizontal.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledImage.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorTiledVertical.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DecoratorUtilities.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\DocumentHeader.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EffectSpecification.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Element.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementAnimation.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementBackgroundBorder.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementDefinition.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementDocument.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementEffects.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementHandle.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementInstancer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementMeta.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementScroll.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementStyle.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementText.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ElementUtilities.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Event.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EventDispatcher.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EventInstancer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EventInstancerDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EventListenerInstancer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\EventSpecification.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Factory.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FileInterface.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FileInterfaceDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Filter.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FilterBasic.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FilterBlur.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FilterDropShadow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffect.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffectBlur.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffectGlow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffectInstancer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffectOutline.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEffectShadow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineInterface.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Geometry.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\GeometryBackgroundBorder.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\GeometryBoxShadow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Log.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\LogDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Math.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Memory.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\MeshUtilities.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ObserverPtr.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Plugin.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PluginRegistry.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Profiling.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertiesIteratorView.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Property.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyDefinition.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyDictionary.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserAnimation.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserBoxShadow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserColorStopList.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserColour.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserDecorator.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserFilter.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserFontEffect.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserKeyword.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserNumber.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserRatio.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserString.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertyParserTransform.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\PropertySpecification.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\RenderInterface.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\RenderInterfaceCompatibility.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\RenderManager.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\RenderManagerAccess.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\ScrollController.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Spritesheet.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Stream.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StreamFile.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StreamMemory.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StringUtilities.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheet.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetContainer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetFactory.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetNode.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetParser.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetSelector.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\StyleSheetSpecification.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\SystemInterface.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Template.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TemplateCache.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Texture.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TextureDatabase.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TextureLayout.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutRectangle.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutRow.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TextureLayoutTexture.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Traits.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Transform.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TransformPrimitive.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TransformState.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TransformUtilities.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Tween.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\TypeConverter.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\URL.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Variant.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\WidgetScroll.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandler.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerBody.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerDefault.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerHead.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLNodeHandlerTemplate.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLParser.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\XMLParseTools.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementFormControl.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementFormControlInput.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementFormControlSelect.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementFormControlTextArea.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementForm.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementImage.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementLabel.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementProgress.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementTabSet.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\ElementTextSelection.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeButton.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeCheckbox.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputType.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeRadio.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeRange.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeSubmit.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\InputTypeText.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetDropDown.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetSlider.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInput.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputMultiLine.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputSingleLine.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\WidgetTextInputSingleLinePassword.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerSelect.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerTabSet.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Elements\XMLNodeHandlerTextArea.cpp">
+      <Filter>Source\Core\Elements</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\BlockContainer.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\BlockFormattingContext.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\ContainerBox.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\FlexFormattingContext.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\FloatedBoxSpace.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\FormattingContext.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineBox.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineContainer.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\InlineLevelBox.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutBox.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutDetails.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutEngine.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\LayoutPools.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\LineBox.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\ReplacedFormattingContext.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\TableFormattingContext.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\Layout\TableFormattingDetails.cpp">
+      <Filter>Source\Core\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontEngineInterfaceDefault.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFace.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFaceHandleDefault.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFaceLayer.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontFamily.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FontProvider.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\RmlUi\Source\Core\FontEngineDefault\FreeTypeInterface.cpp">
+      <Filter>Source\Core\FontEngineDefault</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\vendor\RmlUi\LICENSE.txt" />
+  </ItemGroup>
+</Project>

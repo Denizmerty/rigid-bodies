@@ -1,0 +1,112 @@
+# Native build products
+/build/
+/build-*/
+/out/
+/dist/
+/x64/
+**/x64/
+**/Debug/
+**/Release/
+*.obj
+*.o
+*.a
+*.dll
+*.dylib
+*.so
+*.so.*
+*.lib
+!/vendor/SDL3/lib/
+!/vendor/SDL3/lib/x64/
+!/vendor/SDL3/lib/x64/SDL3.lib
+!/vendor/SDL3/bin/
+!/vendor/SDL3/bin/x64/
+!/vendor/SDL3/bin/x64/SDL3.dll
+*.pdb
+*.ilk
+*.exp
+*.exe
+*.idb
+*.pch
+*.res
+*.tlog
+*.lastbuildstate
+*.ipch
+ipch/
+
+# CMake-generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+Testing/
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+install_manifest.txt
+
+# Fetched third-party sources
+/_deps/
+
+# Visual Studio state
+.vs/
+.idea/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+
+# AI tools and agent instructions are local, including nested workspaces.
+.claude/
+.agents/
+.agent/
+.codex/
+.cursor/
+.windsurf/
+.continue/
+.gemini/
+.serena/
+.aider*
+.cursorrules
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local planning and temporary working material
+/_development_archive/
+/notes*.md
+/plan*.md
+/scratch/
+/temp/
+/tmp/
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Validation script bytecode
+__pycache__/
+*.pyc
+
+# Build, release and asset-maintenance scripts are source and remain tracked.

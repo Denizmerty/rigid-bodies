@@ -1,0 +1,1 @@
+{"format":"rigid-bodies.scenario","version":{"major":1,"minor":0},"metadata":{"id":"bad-reference","title":"Missing endpoint"},"world":{"bodies":[{"id":"first","type":"dynamic","parts":[]}],"springs":[{"type":"linear","first":"first","second":"missing"}]}}

@@ -1,0 +1,210 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "springs_joints_and_machines",
+    "collection_order": 5,
+    "hook": "A bar and a weighted disc are separate bodies joined by a weld.",
+    "lab": false,
+    "level": "further",
+    "tags": ["weld constraints","rigid assemblies","reaction torque"],
+    "concepts": ["weld constraints", "rigid assemblies", "reaction torque"],
+    "id": "welded_assembly",
+    "prerequisites": ["compound_object", "distance_chain"],
+    "suggested_order": 200,
+    "summary": "A bar and a weighted disc are separate bodies joined by a weld. They rotate together in zero effective gravity while the weld preserves their relative position and angle.",
+    "title": "A welded assembly"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"A weld holds the two bodies at a fixed position and angle relative to each other, so they move together.","predict":{"prompt":"If the bar receives extra horizontal velocity, what does the disc do?","options":["It follows through the weld","It remains behind","It separates immediately"]},"variables":[{"control":"object.motion.velocity_x","label":"Bar velocity x","body":"body-0-1"}],"steps":[{"text":"Run the experiment and inspect the weld force as the offset mass makes the pair rotate."},{"text":"Set the bar's horizontal velocity, press R, and run again.","control":"object.motion.velocity_x","body":"body-0-1"},{"text":"Graph momentum and rotation for both runs.","open":"measure.graph"}],"expect":"Forces through the weld keep the bodies at the same relative position and angle as they move and rotate together.","limits":"The weld stays perfectly rigid until a specified breaking limit is exceeded. Material deformation is not modelled."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "view": {"center_x_m":0,"center_y_m":0.33,"width_m":1.9,"height_m":1.9},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 1.2,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 0,
+        "id": "body-0-1",
+        "label": "Welded bar",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [-0.089999999999999997, -0.41999999999999998],
+        "mass_override_kg": 0.29999999999999999,
+        "motion": null,
+        "name": "welded_bar",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-0.42499999999999999, -0.050000000000000003], [0.42499999999999999, -0.050000000000000003], [0.42499999999999999, 0.050000000000000003], [-0.42499999999999999, 0.050000000000000003]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [-0.34999999999999998, 0.40000000000000002],
+        "sleep_enabled": true,
+        "stable_key": "welded_bar",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 1.2,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 0,
+        "id": "body-1-2",
+        "label": "Welded weight",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0.089999999999999997, 0.41999999999999998],
+        "mass_override_kg": 0.29999999999999999,
+        "motion": null,
+        "name": "welded_weight",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.14000000000000001,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0.34999999999999998, 0.25],
+        "sleep_enabled": true,
+        "stable_key": "welded_weight",
+        "type": "dynamic"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [{
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-0-1",
+        "local_anchor_first_m": [0.34999999999999998, 0],
+        "local_anchor_second_m": [-0.34999999999999998, 0.14999999999999999],
+        "reference_angle_rad": 0,
+        "second": "body-1-2",
+        "stable_key": "welded_pair",
+        "type": "weld"
+      }],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

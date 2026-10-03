@@ -1,0 +1,490 @@
+{
+  "format": "rigid-bodies.scenario",
+  "metadata": {
+    "collection": "springs_joints_and_machines",
+    "collection_order": 2,
+    "hook": "Five masses hang from rigid distance rods.",
+    "lab": false,
+    "level": "further",
+    "tags": ["distance constraints","reaction forces","constraint graphs"],
+    "concepts": ["distance constraints", "reaction forces", "constraint graphs"],
+    "id": "distance_chain",
+    "prerequisites": ["spring_damping"],
+    "suggested_order": 170,
+    "summary": "Five masses hang from rigid rods. Each rod keeps its length as the chain swings under gravity. Forces pass through the connected joints to support and move the masses.",
+    "title": "Rods and chains"
+  },
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "guide": {"focus":"Watch how the rods keep their lengths as motion and forces pass along the chain.","predict":{"prompt":"With weaker gravity, how does the chain's swing period change?","options":["It becomes longer","It becomes shorter","It is unchanged"]},"variables":[{"control":"world.gravity.strength","label":"Gravity strength"}],"steps":[{"text":"Run once, then select a rod to see the force it carries."},{"text":"Reduce gravity, press R, and run the same interval.","control":"world.gravity.strength"},{"text":"Compare the chain's motion with the previous run.","open":"measure.graph"}],"expect":"The rods preserve their lengths while forces pass through the mechanism. Weaker gravity produces slower swinging and smaller support reactions.","limits":"The rods have no mass and are treated as perfectly rigid. The iterative solver allows a small error, especially in very stiff connected systems."},
+  "presentation": {"layers":["bodies","labels","velocity","force","constraints"]},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Chain anchor",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "chain_anchor",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.070000000000000007,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0, 1.25],
+        "sleep_enabled": true,
+        "stable_key": "chain_anchor",
+        "type": "static"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-1-2",
+        "label": "Chain mass 1",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.20000000000000001,
+        "motion": null,
+        "name": "chain_mass_1",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.085000000000000006,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0.40000000000000002, 1.1000000000000001],
+        "sleep_enabled": true,
+        "stable_key": "chain_mass_1",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-2-3",
+        "label": "Chain mass 2",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.20000000000000001,
+        "motion": null,
+        "name": "chain_mass_2",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.085000000000000006,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [0.80000000000000004, 0.94999999999999996],
+        "sleep_enabled": true,
+        "stable_key": "chain_mass_2",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-3-4",
+        "label": "Chain mass 3",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.20000000000000001,
+        "motion": null,
+        "name": "chain_mass_3",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.085000000000000006,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [1.2000000000000002, 0.80000000000000004],
+        "sleep_enabled": true,
+        "stable_key": "chain_mass_3",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-4-5",
+        "label": "Chain mass 4",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.20000000000000001,
+        "motion": null,
+        "name": "chain_mass_4",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.085000000000000006,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [1.6000000000000001, 0.65000000000000002],
+        "sleep_enabled": true,
+        "stable_key": "chain_mass_4",
+        "type": "dynamic"
+      }, {
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": true,
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-5-6",
+        "label": "Chain mass 5",
+        "role": "object",
+        "caption": "",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": 0.20000000000000001,
+        "motion": null,
+        "name": "chain_mass_5",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.050000000000000003,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 750,
+              "drag_coefficient": 1.05,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.45000000000000001,
+              "name": "oak_wood",
+              "restitution": 0,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.55000000000000004
+            },
+            "shape": {
+              "center_m": [0, 0],
+              "radius_m": 0.085000000000000006,
+              "type": "circle"
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [2, 0.5],
+        "sleep_enabled": true,
+        "stable_key": "chain_mass_5",
+        "type": "dynamic"
+      }],
+    "forces": [{
+        "enabled": true,
+        "type": "uniform_gravity"
+      }],
+    "joints": [{
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-0-1",
+        "length_m": 0.42720018726587661,
+        "local_anchor_first_m": [0, 0],
+        "local_anchor_second_m": [0, 0],
+        "second": "body-1-2",
+        "stable_key": "chain_link_1",
+        "type": "distance"
+      }, {
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-1-2",
+        "length_m": 0.42720018726587661,
+        "local_anchor_first_m": [0, 0],
+        "local_anchor_second_m": [0, 0],
+        "second": "body-2-3",
+        "stable_key": "chain_link_2",
+        "type": "distance"
+      }, {
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-2-3",
+        "length_m": 0.42720018726587661,
+        "local_anchor_first_m": [0, 0],
+        "local_anchor_second_m": [0, 0],
+        "second": "body-3-4",
+        "stable_key": "chain_link_3",
+        "type": "distance"
+      }, {
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-3-4",
+        "length_m": 0.42720018726587661,
+        "local_anchor_first_m": [0, 0],
+        "local_anchor_second_m": [0, 0],
+        "second": "body-4-5",
+        "stable_key": "chain_link_4",
+        "type": "distance"
+      }, {
+        "break_force_n": null,
+        "break_torque_n_m": null,
+        "broken": false,
+        "collide_connected": false,
+        "enabled": true,
+        "first": "body-4-5",
+        "length_m": 0.42720018726587661,
+        "local_anchor_first_m": [0, 0],
+        "local_anchor_second_m": [0, 0],
+        "second": "body-5-6",
+        "stable_key": "chain_link_5",
+        "type": "distance"
+      }],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.2250000000000001,
+      "air_dynamic_viscosity_pa_s": 1.8099999999999999e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 9.9999999999999995e-07
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, -9.8066499999999994],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.0050000000000000001,
+        "maximum_position_correction_m": 0.20000000000000001,
+        "position_correction_fraction": 0.20000000000000001,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

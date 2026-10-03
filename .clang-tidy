@@ -1,0 +1,22 @@
+Checks: >-
+  -*,
+  clang-analyzer-*,
+  bugprone-branch-clone,
+  bugprone-infinite-loop,
+  bugprone-macro-parentheses,
+  bugprone-macro-repeated-side-effects,
+  bugprone-multiple-statement-macro,
+  bugprone-suspicious-enum-usage,
+  bugprone-suspicious-memset-usage,
+  bugprone-suspicious-missing-comma,
+  bugprone-suspicious-semicolon,
+  bugprone-suspicious-string-compare,
+  performance-*,
+  -performance-enum-size
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*[/\](src|tests|tools|fuzz)[/\].*'
+# System headers stay excluded by clang-tidy's default. The equivalent YAML key is not
+# understood by older supported clang-tidy releases, which can return success after rejecting it.
+FormatStyle: file
+ExtraArgs:
+  - -Wno-unused-command-line-argument

@@ -1,0 +1,205 @@
+/* Shell geometry and shared row layout. LayoutResult supplies each region's exact rectangle every
+   frame; colour comes only from themes.rcss. Sizes are dp so the text-size preference and the
+   display's pixel density scale the whole interface together.
+
+   Shape hierarchy: docked surfaces are flush (no radius) and separated by hairlines; controls use a
+   6dp radius; chips and switches are fully rounded; menus and popovers 10dp; sheets and dialogs 12dp. */
+
+.region { position: absolute; overflow: hidden; }
+.command-bar { z-index: 30; }
+.draw-bar, .present-strip, .title-bar { z-index: 29; }
+/* The title bar's hairline lies within its strip, so the draw bar beneath never covers it. */
+.title-bar { box-sizing: border-box; }
+/* The app mark dims with the title bar under a dialog's scrim; the window controls stay above it. */
+.window-brand { z-index: 31; }
+.window-controls { z-index: 66; }
+.rail { z-index: 28; }
+.status-line { z-index: 25; }
+.guide, .inspector, .measure { z-index: 20; overflow-x: hidden; overflow-y: auto; }
+.banner { z-index: 52; overflow: visible; }
+.hint { z-index: 55; overflow: visible; }
+.popovers { z-index: 60; overflow-x: hidden; overflow-y: auto; }
+.scrim { z-index: 65; }
+.sheets { z-index: 70; overflow-x: hidden; overflow-y: auto; }
+.toast-stack { position: absolute; z-index: 80; }
+.tooltip { position: absolute; z-index: 100; display: none; pointer-events: none; }
+
+/* Docked panels fill their region; the region carries the surface colour and separator. */
+.panel { display: block; margin: 0dp; padding: 14dp 16dp 18dp 16dp; border-width: 0dp; }
+.guide { border-right-width: 1dp; }
+.inspector { border-left-width: 1dp; }
+.measure { border-top-width: 1dp; }
+.guide .panel, .inspector .panel, .measure .panel { animation: 0.18s cubic-out panel-in; }
+@keyframes panel-in { from { opacity: 0.0; } to { opacity: 1.0; } }
+
+/* Rows. */
+.row { display: block; padding: 3dp 0dp; word-break: break-word; }
+/* Parts of a control never take focus themselves; a press focuses (and a click blurs) the control. */
+.icon, .label, .shortcut, .badge, .caret, .switch-label, .switch-track, .switch-knob, .checkbox-box, .checkbox-label, .radio-mark, .rail-label, .list-title, .list-secondary, .list-badges, .name, .value, .unit, .editing-tag { focus: none; }
+.row-title { font-size: 16.5dp; font-weight: 600; line-height: 1.3; padding: 2dp 0dp 10dp 0dp; }
+.row-heading { font-size: 11dp; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7dp; padding: 16dp 0dp 6dp 0dp; }
+.row-label { font-size: 12.5dp; padding: 2dp 0dp; }
+.row-paragraph { font-size: 13.5dp; line-height: 1.55; padding: 4dp 0dp; }
+.row-separator { height: 1dp; padding: 0dp; margin: 10dp 0dp; }
+.row-spacer { padding: 0dp; }
+.row-readout, .row-value { display: flex; flex-direction: row; justify-content: space-between; align-items: baseline; column-gap: 12dp; padding: 4dp 0dp; border-radius: 4dp; }
+.row-readout .name { font-size: 12.5dp; }
+.row-readout .value { font-weight: 500; text-align: right; }
+.row-readout .icon { display: none; }
+.value { font-weight: 500; text-align: right; }
+
+/* Buttons and action rows. In docked panels an action is a quiet full-width row; strips, menus and
+   dialogs restyle it in components.rcss. */
+button.row { display: flex; flex-direction: row; align-items: center; column-gap: 8dp; box-sizing: border-box; min-height: 32dp; padding: 3dp 6dp; margin: 1dp 0dp; border-width: 2dp; border-radius: 6dp; cursor: pointer; text-align: left; transition: background-color 0.12s cubic-out; }
+button.row .label { flex: 1 1 auto; }
+button.row .icon { display: none; flex: 0 0 auto; width: 16dp; font-size: 16dp; text-align: center; }
+button.row.has-icon .icon { display: block; }
+button.row .shortcut { flex: 0 0 auto; font-size: 11.5dp; display: none; }
+button.row .badge { display: none; }
+button.row.has-badge .badge { display: inline-block; flex: 0 0 auto; min-width: 16dp; height: 16dp; padding: 0dp 4dp; border-radius: 8dp; font-size: 10.5dp; font-weight: 600; line-height: 16dp; text-align: center; }
+button.row.is-primary { padding: 5dp 12dp; font-weight: 600; }
+button.row.icon-after { flex-direction: row-reverse; }
+.is-disabled { cursor: default; }
+
+/* Header actions sit in the panel title line. */
+.panel { position: relative; }
+button.row.header-action { position: absolute; top: 11dp; right: 10dp; width: 28dp; min-height: 28dp; height: 28dp; padding: 0dp; margin: 0dp; justify-content: center; }
+button.row.header-action .label, button.row.header-action .shortcut { display: none; }
+
+/* Disclosure sections read as small headings with a caret, separated by a hairline. */
+button.row-section { margin: 12dp 0dp 2dp 0dp; padding: 8dp 4dp 6dp 0dp; min-height: 30dp; border-top-width: 1dp; border-radius: 0dp; font-size: 10.5dp; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7dp; column-gap: 6dp; }
+button.row-section .caret { display: block; width: 12dp; font-size: 11dp; }
+
+/* Controls laid out as label | control, with sliders and errors on their own line. */
+.row-number, .row-select, .row-stepper { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 10dp; padding: 4dp 0dp; }
+/* A long label wraps inside its own column instead of pushing its control onto the next line. */
+.row-number .control-label, .row-select .control-label, .row-stepper .control-label { flex: 1 1 0dp; min-width: 0dp; font-size: 12.5dp; margin: 0dp; }
+.control-line { position: relative; display: flex; flex-direction: row; align-items: center; column-gap: 6dp; flex: 0 0 auto; }
+/* A field standing for several differing values is empty and reads Mixed until it is edited. */
+.control-line .field-placeholder { display: none; position: absolute; left: 0dp; top: 0dp; box-sizing: border-box; width: 100dp; height: 28dp; padding: 0dp 9dp; line-height: 28dp; text-align: right; pointer-events: none; }
+.row-number.is-mixed .control-line .field-placeholder { display: block; }
+.row-number.is-mixed .control-line .number-field:focus ~ .field-placeholder { display: none; }
+.row-number.is-mixed .slider { display: none; }
+.control-label, .switch-label, .checkbox-label { font-size: 12.5dp; }
+.row-segmented .control-label, .row-radio_list .control-label { display: block; font-size: 12.5dp; margin-bottom: 6dp; }
+.scrub-label { cursor: ew-resize; }
+.control-hint, .control-range, .editing-tag { font-size: 11.5dp; }
+.editing-tag { display: none; }
+.row-number.is-editing .editing-tag { display: none; }
+.field-error { flex: 1 1 100%; font-size: 11.5dp; }
+.number-field, .select, .text-field { box-sizing: border-box; height: 28dp; padding: 0dp 8dp; border-width: 1dp; border-radius: 6dp; line-height: 26dp; }
+/* A typed field's line is the text's height, because the caret is drawn the height of the line:
+   a full-height caret reads as a divider against the field's border. */
+.number-field, .text-field { padding-top: 5dp; padding-bottom: 5dp; line-height: 16dp; }
+.number-field { width: 100dp; text-align: right; }
+.select { min-width: 120dp; box-sizing: border-box; }
+/* The value box ends where the chevron's margin begins; a longer choice is clipped there rather
+   than drawn under the chevron. */
+select selectvalue { height: 100%; overflow: hidden; white-space: nowrap; }
+select selectarrow { width: 6dp; height: 6dp; margin: 8dp 3dp 0dp 10dp; border-right-width: 1.5dp; border-bottom-width: 1.5dp; transform: rotate(45deg); }
+select selectbox { margin-top: 4dp; padding: 4dp; border-width: 1dp; border-radius: 8dp; }
+select selectbox option { padding: 5dp 8dp; border-radius: 5dp; }
+.text-field { display: block; width: 100%; }
+/* Search fields carry a leading glyph and a hint that shows while they are empty. */
+.field-wrap { position: relative; display: block; }
+.field-wrap .field-icon { display: none; position: absolute; left: 10dp; top: 0dp; width: 16dp; height: 28dp; font-size: 15dp; line-height: 28dp; text-align: center; pointer-events: none; }
+.field-wrap .field-placeholder { display: none; position: absolute; left: 11dp; top: 0dp; right: 9dp; height: 28dp; line-height: 28dp; overflow: hidden; white-space: nowrap; pointer-events: none; }
+.row-text_field.has-icon .field-icon { display: block; }
+.row-text_field.has-icon .text-field { padding-left: 34dp; }
+.row-text_field.has-icon .field-placeholder { left: 36dp; }
+.row-text_field.is-empty .field-placeholder { display: block; }
+.unit { min-width: 30dp; font-size: 12dp; }
+.slider { flex: 1 1 100%; height: 18dp; margin-top: 4dp; cursor: pointer; }
+.slider slidertrack { height: 4dp; margin-top: 7dp; border-radius: 2dp; }
+.slider sliderbar { width: 14dp; height: 14dp; margin-top: 2dp; border-width: 1dp; border-radius: 7dp; }
+.slider sliderarrowdec, .slider sliderarrowinc { width: 0dp; height: 0dp; }
+/* The angle field carries the value; the decorative dial had no needle to read. */
+.dial { display: none; }
+.stepper-button { width: 28dp; height: 28dp; padding: 0dp; border-width: 1dp; border-radius: 6dp; text-align: center; line-height: 26dp; }
+.stepper-value { min-width: 56dp; text-align: center; font-weight: 500; }
+.row-stepper .control-range { flex: 1 1 100%; }
+
+/* Segmented controls: a recessed track with raised selected segment. A segment never shrinks below
+   its label, which would let neighbouring labels overprint; a control too long for its line wraps
+   its segments onto a second row instead. Segments share out any spare width, so the slim inset
+   only shows where a narrow panel needs it. */
+.segmented { display: flex; flex-direction: row; flex-wrap: wrap; padding: 1dp; column-gap: 2dp; row-gap: 2dp; border-width: 1dp; border-radius: 8dp; }
+.segment { display: flex; flex-direction: row; align-items: center; justify-content: center; column-gap: 6dp; flex: 1 0 auto; box-sizing: border-box; min-height: 26dp; padding: 0dp 6dp; border-width: 2dp; border-radius: 6dp; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color 0.12s cubic-out; }
+.segment .icon { display: none; width: 16dp; font-size: 16dp; text-align: center; }
+.segment.has-icon .icon { display: inline-block; }
+.radio-list { display: block; }
+.radio-list .segment { display: flex; justify-content: flex-start; width: 100%; min-height: 30dp; margin: 1dp 0dp; padding: 0dp 8dp; }
+.radio-mark { display: inline-block; width: 12dp; height: 12dp; border-width: 1.5dp; border-radius: 6dp; }
+.tabs { display: flex; flex-direction: row; flex-wrap: nowrap; column-gap: 0dp; margin-bottom: 6dp; overflow: hidden; border-bottom-width: 1dp; }
+.tabs .segment { flex: 0 0 auto; min-height: 32dp; padding: 0dp 4dp; border-left-width: 0dp; border-right-width: 0dp; border-top-width: 0dp; font-size: 12.5dp; border-radius: 0dp; border-bottom-width: 2dp; }
+.row-tabs .control-label { display: none; }
+/* The Inspector's target (Selection or World) is a switch between two pages, set above the
+   object's own underlined tabs so the two levels never read alike. */
+#legacy-inspector-target .tabs { padding: 2dp; column-gap: 2dp; margin: 2dp 0dp 12dp 0dp; border-width: 1dp; border-radius: 8dp; }
+#legacy-inspector-target .tabs .segment { flex: 1 1 0dp; min-height: 28dp; padding: 0dp 8dp; border-width: 2dp; border-radius: 6dp; font-size: 13dp; font-weight: 600; }
+
+/* Switches and checkboxes. */
+/* The row reaches 6dp past the column on each side, so a focus or reveal ring has room around the
+   label and the switch while both stay aligned with the rows above and below. */
+button.row-switch_control { justify-content: space-between; padding: 5dp 6dp 5dp 6dp; margin: 1dp -6dp; }
+.switch-label { flex: 1 1 auto; }
+.switch-track { display: block; flex: 0 0 auto; width: 30dp; height: 18dp; border-radius: 9dp; border-width: 0dp; }
+.switch-knob { display: block; width: 14dp; height: 14dp; margin: 2dp 0dp 0dp 2dp; border-radius: 7dp; transition: margin-left 0.14s cubic-out; }
+.switch-track.is-on .switch-knob { margin-left: 14dp; }
+/* A switch held by another setting keeps showing its state, faded, and takes no input. */
+button.row-switch_control.is-disabled .switch-track { opacity: 0.45; }
+button.row-checkbox { padding: 5dp 4dp 5dp 0dp; }
+/* The box shares the icon class for its glyph, so it must outrank the rule that hides icons. */
+button.row-checkbox .checkbox-box { display: block; }
+.checkbox-box { display: block; flex: 0 0 auto; width: 16dp; height: 16dp; border-width: 1.5dp; border-radius: 4dp; font-size: 12dp; line-height: 13dp; text-align: center; }
+
+/* Checklists, notices, meters, lists. */
+/* A checklist opens like a select: label | summary with a chevron, the options beneath. */
+.row-checklist { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 10dp; padding: 4dp 0dp; }
+.row-checklist .control-label { flex: 1 1 0dp; min-width: 0dp; font-size: 12.5dp; margin: 0dp; }
+.checklist-summary { display: flex; flex-direction: row; align-items: center; flex: 0 1 auto; box-sizing: border-box; height: 28dp; min-width: 168dp; max-width: 260dp; padding: 0dp 8dp; border-width: 1dp; border-radius: 6dp; }
+.checklist-text { flex: 1 1 auto; min-width: 0dp; overflow: hidden; white-space: nowrap; text-align: left; }
+.checklist-chevron { display: block; flex: 0 0 auto; width: 6dp; height: 6dp; margin: -4dp 3dp 0dp 10dp; border-right-width: 1.5dp; border-bottom-width: 1.5dp; transform: rotate(45deg); }
+.checklist-menu { display: none; flex: 1 1 100%; margin-top: 4dp; padding: 4dp; border-width: 1dp; border-radius: 8dp; }
+.row-checklist.is-open .checklist-menu { display: block; }
+.checklist-option { display: block; box-sizing: border-box; width: 100%; min-height: 28dp; margin: 1dp 0dp; padding: 0dp 8dp; border-width: 2dp; border-radius: 6dp; text-align: left; }
+.row-notice { margin: 6dp 0dp; padding: 10dp 12dp; border-left-width: 3dp; border-radius: 6dp; font-size: 12.5dp; line-height: 1.45; }
+.notice-actions { display: flex; flex-direction: row; column-gap: 6dp; margin-top: 8dp; }
+.notice-action { min-height: 26dp; padding: 0dp 10dp; border-width: 1dp; border-radius: 6dp; font-weight: 500; }
+.meter { height: 4dp; border-radius: 2dp; margin-top: 6dp; }
+.meter div { display: block; height: 4dp; border-radius: 2dp; }
+.meter-value { font-weight: 500; }
+button.row-list_item { display: block; min-height: 0dp; padding: 8dp 10dp; margin: 2dp 0dp; border-radius: 8dp; }
+.list-title { display: block; font-weight: 500; }
+.list-secondary { display: block; font-size: 12dp; margin-top: 1dp; }
+.list-badges { display: block; font-size: 11dp; margin-top: 3dp; }
+
+/* Plots. */
+.row-plot { padding: 6dp 0dp; }
+.plot-canvas { display: block; height: 132dp; margin: 6dp 0dp 4dp 0dp; overflow: hidden; border-width: 0dp; border-radius: 6dp; }
+.plot-summary { display: block; font-size: 11.5dp; }
+.plot-axis, .plot-legend, .plot-hover { display: inline-block; font-size: 11dp; }
+.plot-axis-y, .plot-legend, .plot-hover { margin-left: 10dp; }
+
+/* Scrollbars stay thin until hovered. */
+scrollbarvertical { width: 8dp; margin: 2dp 1dp; }
+scrollbarvertical slidertrack { border-radius: 4dp; }
+scrollbarvertical sliderbar { border-radius: 4dp; min-height: 32dp; margin: 0dp 1dp; }
+scrollbarhorizontal { height: 0dp; }
+/* A docked panel that does not scroll keeps the scrollbar's 10dp in reserve, so its header, tabs
+   and right edge stay put when its content grows past the bottom. */
+.guide.gutter .panel, .inspector.gutter .panel, .measure.gutter .panel { padding-right: 26dp; }
+.compact .guide.gutter .panel, .compact .inspector.gutter .panel, .compact .measure.gutter .panel { padding-right: 22dp; }
+.guide.gutter button.row.header-action, .inspector.gutter button.row.header-action, .measure.gutter button.row.header-action { right: 20dp; }
+
+/* Narrow-window density: smaller paddings and fewer secondary hints rather than a squashed
+   desktop layout. */
+.compact .panel { padding: 10dp 12dp 14dp 12dp; }
+.compact .row-paragraph { font-size: 13dp; }
+.compact .control-hint, .compact .control-range { display: none; }
+
+/* Side surfaces presented as sheets in a narrow window float above the stage and status line. */
+.guide.is-sheet, .inspector.is-sheet, .measure.is-sheet { z-index: 50; }
+.inspector.is-sheet { border-top-left-radius: 10dp; }
+.guide.is-sheet { border-top-right-radius: 10dp; }
+.measure.is-sheet { border-top-left-radius: 10dp; border-top-right-radius: 10dp; }

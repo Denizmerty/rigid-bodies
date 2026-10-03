@@ -1,0 +1,13 @@
+{
+  "name": "Master changes by Deniz Mert Yayla only",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    { "actor_id": 99360078, "actor_type": "User", "bypass_mode": "always" }
+  ],
+  "conditions": { "ref_name": { "include": ["refs/heads/master"], "exclude": [] } },
+  "rules": [
+    { "type": "creation" },
+    { "type": "update", "parameters": { "update_allows_fetch_and_merge": false } }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "folders": [
+    {
+      "name": "Rigid Bodies",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "cmake.buildDirectory": "${workspaceFolder}/build/cmake",
+    "cmake.configureOnOpen": false,
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "explorer.compactFolders": false,
+    "explorer.fileNesting.enabled": false,
+    "files.exclude": {
+      "**/.git": true,
+      "**/.vs": true,
+      "**/CMakeFiles": true,
+      "**/Debug": true,
+      "**/Release": true,
+      "**/x64": true,
+      "_development_archive": true,
+      "build": true,
+      "build-*": true,
+      "dist": true,
+      "out": true
+    },
+    "search.exclude": {
+      "**/.git": true,
+      "**/.vs": true,
+      "**/CMakeFiles": true,
+      "_development_archive": true,
+      "build": true,
+      "build-*": true,
+      "dist": true,
+      "out": true
+    }
+  }
+}

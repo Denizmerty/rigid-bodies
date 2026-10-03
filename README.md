@@ -2,6 +2,10 @@
 
 A 2D playground for exploring classical Newtonian mechanics.
 
+Download the [Windows x64 installer](https://github.com/Denizmerty/rigid-bodies/releases/latest).
+Under **Assets**, choose `Rigid-Bodies-<version>-windows-x64-setup.exe`. The ZIP is a portable
+copy for manual extraction; the installer handles installation and future updates.
+
 Build a setup, watch it move, change a value, and compare the result. Objects have shape and mass
 distribution, with sizes and masses suited to familiar classroom experiments. On-screen arrows,
 measurements and guides help explain what is happening.

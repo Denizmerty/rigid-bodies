@@ -234,6 +234,8 @@ namespace rigidbodies::testing
         {
             for (const auto& command : interface.take_commands())
                 apply_command(command);
+            if (save_continuation_ && !interface.view_state().sheet_open("save_details"))
+                save_continuation_.reset();
         }
 
         // Application::apply_command, with the file dialogs answered from memory.
@@ -255,33 +257,53 @@ namespace rigidbodies::testing
                 window_requests.push_back(command.kind);
                 return;
             case K::open_arrangement:
-                if (saved_setup.empty())
+                if (command.flag || command.detail == "cancel")
+                    session.apply(command);
+                else if (saved_setup.empty())
                     session.notify(ui::Severity::info, "File operation cancelled.", "content");
-                else if (!session.open_arrangement(saved_setup, error))
+                else if (!session.request_open_arrangement(saved_setup, error, command.id.empty() ? "memory/setup.rbscenario.json" : command.id))
                     session.notify(ui::Severity::error, error, "content");
                 return;
             case K::save_arrangement:
             {
+                if (command.detail.empty())
+                    save_continuation_ = session.take_pending_departure_for_save();
                 const auto model = session.build_model();
-                const auto title = model.scenario_title.empty() ? std::string { "My setup" } : model.scenario_title;
+                const auto file = session.current_setup_file();
+                const auto title = file.title.empty() ? (model.scenario_title.empty() ? std::string { "My setup" } : model.scenario_title) : file.title;
                 if (command.detail.empty() && (command.flag || session.current_setup_path().empty()))
                 {
-                    interface.view_state().set_value("save.title", title + " (my version)");
-                    interface.view_state().set_value("save.mode", "starting");
-                    interface.view_state().set_value("save.include_guide", "true");
+                    interface.view_state().set_value("save.title", title + (file.path.empty() ? " (my version)" : " (copy)"));
+                    interface.view_state().set_value("save.mode", file.current_moment ? "current" : "starting");
+                    interface.view_state().set_value("save.include_guide", file.include_guide ? "true" : "false");
                     interface.request(ui::ViewRequest::open_save_details);
                     return;
                 }
                 if (!command.detail.empty())
                     interface.request(ui::ViewRequest::close_top_surface);
-                const auto saved = command.detail.empty() ? session.save_arrangement(saved_setup, error, title, false, true)
-                                                          : session.save_arrangement(saved_setup, error, command.detail, command.value >= 0.5, command.flag);
-                if (!saved)
+                const auto snapshot = command.detail.empty() ? session.capture_current_setup_save(error)
+                                                             : session.capture_setup_save(error, command.detail, command.value >= 0.5, command.flag);
+                if (!snapshot)
+                {
+                    save_continuation_.reset();
                     session.notify(ui::Severity::error, error, "content");
+                }
                 else
                 {
-                    session.note_setup_file("memory/setup.rbscenario.json", command.detail.empty() ? title : command.detail, model.scenario_id);
+                    const auto destination = command.detail.empty() ? file.path : "memory/setup.rbscenario.json";
+                    if (!session.can_write_setup_save(*snapshot, destination, error))
+                    {
+                        save_continuation_.reset();
+                        session.notify(ui::Severity::error, error, "content");
+                        return;
+                    }
+                    saved_setup = snapshot->text;
+                    const auto current = session.complete_setup_save(*snapshot, destination);
                     session.notify(ui::Severity::success, "Setup saved.", "content");
+                    const auto continuation = std::move(save_continuation_);
+                    save_continuation_.reset();
+                    if (current && continuation)
+                        session.complete_saved_departure(*continuation);
                 }
                 return;
             }
@@ -394,6 +416,7 @@ namespace rigidbodies::testing
             app::InputContext context;
             context.focus = interface.focus_owner();
             context.interface_escape = interface.escape_target();
+            context.interface_modal = !interface.view_state().sheets().empty() || !interface.view_state().transients().empty() || model.confirmation.has_value();
             context.pointer_over_surface = interface.surface_at(input.pointer_px);
             context.pointer_captured_by_interface = interface.pointer_captured();
             context.gesture_active = session.interaction_active() || session.shape_editor().has_pointer_capture();
@@ -661,6 +684,7 @@ namespace rigidbodies::testing
 
     private:
         // What Application reads after every event to drive the platform text input and cursor.
+        std::optional<app::SetupDeparture> save_continuation_;
         void poll_platform_state()
         {
             if (interface.wants_text_input())

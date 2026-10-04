@@ -115,6 +115,7 @@ namespace
         RIGIDBODIES_EXPECT(format_quantity(0.3, DisplayQuantity::coefficient, si) == "0.30", "coefficient");
         RIGIDBODIES_EXPECT(format_quantity(0.3, DisplayQuantity::coefficient, cgs) == "0.30", "CGS coefficient is unchanged");
         RIGIDBODIES_EXPECT(format_quantity(1.0, DisplayQuantity::multiplier, si) == "1\xC3\x97", "multiplier");
+        RIGIDBODIES_EXPECT(format_quantity(0.875, DisplayQuantity::multiplier, si, 6) == "0.875\xC3\x97", "exact multipliers preserve requested precision without trailing zeroes");
         RIGIDBODIES_EXPECT(format_quantity(0.25, DisplayQuantity::multiplier, cgs) == "0.25\xC3\x97", "CGS multiplier is unchanged");
         RIGIDBODIES_EXPECT(format_quantity(30.0, DisplayQuantity::percentage, si) == "30" + nbsp + "%", "percentage");
         RIGIDBODIES_EXPECT(format_quantity(0.012, DisplayQuantity::percentage, cgs) == "0.012" + nbsp + "%", "CGS percentage is unchanged");

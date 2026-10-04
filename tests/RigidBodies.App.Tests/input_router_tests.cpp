@@ -21,6 +21,14 @@ namespace
         context.developer_captured = true;
         const auto f12 = app::route_event(key(ui::UiKey::f12), app::AppAction::toggle_developer_overlay, context);
         RIGIDBODIES_EXPECT(f12.action == app::AppAction::toggle_developer_overlay && !f12.to_developer, "F12 always dismisses the developer inspector");
+        auto held_f12 = key(ui::UiKey::f12);
+        held_f12.repeat = true;
+        for (const auto captured : { false, true })
+        {
+            context.developer_captured = captured;
+            const auto repeated = app::route_event(held_f12, {}, context);
+            RIGIDBODIES_EXPECT(!repeated.action && !repeated.to_developer, "holding F12 never toggles the inspector again, whether it is open or closed");
+        }
         const auto ordinary = app::route_event(key(ui::UiKey::r), app::AppAction::reset_scenario, context);
         RIGIDBODIES_EXPECT(ordinary.to_developer && !ordinary.action, "developer capture precedes ordinary bindings");
     }
@@ -47,7 +55,58 @@ namespace
         RIGIDBODIES_EXPECT(app::route_event(text, {}, context).to_interface, "typed text reaches the field");
     }
 
-    RIGIDBODIES_TEST("auto repeat reaches only a focused text field")
+    RIGIDBODIES_TEST("focused fields own word editing and both redo chords")
+    {
+        app::InputContext context;
+        context.focus = ui::FocusOwner::text_field;
+        for (const auto value : { ui::UiKey::arrow_left, ui::UiKey::arrow_right, ui::UiKey::home, ui::UiKey::end, ui::UiKey::backspace, ui::UiKey::delete_key, ui::UiKey::y, ui::UiKey::z })
+            for (const auto shift : { false, true })
+            {
+                const auto event = key(value, { shift, true, false });
+                const auto decision = app::route_event(event, app::action_for_key(value, event.modifiers), context);
+                RIGIDBODIES_EXPECT(decision.to_interface && !decision.action, "field editing chords neither disappear nor redo scene edits");
+            }
+        const auto search = app::route_event(key(ui::UiKey::k, { false, true, false }), app::AppAction::open_command_search, context);
+        RIGIDBODIES_EXPECT(search.action == app::AppAction::open_command_search, "global command search remains available while editing");
+    }
+
+    RIGIDBODIES_TEST("Alt vertical arrows adjust focused number fields instead of nudging scene objects")
+    {
+        app::InputContext context;
+        for (const auto value : { ui::UiKey::arrow_up, ui::UiKey::arrow_down })
+            for (const auto shift : { false, true })
+            {
+                const auto event = key(value, { shift, false, true });
+                const auto action = app::action_for_key(value, event.modifiers);
+                context.focus = ui::FocusOwner::text_field;
+                const auto field = app::route_event(event, action, context);
+                RIGIDBODIES_EXPECT(field.to_interface && !field.action, "a focused numeric field receives its fine or coarse adjustment");
+                context.focus = ui::FocusOwner::scene;
+                const auto scene = app::route_event(event, action, context);
+                RIGIDBODIES_EXPECT(scene.action == action && !scene.to_interface, "the same chord still nudges objects when the scene owns focus");
+            }
+    }
+
+    RIGIDBODIES_TEST("focused buttons own Space and modal surfaces block background scene edits")
+    {
+        app::InputContext context;
+        context.focus = ui::FocusOwner::keyboard_control;
+        auto decision = app::route_event(key(ui::UiKey::space), app::AppAction::toggle_pause, context);
+        RIGIDBODIES_EXPECT(decision.to_interface && !decision.action, "Space activates the focused control instead of playing the scene");
+        context.interface_modal = true;
+        for (const auto action : { app::AppAction::delete_selection, app::AppAction::undo, app::AppAction::reset_scenario, app::AppAction::next_object })
+        {
+            decision = app::route_event(key(ui::UiKey::delete_key), action, context);
+            RIGIDBODIES_EXPECT(!decision.action && !decision.to_scene, "a modal surface protects the scene beneath it");
+        }
+        decision = app::route_event(key(ui::UiKey::k, { false, true, false }), app::AppAction::open_command_search, context);
+        RIGIDBODIES_EXPECT(decision.action == app::AppAction::open_command_search, "global command search can still open above a sheet");
+        context.has_selection = context.draw_active = true;
+        decision = app::route_event(key(ui::UiKey::escape), {}, context);
+        RIGIDBODIES_EXPECT(decision.to_interface && !decision.to_scene, "Escape is owned by the modal instead of clearing the scene or draft selection");
+    }
+
+    RIGIDBODIES_TEST("auto repeat supports editing and control navigation without repeating activations")
     {
         auto event = key(ui::UiKey::r);
         event.repeat = true;
@@ -55,6 +114,11 @@ namespace
         RIGIDBODIES_EXPECT(!app::route_event(event, app::AppAction::reset_scenario, scene).action, "repeat cannot reset the experiment");
         scene.focus = ui::FocusOwner::text_field;
         RIGIDBODIES_EXPECT(app::route_event(event, app::AppAction::reset_scenario, scene).to_interface, "repeat supports text editing");
+        scene.focus = ui::FocusOwner::keyboard_control;
+        event.key = ui::UiKey::arrow_down;
+        RIGIDBODIES_EXPECT(app::route_event(event, {}, scene).to_interface, "holding an arrow traverses a control list");
+        event.key = ui::UiKey::space;
+        RIGIDBODIES_EXPECT(!app::route_event(event, app::AppAction::toggle_pause, scene).to_interface, "holding Space does not activate a button repeatedly");
     }
 
     RIGIDBODIES_TEST("escape ladder resolves exactly one highest priority step")

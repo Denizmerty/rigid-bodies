@@ -21,7 +21,7 @@ quantities. Labels avoid overlap and follow the text-size preference. Contact sh
 trails and impact effects help show motion. Reduce motion turns off blur, impact flashes, sparks,
 dust and smooth transitions.
 
-The current version is `1.0.0`.
+The current version is `1.0.1`.
 
 ## License and author
 
@@ -104,9 +104,35 @@ Inspector edits World, objects, joints and springs; Measure contains Energy, Gra
 Theory checks and Runs. The Library searches bundled experiments and saved setups. **Ctrl+K**
 searches every command and control, then runs the action or opens and focuses the matching setting.
 
+The playback speed menu includes **Custom…**, which opens an exact multiplier editor from
+0.05× to 4×, with validation and a **Reset to 1×** action. The toolbar shows the active multiplier.
+The editor is also available through **Ctrl+K** when the toolbar is compact.
+
+Library search matches separate words across titles, concepts, descriptions and collections.
+Collection and sort menus show the available choices, **Clear filters** restores the full list,
+and **My setups and files** expands to show saved setups and file actions.
+
+**Save as** remembers the title, guide inclusion and starting-setup/current-moment choice for
+later **Ctrl+S** saves. Undoing an opened setup also restores its previous file destination.
+Opening another setup, leaving or quitting with unsaved edits offers Save, Discard or Cancel; a successful save
+updates the saved baseline while keeping the original experiment available for comparison.
+Save dialogs suggest the setup title and remember the current folder. A save records the setup
+captured when it began, so edits made while the dialog is open remain marked unsaved.
+When editing a number, **Escape** first cancels the field or drag; a second press closes its
+panel. Dropdowns close independently of their containing panel.
+
+Dialogs keep keyboard focus inside their controls and restore it when closed. **F6** cycles the
+workspace regions, including Guide; **Space** activates the focused button, and **Up/Down** selects
+command-search results. Numeric drafts retain their original units and never carry into another object.
+
+In **Measure › Runs**, pinned values include their object, time and units and can be reviewed after
+just one run. **Show graph** opens any saved run, preserving the chosen object scope; **Back to live
+graph** returns to the current recording. Values at a chosen time are interpolated between samples.
+
 On the stage:
 
-- Click selects the smallest eligible object within a scale-aware tolerance; Shift-click extends
+- Click selects the smallest eligible object near its actual outline; empty corners and compound
+  gaps remain accessible. The tolerance follows display scale. Shift-click extends
   the selection. Shift-drag on empty space selects free and driven objects inside a rectangle.
 - Drag selected objects in Select mode, throw them in Throw mode, or attach a temporary force in
   Pull mode. A gesture begins only after four logical pixels.
@@ -118,7 +144,9 @@ On the stage:
 - Draw mode supports snapping, rubber-band previews, smooth click-drags, node/tangent editing and
   double-click insertion. Double-clicking an authored shape edits the exact part under the pointer.
   The draw bar keeps Discard and Apply in view at every width; material, snapping, precision and
-  the selected point's edge and join settings are also in its **Options** popover.
+  the selected point's edge and join settings are also in its **Options** popover. Exact **Point x/y**
+  fields edit world coordinates in the chosen units. **Alt+arrows** nudges the selected draft point
+  by 1 cm (**Shift+Alt+arrows** by 10 cm), with undo and without moving its source object.
 - Hovering first shows a silhouette, then a read-only card. Impact markers can be inspected from
   the stage. Cursor glyphs distinguish open-hand pan, grab and pen interaction.
 

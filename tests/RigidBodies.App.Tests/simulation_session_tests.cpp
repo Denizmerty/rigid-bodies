@@ -449,7 +449,11 @@ namespace
             RIGIDBODIES_EXPECT(session.world().body_ids() == initial_ids && session.world().find_body(initial_ids.front())->position_m() == initial_position, "body checkpoint still restores exactly");
         }
         session.apply(command);
-        RIGIDBODIES_EXPECT(session.load_scenario("restitution_drop"), "drop experiment loads");
+        RIGIDBODIES_EXPECT(session.load_scenario("restitution_drop"), "drop experiment exists");
+        const auto confirmation = session.build_model().confirmation;
+        RIGIDBODIES_EXPECT(confirmation && session.scenario_id() == "free_fall", "unsaved collision settings require confirmation before replacing the experiment");
+        session.apply(confirmation->confirm);
+        RIGIDBODIES_EXPECT(session.scenario_id() == "restitution_drop" && !session.build_model().confirmation, "confirming discard opens the requested drop experiment");
         RIGIDBODIES_EXPECT(session.world().settings().collision.restitution_mixing == physics::MaterialMixing::maximum, "opening uses the new experiment's bounce rule");
         RIGIDBODIES_EXPECT(session.world().settings().collision.continuous && !session.world().settings().solver.warm_starting, "opening uses the experiment's catch-fast setting but keeps the lab warm-start setting");
         apply_flag(session, ui::UiCommandKind::set_continuous_collision, true);
@@ -519,7 +523,11 @@ namespace
         apply_flag(session, ui::UiCommandKind::set_drag_enabled, false);
         apply_flag(session, ui::UiCommandKind::set_angular_drag_enabled, false);
         apply_flag(session, ui::UiCommandKind::set_magnus_enabled, false);
-        RIGIDBODIES_EXPECT(session.load_scenario("aerodynamic_profiles"), "the comparison scenario loads");
+        RIGIDBODIES_EXPECT(session.load_scenario("aerodynamic_profiles"), "the comparison scenario exists");
+        const auto confirmation = session.build_model().confirmation;
+        RIGIDBODIES_EXPECT(confirmation && session.scenario_id() == "free_fall", "unsaved environment edits remain until leaving is confirmed");
+        session.apply(confirmation->confirm);
+        RIGIDBODIES_EXPECT(session.scenario_id() == "aerodynamic_profiles" && !session.build_model().confirmation, "confirming discard opens the comparison experiment");
         RIGIDBODIES_EXPECT_NEAR(session.world().settings().gravity_m_s2.x, 0.0, 1.0e-12, "opening uses the new experiment's gravity rather than an override");
         const auto opened = session.build_model();
         RIGIDBODIES_EXPECT(find_force(session, "uniform_gravity")->is_enabled() && opened.drag_enabled,
@@ -650,6 +658,10 @@ namespace
         session.reset_scenario();
         RIGIDBODIES_EXPECT(!session.world().settings().constraint_graph_enabled, "reset keeps the explicit graph comparison choice");
         RIGIDBODIES_EXPECT(session.load_scenario("distance_chain"), "the chain demonstration exists");
+        const auto confirmation = session.build_model().confirmation;
+        RIGIDBODIES_EXPECT(confirmation && session.scenario_id() == "free_fall", "the edited setup requires confirmation before opening another experiment");
+        session.apply(confirmation->confirm);
+        RIGIDBODIES_EXPECT(session.scenario_id() == "distance_chain" && !session.build_model().confirmation, "confirming discard opens the chain demonstration");
         RIGIDBODIES_EXPECT(!session.world().settings().constraint_graph_enabled, "new scene honors the solver preference");
         apply_flag(session, ui::UiCommandKind::set_constraint_graph, true);
         session.reset_scenario();

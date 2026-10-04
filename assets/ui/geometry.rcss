@@ -21,7 +21,8 @@
 .popovers { z-index: 60; overflow-x: hidden; overflow-y: auto; }
 .scrim { z-index: 65; }
 .sheets { z-index: 70; overflow-x: hidden; overflow-y: auto; }
-.toast-stack { position: absolute; z-index: 80; }
+/* The placement area stays empty between notifications and must not intercept the surfaces below. */
+.toast-stack { position: absolute; z-index: 80; pointer-events: none; }
 .tooltip { position: absolute; z-index: 100; display: none; pointer-events: none; }
 
 /* Docked panels fill their region; the region carries the surface colour and separator. */
@@ -36,6 +37,7 @@
 .row { display: block; padding: 3dp 0dp; word-break: break-word; }
 /* Parts of a control never take focus themselves; a press focuses (and a click blurs) the control. */
 .icon, .label, .shortcut, .badge, .caret, .switch-label, .switch-track, .switch-knob, .checkbox-box, .checkbox-label, .radio-mark, .rail-label, .list-title, .list-secondary, .list-badges, .name, .value, .unit, .editing-tag { focus: none; }
+select selectvalue, select selectarrow { focus: none; }
 .row-title { font-size: 16.5dp; font-weight: 600; line-height: 1.3; padding: 2dp 0dp 10dp 0dp; }
 .row-heading { font-size: 11dp; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7dp; padding: 16dp 0dp 6dp 0dp; }
 .row-label { font-size: 12.5dp; padding: 2dp 0dp; }

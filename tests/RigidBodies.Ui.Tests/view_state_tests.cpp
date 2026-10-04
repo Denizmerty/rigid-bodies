@@ -51,17 +51,22 @@ namespace
         state.set_value("measure.runs.compare_a", "2");
         state.set_value("measure.runs.compare_b", "4");
         state.set_value("measure.graph.compare_with", "2");
+        state.set_value("measure.graph.review_run", "3");
+        state.set_value("measure.runs.inspect", "4");
         state.set_experiment_context("ramp");
         RIGIDBODIES_EXPECT(state.value("measure.runs.compare_a", "default") == "default", "another experiment uses its defaults");
+        RIGIDBODIES_EXPECT(state.value("measure.graph.review_run").empty() && state.value("measure.runs.inspect").empty(), "saved run review never follows an unrelated experiment's same run number");
         state.set_value("measure.runs.compare_a", "7");
         state.set_experiment_context("free_fall");
         RIGIDBODIES_EXPECT(state.value("measure.runs.compare_a", "default") == "2" && state.value("measure.runs.compare_b", "default") == "4", "A and B return with their experiment");
         RIGIDBODIES_EXPECT(state.value("measure.graph.compare_with", "none") == "2", "graph comparison is also scoped to the experiment");
+        RIGIDBODIES_EXPECT(state.value("measure.graph.review_run") == "3" && state.value("measure.runs.inspect") == "4", "the inspected run returns with its experiment");
 
         ui::ViewState loaded;
         RIGIDBODIES_EXPECT(loaded.deserialize(state.serialize()).empty(), "persistent state remains valid");
         loaded.set_experiment_context("free_fall");
         RIGIDBODIES_EXPECT(loaded.value("measure.runs.compare_a", "default") == "default" && loaded.value("measure.graph.compare_with", "none") == "none", "session comparison choices are not persisted");
+        RIGIDBODIES_EXPECT(loaded.value("measure.graph.review_run").empty() && loaded.value("measure.runs.inspect").empty(), "unpersisted recordings cannot leave stale review selections after restart");
     }
 
     RIGIDBODIES_TEST("My setups keeps the newest eight unique paths and round trips metadata")

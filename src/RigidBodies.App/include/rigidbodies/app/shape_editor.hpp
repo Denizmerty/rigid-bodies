@@ -24,6 +24,9 @@ namespace rigidbodies::app
         void release_pointer()
         {
             drag_ = DragKind::none;
+            smooth_node_pending_ = false;
+            drag_threshold_pending_ = false;
+            close_pending_ = false;
         }
         [[nodiscard]] const physics::Outline& outline() const;
         [[nodiscard]] const physics::ShapeAuthoringOptions& options() const;

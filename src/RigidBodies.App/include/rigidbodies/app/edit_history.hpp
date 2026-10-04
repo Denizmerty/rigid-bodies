@@ -7,6 +7,7 @@
 #include <rigidbodies/physics/time_stepper.hpp>
 #include <rigidbodies/render/camera2d.hpp>
 #include <optional>
+#include <cstdint>
 
 namespace rigidbodies::app
 {
@@ -14,6 +15,18 @@ namespace rigidbodies::app
     {
         physics::WorldSnapshot world;
         double gravity_direction_degrees { -90.0 };
+    };
+
+    // Save destinations belong to a document, rather than to individual physics edits. History
+    // shares this association so saving a document also updates its earlier editable states.
+    struct SetupFileAssociation
+    {
+        std::string path, title, based_on;
+        bool current_moment { false };
+        bool include_guide { true };
+        // The editable starting setup when opened or last saved, separate from the lesson baseline.
+        std::string saved_setup_fingerprint;
+        std::uint64_t save_request_serial {}, save_completion_serial {};
     };
 
     // Frozen world evidence and edit-related session state. Display preferences stay independent.
@@ -40,6 +53,7 @@ namespace rigidbodies::app
         std::optional<ui::SelectedConnection> selected_connection;
         std::string scenario_id {};
         std::shared_ptr<const physics::ScenarioDocument> scenario_document;
+        std::shared_ptr<SetupFileAssociation> setup_file;
         double gravity_direction_degrees {};
         bool state_setup_toast_shown {};
     };

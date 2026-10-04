@@ -22,6 +22,26 @@
 
 namespace rigidbodies::app
 {
+    struct SetupSaveSnapshot
+    {
+        std::shared_ptr<SetupFileAssociation> document;
+        SetupFileAssociation file;
+        std::string text;
+        std::uint64_t serial {};
+    };
+
+    struct PendingSetupOpen
+    {
+        std::string text, path, title;
+    };
+
+    struct SetupDeparture
+    {
+        ui::UiCommand command;
+        std::shared_ptr<const PendingSetupOpen> opening;
+        std::shared_ptr<SetupFileAssociation> document;
+        std::uint64_t serial {};
+    };
 
     // Everything that makes up one session with the playground: the world being simulated, the
     // pacing, the view onto it, and what is currently selected.
@@ -56,11 +76,29 @@ namespace rigidbodies::app
         bool save_arrangement(std::string& text, std::string& error) const;
         bool save_arrangement(std::string& text, std::string& error, std::string_view title,
             bool current_moment, bool include_guide) const;
-        bool open_arrangement(std::string_view text, std::string& error);
-        void note_setup_file(std::string path, std::string title, std::string based_on);
+        bool open_arrangement(std::string_view text, std::string& error, std::string path = {});
+        // User-facing Open validates the file before protecting unsaved edits with a prompt.
+        bool request_open_arrangement(std::string text, std::string& error, std::string path = {});
+        bool save_current_arrangement(std::string& text, std::string& error) const;
+        [[nodiscard]] std::optional<SetupSaveSnapshot> capture_setup_save(std::string& error,
+            std::string_view title, bool current_moment, bool include_guide) const;
+        [[nodiscard]] std::optional<SetupSaveSnapshot> capture_current_setup_save(std::string& error) const;
+        [[nodiscard]] bool can_write_setup_save(const SetupSaveSnapshot& snapshot, std::string_view path, std::string& error) const;
+        // Records only the document and editable state represented by the bytes that were written.
+        // Returns true when that saved document is still current and has no newer setup edits.
+        bool complete_setup_save(const SetupSaveSnapshot& snapshot, std::string path);
+        void note_setup_file(std::string path, std::string title, std::string based_on,
+            bool current_moment = false, bool include_guide = true);
+        // A confirmation's Save resumes its departure only after a successful write.
+        [[nodiscard]] std::optional<SetupDeparture> take_pending_departure_for_save();
+        void complete_saved_departure(const SetupDeparture& departure);
         [[nodiscard]] const std::string& current_setup_path() const
         {
-            return current_setup_path_;
+            return setup_file_->path;
+        }
+        [[nodiscard]] const SetupFileAssociation& current_setup_file() const
+        {
+            return *setup_file_;
         }
         bool export_shape(std::string& text, std::string& error) const;
         bool import_shape(std::string_view text, std::string& error);
@@ -161,6 +199,8 @@ namespace rigidbodies::app
         [[nodiscard]] const std::string& scenario_id() const;
 
     private:
+        [[nodiscard]] std::string setup_fingerprint() const;
+        void publish_setup_file(const SetupFileAssociation& file);
         void apply_untracked(const ui::UiCommand& command);
         bool load_scenario_untracked(std::string_view id);
         void reset_scenario_untracked();
@@ -320,7 +360,7 @@ namespace rigidbodies::app
         physics::ForceGeneratorPtr drag_;
 
         std::string scenario_id_;
-        std::string current_setup_path_;
+        std::shared_ptr<SetupFileAssociation> setup_file_ { std::make_shared<SetupFileAssociation>() };
         std::optional<ui::SetupFileInfo> last_setup_file_;
         std::uint64_t setup_file_serial_ {};
         std::shared_ptr<const physics::ScenarioDocument> scenario_document_;
@@ -333,7 +373,12 @@ namespace rigidbodies::app
         bool quit_requested_ { false };
         std::string pending_leave_scenario_;
         bool pending_quit_confirmation_ { false };
+        std::shared_ptr<const PendingSetupOpen> pending_setup_open_;
+        std::uint64_t departure_serial_ {};
         bool single_step_pending_ { false };
+        // Playback speed previews remain live, but cancellation restores their starting value
+        // without making a physics edit or holding the simulation clock.
+        std::optional<double> speed_preview_start_;
         double gravity_direction_degrees_ { -90.0 };
         physics::EnergyDriftSettings energy_comparison_settings_;
         std::vector<physics::EnergyDriftReport> energy_comparison_;

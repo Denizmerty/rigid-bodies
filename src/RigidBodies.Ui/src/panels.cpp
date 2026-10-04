@@ -69,6 +69,16 @@ namespace rigidbodies::ui
             return core::substitute("{}, {}\xC2\xA0{}", core::format_value(value.x, kind, model.display_units), core::format_value(value.y, kind, model.display_units), core::display_unit(kind, model.display_units));
         }
 
+        std::string playback_speed_label(double value)
+        {
+            auto text = core::fixed(value, 6);
+            while (!text.empty() && text.back() == '0')
+                text.pop_back();
+            if (!text.empty() && text.back() == '.')
+                text.pop_back();
+            return text + "×";
+        }
+
     } // namespace
 
     std::string_view SimulationControlsPanel::id() const
@@ -92,7 +102,7 @@ namespace rigidbodies::ui
         builder.action_row(model.paused ? "Play" : "Pause", command(UiCommandKind::toggle_pause));
         builder.action_row("Step", command(UiCommandKind::single_step));
         builder.action_row("Back to start", command(UiCommandKind::reset_scenario));
-        builder.select_row(spec("bar.speed.choice"), core::fixed(model.time_scale, 2), command(UiCommandKind::set_time_scale));
+        builder.select_row(spec("bar.speed.choice"), core::fixed(model.time_scale, 6), command(UiCommandKind::set_time_scale), playback_speed_label(model.time_scale));
         if (model.world != nullptr)
             builder.select_row(spec("world.advanced.integration_method"), model.world->integrator().name(), command(UiCommandKind::set_integrator));
         builder.select_row(spec("world.advanced.time_step"), core::fixed(model.fixed_step_s, 6), command(UiCommandKind::set_fixed_step));
@@ -476,7 +486,7 @@ namespace rigidbodies::ui
         builder.present_last(presentation(running ? icons::pause : icons::play, "Space").primary().hide_label_at(8));
         builder.action_row("Step", command(UiCommandKind::single_step));
         builder.present_last(presentation(icons::step, ".").icon_label_only());
-        builder.select_row(spec("bar.speed.choice"), core::format_value(model.time_scale, core::DisplayQuantity::multiplier, model.display_units), command(UiCommandKind::set_time_scale));
+        builder.select_row(spec("bar.speed.choice"), core::fixed(model.time_scale, 6), command(UiCommandKind::set_time_scale), playback_speed_label(model.time_scale));
         builder.present_last(presentation(icons::speed).overflow_at(7));
         auto many = command(UiCommandKind::step_many);
         many.value = 10.0;
@@ -661,46 +671,77 @@ namespace rigidbodies::ui
             result.detail = "state:" + std::string(key) + "=" + std::string(value);
             return result;
         };
-        builder.text_field("library.top.search", "Search experiments", search, "Title, concept or collection");
+        builder.text_field("library.top.search", "Search experiments", search, "Title, concept, description or collection", "library.search");
         builder.present_last(presentation(icons::search));
         std::vector<std::string> collections;
         for (const auto& experiment : model.catalogue)
             if (!experiment.collection.empty() && std::find(collections.begin(), collections.end(), experiment.collection) == collections.end())
                 collections.push_back(experiment.collection);
-        auto collection_next = std::string { "all" };
-        if (collection == "all" && !collections.empty())
-            collection_next = collections.front();
-        else if (auto found = std::find(collections.begin(), collections.end(), collection); found != collections.end() && std::next(found) != collections.end())
-            collection_next = *std::next(found);
+        collection_ids_.clear();
+        collection_labels_.clear();
+        collection_options_.clear();
+        collection_ids_.reserve(collections.size() + 1);
+        collection_labels_.reserve(collections.size() + 1);
+        collection_ids_.push_back("all");
+        collection_labels_.push_back("All collections");
+        for (const auto& name : collections)
+        {
+            collection_ids_.push_back(name);
+            collection_labels_.push_back(core::humanise_identifier(name));
+        }
+        for (std::size_t index = 0; index < collection_ids_.size(); ++index)
+            collection_options_.push_back({ collection_ids_[index], collection_labels_[index], {}, {} });
         builder.begin_group("filters");
-        // Filters read as pills that say what they show, pressed while they narrow the list.
-        builder.action_row("library.top.collection", collection == "all" ? std::string { "All collections" } : core::humanise_identifier(collection), state_command("library.collection", collection_next));
-        builder.select_last(collection != "all");
+        ControlSpec collection_spec;
+        collection_spec.key = "library.top.collection";
+        collection_spec.label = "Collection";
+        collection_spec.kind = ControlKind::select;
+        collection_spec.options = collection_options_;
+        auto choose_collection = command(UiCommandKind::none);
+        choose_collection.detail = "state-id:library.collection";
+        builder.select_row(collection_spec, collection, choose_collection);
+        static constexpr OptionSpec sort_options[] { { "collections", "By collection", {}, {} }, { "suggested", "Suggested order", {}, {} } };
+        ControlSpec sort_spec;
+        sort_spec.key = "library.top.sort";
+        sort_spec.label = "Sort";
+        sort_spec.kind = ControlKind::select;
+        sort_spec.options = sort_options;
+        auto choose_sort = command(UiCommandKind::none);
+        choose_sort.detail = "state-id:library.sort";
+        builder.select_row(sort_spec, sort, choose_sort);
         builder.action_row("library.top.visited", "Unopened only", state_command("library.visited", unvisited_only ? "all" : "unvisited"));
         builder.select_last(unvisited_only);
-        builder.action_row("library.top.sort", sort == "suggested" ? "Sort: Suggested" : "Sort: By collection", state_command("library.sort", sort == "suggested" ? "collections" : "suggested"));
-        builder.end_group();
-        builder.heading("My setups");
-        for (const auto& file : builder.view_setup_files())
+        if (!search.empty() || collection != "all" || unvisited_only)
         {
-            const auto exists = std::filesystem::exists(std::filesystem::u8path(file.path));
-            auto open = command(UiCommandKind::open_arrangement, file.path);
-            auto remove = command(UiCommandKind::none, file.path);
-            remove.detail = "remove-setup";
-            ListItemContent content { file.title, "Based on " + (file.based_on.empty() ? std::string { "an experiment" } : file.based_on) + " · " + file.date, "setup", {} };
-            builder.list_item("library.setups.row", file.path, content, open, exists ? UiCommand {} : remove, exists ? "" : "File not found");
-            if (!exists)
-            {
-                builder.action_row("Remove " + file.title, remove);
-                builder.present_last(presentation(icons::remove).danger());
-            }
+            auto clear = command(UiCommandKind::none);
+            clear.detail = "library-reset-filters";
+            builder.action_row("library.top.clear_filters", "Clear filters", clear);
+            builder.present_last(presentation(icons::close).quiet());
         }
-        builder.action_row("library.setups.open_file", "Open setup…", command(UiCommandKind::open_arrangement));
-        builder.present_last(presentation(icons::open, "Ctrl+O"));
-        builder.action_row("Save setup", command(UiCommandKind::save_arrangement));
-        builder.present_last(presentation(icons::save, "Ctrl+S"));
-        builder.action_row("Import shape", command(UiCommandKind::import_shape));
-        builder.present_last(presentation(icons::open, "Ctrl+I"));
+        builder.end_group();
+        if (builder.section("library.setups", "My setups and files", false))
+        {
+            for (const auto& file : builder.view_setup_files())
+            {
+                const auto exists = std::filesystem::exists(std::filesystem::u8path(file.path));
+                auto open = command(UiCommandKind::open_arrangement, file.path);
+                auto remove = command(UiCommandKind::none, file.path);
+                remove.detail = "remove-setup";
+                ListItemContent content { file.title, "Based on " + (file.based_on.empty() ? std::string { "an experiment" } : file.based_on) + " · " + file.date, "setup", {} };
+                builder.list_item("library.setups.row", file.path, content, open, exists ? UiCommand {} : remove, exists ? "" : "File not found");
+                if (!exists)
+                {
+                    builder.action_row("Remove " + file.title, remove);
+                    builder.present_last(presentation(icons::remove).danger());
+                }
+            }
+            builder.action_row("library.setups.open_file", "Open setup…", command(UiCommandKind::open_arrangement));
+            builder.present_last(presentation(icons::open, "Ctrl+O"));
+            builder.action_row("Save setup", command(UiCommandKind::save_arrangement));
+            builder.present_last(presentation(icons::save, "Ctrl+S"));
+            builder.action_row("Import shape", command(UiCommandKind::import_shape));
+            builder.present_last(presentation(icons::open, "Ctrl+I"));
+        }
         const auto folded = [](std::string_view value)
         {
             std::string result(value);
@@ -711,13 +752,31 @@ namespace rigidbodies::ui
             return result;
         };
         const auto needle = folded(search);
+        std::vector<std::string> words;
+        for (std::size_t start = 0; start < needle.size();)
+        {
+            while (start < needle.size() && std::isspace(static_cast<unsigned char>(needle[start])))
+                ++start;
+            auto end = start;
+            while (end < needle.size() && !std::isspace(static_cast<unsigned char>(needle[end])))
+                ++end;
+            if (end > start)
+                words.push_back(needle.substr(start, end - start));
+            start = end;
+        }
         std::vector<const ExperimentCard*> matches;
         for (const auto& experiment : model.catalogue)
         {
-            auto haystack = folded(experiment.title + " " + experiment.hook + " " + experiment.collection);
+            auto haystack = folded(experiment.title + " " + experiment.hook + " " + experiment.summary + " " + experiment.collection + " " + experiment.level);
             for (const auto& concept : experiment.concepts)
                 haystack += " " + folded(concept);
-            if ((!needle.empty() && haystack.find(needle) == std::string::npos) || (collection != "all" && experiment.collection != collection) || (unvisited_only && builder.view_visited(experiment.id)))
+            for (const auto& tag : experiment.tags)
+                haystack += " " + folded(tag);
+            if (std::any_of(words.begin(), words.end(), [&](const auto& word)
+                    {
+                        return haystack.find(word) == std::string::npos;
+                    }) ||
+                (collection != "all" && experiment.collection != collection) || (unvisited_only && builder.view_visited(experiment.id)))
                 continue;
             matches.push_back(&experiment);
         }
@@ -738,10 +797,10 @@ namespace rigidbodies::ui
                 const auto rank_b = std::make_tuple(collection_rank[b->collection], b->collection, b->collection_order, b->suggested_order);
                 return rank_a < rank_b;
             });
+        builder.readout("library.results.count", "Experiments", std::to_string(matches.size()) + " of " + std::to_string(model.catalogue.size()));
         if (matches.empty())
         {
-            builder.paragraph("No experiments match '" + search + "'.");
-            builder.action_row("library.top.clear_search", "Clear search", state_command("library.search", ""));
+            builder.paragraph(words.empty() ? "No experiments match these filters. Clear filters to see the full library." : "No experiments match your search and filters. Try fewer words or clear filters.");
             return;
         }
         const auto current = std::find_if(matches.begin(), matches.end(), [&](const auto* item)
@@ -1074,15 +1133,44 @@ namespace rigidbodies::ui
             return;
         builder.title(model.confirmation->title);
         builder.paragraph(model.confirmation->text);
-        builder.action_row("Save setup…", model.confirmation->save);
+        builder.action_row(model.confirmation->save_label, model.confirmation->save);
         builder.action_row(model.confirmation->confirm_label, model.confirmation->confirm);
         builder.action_row("Cancel", model.confirmation->cancel);
+    }
+
+    std::string_view PlaybackSpeedPanel::id() const
+    {
+        return "playback_speed";
+    }
+
+    std::string_view PlaybackSpeedPanel::title() const
+    {
+        return "Playback speed";
+    }
+
+    RegionId PlaybackSpeedPanel::region() const
+    {
+        return RegionId::show_popover;
+    }
+
+    void PlaybackSpeedPanel::build(const UiModel& model, PanelBuilder& builder)
+    {
+        builder.title(title());
+        UiCommand close;
+        close.detail = "view:close";
+        builder.action_row("playback.close", "Done", close);
+        builder.present_last(presentation(icons::close, "Esc").icon_label_only().in_header());
+        builder.paragraph("1× is real time. Choose 0.05× to 4×; slower playback makes motion easier to inspect.");
+        builder.number_row(spec("bar.speed.custom"), model.time_scale, command(UiCommandKind::set_time_scale));
+        builder.action_row("playback.normal", "Reset to 1×", command(UiCommandKind::set_time_scale, 1.0));
+        builder.readout("playback.elapsed", "Each real second advances", quantity(model.time_scale, core::DisplayQuantity::time, model));
     }
 
     std::vector<std::unique_ptr<Panel>> create_default_panels()
     {
         std::vector<std::unique_ptr<Panel>> panels;
         panels.push_back(std::make_unique<CommandBarPanel>());
+        panels.push_back(std::make_unique<PlaybackSpeedPanel>());
         panels.push_back(std::make_unique<StatusLinePanel>());
         panels.push_back(std::make_unique<LibraryPanel>());
         panels.push_back(std::make_unique<MainMenuPanel>());

@@ -17,6 +17,7 @@ namespace rigidbodies::ui
         bool handle_event(const UiEvent& event, std::vector<UiCommand>& commands) override;
         void release_focus(std::vector<UiCommand>& commands) override;
         void build(const UiFrameContext& context, DrawList& list) override;
+        void take_pending_commands(std::vector<UiCommand>& commands) override;
         [[nodiscard]] FocusOwner focus_owner() const override;
         [[nodiscard]] EscapeTarget escape_target() const override;
         [[nodiscard]] bool wants_text_input() const override;

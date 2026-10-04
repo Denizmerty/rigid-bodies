@@ -54,6 +54,79 @@ namespace
         return session.handle_scene_event(event, consumed);
     }
 
+    RIGIDBODIES_TEST("picking follows outlines and leaves empty circle corners and compound gaps accessible")
+    {
+        app::SimulationSession session;
+        isolate(session);
+        const auto small = disc(session);
+        const auto click = [&](math::Vec2 point)
+        {
+            session.set_selection({});
+            pointer(session, ui::UiEventKind::pointer_down, point);
+            pointer(session, ui::UiEventKind::pointer_up, point);
+        };
+        click({ 0.14, 0.14 });
+        RIGIDBODIES_EXPECT(!session.selection().is_valid(), "an empty AABB corner is not a circle hit");
+        physics::BodyDefinition background;
+        physics::Collider background_collider;
+        background_collider.shape = physics::make_circle(1.0);
+        background.colliders.push_back(background_collider);
+        const auto behind = session.world().create_body(background);
+        click({ 0.14, 0.14 });
+        RIGIDBODIES_EXPECT(session.selection() == behind, "empty circle corners do not block the larger object behind them");
+        click({});
+        RIGIDBODIES_EXPECT(session.selection() == small, "overlapping real outlines still prefer the smaller object");
+        session.world().destroy_body(small);
+        physics::BodyDefinition compound;
+        for (const auto x : { -0.6, 0.6 })
+        {
+            physics::Collider part;
+            part.shape = physics::make_circle(0.15);
+            part.local_transform.translation = { x, 0.0 };
+            compound.colliders.push_back(part);
+        }
+        const auto pair = session.world().create_body(compound);
+        click({});
+        RIGIDBODIES_EXPECT(session.selection() == behind, "the compound's empty middle is transparent to picking");
+        click({ 0.6, 0.0 });
+        RIGIDBODIES_EXPECT(session.selection() == pair, "actual compound geometry remains selectable");
+    }
+
+    RIGIDBODIES_TEST("picking margins follow display scale and reject empty rotated bounds")
+    {
+        app::SimulationSession session;
+        isolate(session);
+        const auto id = disc(session);
+        const auto click = [&](math::Vec2 point, double scale)
+        {
+            session.set_selection({});
+            ui::UiEvent event;
+            event.kind = ui::UiEventKind::pointer_down;
+            event.pointer_px = session.camera().world_to_screen(point);
+            event.logical_pixel_scale = scale;
+            session.handle_scene_event(event);
+            event.kind = ui::UiEventKind::pointer_up;
+            session.handle_scene_event(event);
+        };
+        click({ 0.175, 0.0 }, 1.0);
+        RIGIDBODIES_EXPECT(session.selection() == id, "five device pixels outside the circle are within tolerance");
+        click({ 0.20, 0.0 }, 1.0);
+        RIGIDBODIES_EXPECT(!session.selection().is_valid(), "ten pixels outside is too far at normal density");
+        click({ 0.20, 0.0 }, 2.0);
+        RIGIDBODIES_EXPECT(session.selection() == id, "the same ten device pixels are five logical pixels at 2x density");
+        session.world().clear();
+        physics::BodyDefinition rotated;
+        rotated.orientation_rad = math::degrees_to_radians(45.0);
+        physics::Collider collider;
+        collider.shape = physics::make_box(2.0, 0.1);
+        rotated.colliders.push_back(collider);
+        const auto bar = session.world().create_body(rotated);
+        click({ 0.5, -0.5 }, 1.0);
+        RIGIDBODIES_EXPECT(!session.selection().is_valid(), "a rotated slender shape does not own its empty bounding box");
+        click({ 0.5, 0.5 }, 1.0);
+        RIGIDBODIES_EXPECT(session.selection() == bar, "the rotated outline is still selectable");
+    }
+
     RIGIDBODIES_TEST("shift selection toggles bodies and an empty shifted click preserves the group")
     {
         app::SimulationSession session;

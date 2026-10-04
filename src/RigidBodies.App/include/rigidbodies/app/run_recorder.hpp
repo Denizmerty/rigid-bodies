@@ -48,6 +48,7 @@ namespace rigidbodies::app
             std::vector<ui::PinnedValue> pinned;
             int next_number { 1 };
             int previous_number {};
+            std::uint64_t next_pinned_number { 1 };
         };
         struct State
         {

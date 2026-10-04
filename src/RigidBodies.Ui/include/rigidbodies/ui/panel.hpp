@@ -183,6 +183,8 @@ namespace rigidbodies::ui
     {
         PanelRowKind kind;
         std::string key, instance;
+        // A text field may keep its state under a key distinct from its control identity.
+        std::string view_key;
         // Rows outlive Panel::build in the document backend. Own a copy so controls assembled
         // from scenario/run-specific options never leave a dangling specification pointer.
         std::shared_ptr<const ControlSpec> spec;
@@ -278,7 +280,7 @@ namespace rigidbodies::ui
             const UiCommand& command, const UiCommand& alternate = {}, std::string_view disabled_reason = {}, const UiCommand& shift = {},
             std::string_view tooltip = {});
         // `placeholder` is shown inside the empty field.
-        void text_field(std::string_view key, std::string_view label, std::string_view value, std::string_view placeholder = {});
+        void text_field(std::string_view key, std::string_view label, std::string_view value, std::string_view placeholder = {}, std::string_view view_key = {});
         void plot(std::string_view key, const PlotData& data);
         void begin_group(std::string_view group);
         void end_group();

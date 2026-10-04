@@ -120,6 +120,9 @@ jobs:
           $version = $env:RELEASE_TAG.Substring(1)
           $baseName = "Rigid-Bodies-$version-windows-x64"
           $expected = @("$baseName-setup.exe", "$baseName.zip", "$baseName-build.json")
+          $notesPath = Join-Path $releaseDirectory 'RELEASE-NOTES.md'
+          $hasNotes = Test-Path -LiteralPath $notesPath -PathType Leaf
+          if ($hasNotes) { $expected += 'RELEASE-NOTES.md' }
           $entries = @(Get-Content -LiteralPath release/SHA256SUMS)
           if ($entries.Count -ne $expected.Count) { throw 'Unexpected release manifest contents.' }
           $seen = @{}
@@ -143,8 +146,12 @@ jobs:
           $existing = @($releases)
           if ($existing.Count -gt 0 -and $existing[0] -cne 'true') { throw 'This release is already published; published assets are never replaced.' }
           if ($existing.Count -eq 0) {
-            gh release create $env:RELEASE_TAG --repo $env:GH_REPO --verify-tag --draft --title "Rigid Bodies $version" --generate-notes
+            [string[]]$notesOptions = if ($hasNotes) { @('--notes-file', $notesPath) } else { @('--generate-notes') }
+            gh release create $env:RELEASE_TAG --repo $env:GH_REPO --verify-tag --draft --title "Rigid Bodies $version" @notesOptions
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the release draft.' }
+          } elseif ($hasNotes) {
+            gh release edit $env:RELEASE_TAG --repo $env:GH_REPO --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw 'Could not update the release draft notes.' }
           }
           $assets = @($expected | ForEach-Object { Join-Path $releaseDirectory $_ }) + @(Join-Path $releaseDirectory 'SHA256SUMS')
           gh release upload $env:RELEASE_TAG @assets --repo $env:GH_REPO --clobber

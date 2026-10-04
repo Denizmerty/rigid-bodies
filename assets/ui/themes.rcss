@@ -93,6 +93,7 @@
   #panel-shortcuts .row-readout .value { background-color: #121419; border-color: #ffffff17; color: #a9b1bd; }
   .sheets button.row-action.group-results { background-color: #00000000; }
   .sheets button.row-action.group-results:hover { background-color: #ffffff12; }
+  .sheets button.row-action.group-results.is-selected { background-color: #5b9dff2e; color: #b4d2ff; }
   .list-title { color: #e9ecf1; }
   .list-secondary { color: #a9b1bd; }
   .list-badges { color: #8e97a5; }
@@ -309,6 +310,7 @@
   #panel-shortcuts .row-readout .value { background-color: #eff1f4; border-color: #0f172a1f; color: #4a5260; }
   .sheets button.row-action.group-results { background-color: #00000000; }
   .sheets button.row-action.group-results:hover { background-color: #0f172a0d; }
+  .sheets button.row-action.group-results.is-selected { background-color: #2563eb2e; color: #1a46b8; }
   .list-title { color: #15181d; }
   .list-secondary { color: #4a5260; }
   .list-badges { color: #5c6573; }
@@ -525,6 +527,7 @@
   #panel-shortcuts .row-readout .value { background-color: #eceef1; border-color: #0000004d; color: #1c2027; }
   .sheets button.row-action.group-results { background-color: #00000000; }
   .sheets button.row-action.group-results:hover { background-color: #0000001a; }
+  .sheets button.row-action.group-results.is-selected { background-color: #003ea826; color: #002a72; }
   .list-title { color: #000000; }
   .list-secondary { color: #1c2027; }
   .list-badges { color: #2d333c; }

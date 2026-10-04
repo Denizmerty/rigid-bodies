@@ -147,7 +147,9 @@ namespace rigidbodies::ui
 
         // The window's own title bar; its close button sends quit, which confirms unsaved changes.
         minimize_window,
-        toggle_maximize_window
+        toggle_maximize_window,
+
+        set_shape_node_position
     };
 
     enum class UiEditPhase : std::uint8_t

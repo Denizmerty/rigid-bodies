@@ -19,6 +19,7 @@ namespace rigidbodies::app
         std::size_t draft_nodes {};
         bool select_tool {}, has_selection {}, keyboard_mode {}, present {}, present_locked {}, pick_surface_armed {};
         bool open_list {};
+        bool interface_modal {};
     };
 
     enum class EscapeStep : std::uint8_t
@@ -26,6 +27,7 @@ namespace rigidbodies::app
         none,
         cancel_gesture,
         revert_field,
+        close_control,
         close_transient,
         close_sheet,
         draw_deselect_node,

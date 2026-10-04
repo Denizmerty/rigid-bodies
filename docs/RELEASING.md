@@ -29,7 +29,8 @@ Successful output is written to `build/release/current`:
 | `Rigid-Bodies-<version>-windows-x64-setup.exe` | Per-user NSIS installer |
 | `Rigid-Bodies-<version>-windows-x64.zip` | The same runtime files for manual extraction |
 | `Rigid-Bodies-<version>-windows-x64-build.json` | Source commit, compiler versions and executable hash |
-| `SHA256SUMS` | SHA-256 hashes of all three files |
+| `RELEASE-NOTES.md` | Version-specific notes, when `docs/releases/<version>.md` exists |
+| `SHA256SUMS` | SHA-256 hashes of the packages, build record and any release notes |
 
 The installer is the recommended download for normal use and upgrades. The ZIP does not register
 an installation or manage upgrades; extract each version into its own directory.
@@ -64,6 +65,11 @@ the UI snapshots. It preserves copyright text, dependency versions, saved-docume
 physics reference data. Run it without `-Version` to check consistency and print the current version.
 `-WhatIf` previews an update without writing files.
 
+Write user-facing release notes in `docs/releases/<version>.md` and include them in the version
+commit. The release build copies them into its tested artifacts and checksum manifest, and the
+publication job uses that exact file as the GitHub release description. Versions without this
+file fall back to GitHub's generated release notes.
+
 Wait for **Windows CI / Build, test and package** to pass on that commit. Then publish an annotated
 tag for that exact commit:
 
@@ -74,8 +80,8 @@ git push origin v1.0.1
 
 Pushing the tag starts **Windows release**. It repeats the complete build and validation on a
 fresh Windows runner, uploads the tested files to a draft GitHub release, and publishes it only
-after all files are present. The release uses GitHub's generated release notes; edit them afterward
-when a change needs further explanation. There is no separate manual installer rebuild.
+after all files are present and their checksums, version and source commit have been verified.
+There is no separate manual installer rebuild or manual release-publication step.
 
 ## CI and repository access
 

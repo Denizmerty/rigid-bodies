@@ -51,7 +51,7 @@ namespace rigidbodies::ui
         constexpr OptionSpec edge[] = { { "straight", "Straight", {}, "line-segment" }, { "curved", "Curved", {}, "bezier-curve" } };
         constexpr OptionSpec joins[] = { { "corner", "Corner", {}, {} }, { "smooth", "Smooth", {}, {} }, { "symmetric", "Symmetric", {}, {} } };
         constexpr OptionSpec grid_spacing[] = { { "0.01", "0.01 m", {}, {} }, { "0.02", "0.02 m", {}, {} }, { "0.05", "0.05 m", {}, {} }, { "0.10", "0.10 m", {}, {} }, { "0.25", "0.25 m", {}, {} }, { "0.50", "0.50 m", {}, {} } };
-        constexpr OptionSpec speeds[] = { { "0.1", "0.1×", {}, {} }, { "0.25", "0.25×", {}, {} }, { "0.5", "0.5×", {}, {} }, { "1", "1×", {}, {} }, { "2", "2×", {}, {} }, { "custom", "Custom…", {}, {} } };
+        constexpr OptionSpec speeds[] = { { "0.1", "0.1×", {}, {} }, { "0.25", "0.25×", {}, {} }, { "0.5", "0.5×", {}, {} }, { "1", "1×", {}, {} }, { "2", "2×", {}, {} }, { "4", "4×", {}, {} }, { "custom", "Custom…", "Enter an exact playback speed", {} } };
         constexpr OptionSpec time_steps[] = { { "0.0166666667", "1/60 s", {}, {} }, { "0.0083333333", "1/120 s", {}, {} }, { "0.0041666667", "1/240 s", {}, {} }, { "0.0020833333", "1/480 s", {}, {} }, { "custom", "Custom", {}, {} } };
 
         constexpr double gravity_detents[] = { 1.62, 3.73, 9.80665 };
@@ -98,6 +98,12 @@ namespace rigidbodies::ui
             {
                 std::vector<ControlSpec> value {
                     plain("bar.speed.choice", "Playback speed", "Toolbar", ControlKind::select, K::set_time_scale, EditCategory::not_an_edit, speeds),
+                    []
+                    {
+                        auto speed = number("bar.speed.custom", "Custom playback speed", "Toolbar › Playback speed", K::set_time_scale, 0.05, 4.0, 0.05, Q::multiplier, EditCategory::not_an_edit);
+                        speed.number.decimals = 6;
+                        return speed;
+                    }(),
                     number("camera.scale.height", "View height", "Show › View", K::set_view_height, 0.05, 500.0, 0.01, Q::length, EditCategory::not_an_edit, false, NumberScale::linear, 0, 0, {}, true, true),
                     plain("camera.frame.everything", "Frame everything", "Menu › View", ControlKind::action, K::frame_all),
                     plain("camera.frame.selection", "Frame selection", "Menu › View", ControlKind::action, K::frame_selection),
@@ -110,6 +116,8 @@ namespace rigidbodies::ui
                     plain("draw.node.insert", "Insert", "Draw bar", ControlKind::action, K::insert_shape_node, EditCategory::draft),
                     plain("draw.node.join", "Join", "Draw bar", ControlKind::segmented, K::set_shape_continuity, EditCategory::draft, joins),
                     plain("draw.node.remove", "Remove", "Draw bar", ControlKind::action, K::remove_shape_node, EditCategory::draft),
+                    number("draw.node.position_x", "Point x", "Drawing options › Selected point", K::set_shape_node_position, -100, 100, 0.01, Q::length, EditCategory::draft, false, NumberScale::linear, 0, 0, {}, true, true),
+                    number("draw.node.position_y", "Point y", "Drawing options › Selected point", K::set_shape_node_position, -100, 100, 0.01, Q::length, EditCategory::draft, false, NumberScale::linear, 0, 0, {}, true, true),
                     number("draw.precision.collision", "Collision precision", "Drawing options › Precision", K::set_shape_collision_tolerance, 0.001, 0.05, 0.001, Q::fine_length, EditCategory::draft, true),
                     number("draw.precision.drawing", "Drawing precision", "Drawing options › Precision", K::set_shape_render_tolerance, 0.0005, 0.02, 0.0005, Q::fine_length, EditCategory::draft, true),
                     number("draw.precision.hollows", "Keep hollows deeper than", "Drawing options › Precision", K::set_shape_concavity_tolerance, 0.0, 0.2, 0.005, Q::fine_length, EditCategory::draft, true),
@@ -154,6 +162,7 @@ namespace rigidbodies::ui
                     plain("measure.runs.add_object", "Object", "Measure › Runs › Add value", ControlKind::select, K::none),
                     plain("measure.runs.add_quantity", "Quantity", "Measure › Runs › Add value", ControlKind::select, K::none),
                     plain("measure.runs.compare_a", "Run A", "Measure › Runs", ControlKind::select, K::none),
+                    plain("measure.runs.inspect", "Values for", "Measure › Runs", ControlKind::select, K::none),
                     plain("measure.runs.compare_b", "Run B", "Measure › Runs", ControlKind::select, K::none),
                     plain("measure.runs.clear_apply", "Clear unstarred runs", "Measure › Runs", ControlKind::action, K::clear_runs),
                     plain("measure.runs.remove_value", "Remove value", "Measure › Runs", ControlKind::action, K::unpin_run_value),
@@ -515,6 +524,8 @@ namespace rigidbodies::ui
             return "draw.snap.angles";
         case K::set_shape_grid_spacing:
             return "draw.snap.grid_spacing";
+        case K::set_shape_node_position:
+            return command.detail == "y" ? "draw.node.position_y" : "draw.node.position_x";
         case K::set_shape_vertex_budget:
             return "draw.precision.vertex_budget";
         case K::set_shape_render_tolerance:

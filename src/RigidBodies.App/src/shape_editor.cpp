@@ -81,7 +81,7 @@ namespace rigidbodies::app
         if (options)
             options_ = *options;
         selected_.reset();
-        drag_ = DragKind::none;
+        release_pointer();
         active_ = true;
         pointer_known_ = false;
         pointer_snap_ = SnapKind::none;
@@ -93,7 +93,7 @@ namespace rigidbodies::app
     void ShapeEditor::end()
     {
         active_ = false;
-        drag_ = DragKind::none;
+        release_pointer();
         selected_.reset();
         outline_ = {};
         pointer_known_ = false;
@@ -240,10 +240,7 @@ namespace rigidbodies::app
             const auto captured = has_pointer_capture();
             if (close_pending_ && drag_threshold_pending_ && outline_.nodes.size() >= 3)
                 outline_.closed = true;
-            drag_ = DragKind::none;
-            smooth_node_pending_ = false;
-            drag_threshold_pending_ = false;
-            close_pending_ = false;
+            release_pointer();
             return captured || !interface_consumed;
         }
         const auto scale = std::max(0.01, event.logical_pixel_scale);
@@ -330,7 +327,7 @@ namespace rigidbodies::app
                 {
                     const auto current = outline_.nodes[index].continuity;
                     physics::set_outline_continuity(outline_, index, current == OutlineContinuity::corner ? OutlineContinuity::aligned : OutlineContinuity::corner);
-                    drag_ = DragKind::none;
+                    release_pointer();
                     return true;
                 }
                 drag_ = DragKind::node;
@@ -397,6 +394,22 @@ namespace rigidbodies::app
         edit_message_.clear();
         switch (command.kind)
         {
+        case K::set_shape_node_position:
+            if (selected_ && (command.id.empty() || command.id == std::to_string(*selected_)))
+            {
+                auto world = math::transform_point(placement_, outline_.nodes[*selected_].position_m);
+                if (command.detail == "offset")
+                    world += math::Vec2 { command.value, command.value_y };
+                else if (command.detail == "x")
+                    world.x = command.value;
+                else if (command.detail == "y")
+                    world.y = command.value;
+                else
+                    break;
+                if (std::isfinite(world.x) && std::isfinite(world.y) && std::abs(world.x) <= 100.0 && std::abs(world.y) <= 100.0)
+                    physics::move_outline_node(outline_, *selected_, math::inverse_transform_point(placement_, world));
+            }
+            break;
         case K::close_shape_outline:
             if (outline_.nodes.size() >= 3)
                 outline_.closed = true;
@@ -409,11 +422,11 @@ namespace rigidbodies::app
                 const auto inserted = physics::insert_outline_node(outline_, *selected_);
                 if (inserted < outline_.nodes.size())
                     selected_ = inserted;
-                drag_ = DragKind::none;
+                release_pointer();
             }
             break;
         case K::remove_shape_node:
-            drag_ = DragKind::none;
+            release_pointer();
             if (selected_ && physics::remove_outline_node(outline_, *selected_))
             {
                 selected_.reset();

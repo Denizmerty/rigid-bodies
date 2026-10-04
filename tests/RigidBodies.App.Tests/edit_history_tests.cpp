@@ -26,6 +26,30 @@ namespace
         d.colliders.push_back(c);
         return s.world().create_body(d);
     }
+    RIGIDBODIES_TEST("scenario undo and redo restore the guide and body annotations with the world")
+    {
+        app::SimulationSession s;
+        RIGIDBODIES_EXPECT(s.load_scenario("free_fall"), "first experiment opens");
+        const auto first = s.build_model().scenario_content;
+        RIGIDBODIES_EXPECT(first.has_value() && !first->guide.focus.empty() && !first->bodies.empty(), "fixture has teaching content");
+        command(s, K::load_scenario, 0, "revolute_drive", true);
+        const auto second = s.build_model().scenario_content;
+        RIGIDBODIES_EXPECT(second.has_value() && second->id == "revolute_drive", "replacement experiment opens");
+        command(s, K::undo);
+        const auto restored = s.build_model().scenario_content;
+        RIGIDBODIES_EXPECT(restored.has_value() && restored->id == first->id && restored->guide.focus == first->guide.focus,
+            "undo restores the guide belonging to the restored world");
+        RIGIDBODIES_EXPECT(restored->bodies.size() == first->bodies.size() && restored->bodies.front().label == first->bodies.front().label,
+            "undo restores body annotations used for labels and selection");
+        command(s, K::undo);
+        RIGIDBODIES_EXPECT(!s.build_model().scenario_content.has_value(), "undoing the first experiment clears its teaching content");
+        command(s, K::redo);
+        RIGIDBODIES_EXPECT(s.build_model().scenario_content->id == first->id, "redo restores first experiment content");
+        command(s, K::redo);
+        RIGIDBODIES_EXPECT(s.build_model().scenario_content->id == second->id &&
+                s.build_model().scenario_content->guide.focus == second->guide.focus,
+            "redo restores replacement experiment content");
+    }
     RIGIDBODIES_TEST("batch mass edit undo and redo preserve every body handle")
     {
         app::SimulationSession s;
@@ -167,7 +191,13 @@ namespace
         const auto first = s.scenario_id();
         command(s, K::set_gravity_magnitude, 2.0);
         const auto first_count = s.world().body_ids().size();
-        s.load_scenario("collision_comparison");
+        const auto history_before = s.build_model().undo_history.size();
+        RIGIDBODIES_EXPECT(s.load_scenario("collision_comparison"), "the replacement experiment exists");
+        const auto confirmation = s.build_model().confirmation;
+        RIGIDBODIES_EXPECT(confirmation && s.scenario_id() == first && s.build_model().undo_history.size() == history_before,
+            "requesting replacement protects unsaved edits without adding a history entry");
+        s.apply(confirmation->confirm);
+        RIGIDBODIES_EXPECT(s.scenario_id() == "collision_comparison" && !s.build_model().confirmation, "confirming discard performs the scene change");
         command(s, K::undo);
         RIGIDBODIES_EXPECT(s.scenario_id() == first && s.world().body_ids().size() == first_count, "original scene restored");
         s.reset_scenario();

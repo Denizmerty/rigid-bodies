@@ -131,11 +131,16 @@ namespace rigidbodies::ui
             return value;
         }
 
-        // Playback speeds, time steps and grid spacings name their number in the option id, and
-        // their commands read UiCommand::value. A choice without a number on such a list
-        // (Custom…) has no value to send, so it sends nothing rather than zero.
+        // Numeric presets carry their number in the option id. Custom playback opens its editor;
+        // descriptive Custom entries in other lists leave the current value unchanged.
         std::optional<UiCommand> choice_command(UiCommand command, const ControlSpec* spec, std::string_view option)
         {
+            if (spec && spec->key == "bar.speed.choice" && option == "custom")
+            {
+                UiCommand edit;
+                edit.detail = "view:playback_speed";
+                return edit;
+            }
             command.id = std::string(option);
             command.phase = UiEditPhase::commit;
             if (const auto number = option_number(option))
@@ -719,7 +724,27 @@ namespace rigidbodies::ui
             // The field stands for several differing values and shows none; it has no value to
             // restore, step from or scrub from.
             bool mixed { false };
+            // Selection-backed rows can keep their DOM identity while changing subjects.
+            std::vector<physics::BodyId> selection;
+            std::string document_id;
+            std::shared_ptr<const void> edit_document;
         };
+
+        static UiCommand number_command(const Binding& binding, double value, UiEditPhase phase)
+        {
+            auto command = binding.command;
+            command.value = binding.key == "world.gravity.tilt" ? -90.0 + value : value;
+            command.phase = phase;
+            return command;
+        }
+
+        static bool same_number_subject(const Binding& before, const Binding& after)
+        {
+            const auto& a = before.command;
+            const auto& b = after.command;
+            return a.kind == b.kind && a.id == b.id && a.body == b.body && a.bodies == b.bodies &&
+                a.detail == b.detail && before.selection == after.selection && before.document_id == after.document_id && before.edit_document == after.edit_document;
+        }
 
         // A multiplier's sign stays with its figure ("1×"): printed alone beside the field it reads
         // as the field's clear button.
@@ -831,9 +856,18 @@ namespace rigidbodies::ui
         bool pointer_captured { false };
         bool pointer_activation_queued { false };
         bool focus_keyboard_visible { false };
+        std::string keyboard_scope;
+        struct FocusReturn
+        {
+            std::string scope, element;
+            bool keyboard { false };
+        };
+        std::vector<FocusReturn> focus_returns;
+        std::string search_highlight;
         bool has_change_serial { false };
         bool preview_sent_this_frame { false };
         bool synchronizing_control { false };
+        bool cancelling_pointer_edit { false };
         std::uint64_t change_serial { 0 };
         std::string active_slider;
         double drag_start_x { 0.0 }, drag_start_value { 0.0 };
@@ -849,6 +883,177 @@ namespace rigidbodies::ui
         float content_scale { 0.0f };
         bool content_window_controls { false };
         Vec2 pointer;
+
+        bool keyboard_candidate(Rml::Element* element, std::string_view scope = {}) const
+        {
+            if (!element || !element->IsVisible(true) || !takes_keyboard_focus(*element))
+                return false;
+            bool in_scope = scope.empty();
+            for (auto* ancestor = element; ancestor; ancestor = ancestor->GetParentNode())
+            {
+                if (ancestor->IsClassSet("is-disabled") || ancestor->HasAttribute("disabled"))
+                    return false;
+                in_scope = in_scope || ancestor->GetId() == scope || (scope == "panel-main_menu" && ancestor->GetId() == "menu-overflow");
+            }
+            return in_scope;
+        }
+
+        std::vector<std::string> keyboard_controls() const
+        {
+            std::vector<std::string> result;
+            for (const auto& id : controls)
+                if (keyboard_candidate(document->GetElementById(id), keyboard_scope))
+                    result.push_back(id);
+            return result;
+        }
+
+        std::vector<std::string> search_results() const
+        {
+            auto result = keyboard_controls();
+            result.erase(std::remove_if(result.begin(), result.end(), [&](const std::string& id)
+                             {
+                                 return string_attribute(document->GetElementById(id), "data-control-key") != "search.result";
+                             }),
+                result.end());
+            return result;
+        }
+
+        void highlight_search_result(std::string id)
+        {
+            search_highlight = std::move(id);
+            for (const auto& result : search_results())
+                if (auto* element = document->GetElementById(result))
+                {
+                    element->SetClass("is-selected", result == search_highlight);
+                    element->SetAttribute("aria-selected", result == search_highlight ? "true" : "false");
+                }
+            if (auto* field = document->GetElementById(element_id("legacy", "search.field.query") + "--field"))
+            {
+                if (search_highlight.empty())
+                    field->RemoveAttribute("aria-activedescendant");
+                else
+                    field->SetAttribute("aria-activedescendant", search_highlight);
+            }
+        }
+
+        bool cancel_confirmation()
+        {
+            if (keyboard_scope != "panel-confirmation")
+                return false;
+            for (const auto& id : keyboard_controls())
+                if (const auto command = commands.find(id); command != commands.end() && command->second.detail == "cancel")
+                {
+                    pending.push_back(command->second);
+                    return true;
+                }
+            return false;
+        }
+
+        void change_keyboard_scope(std::string next_scope, const std::string& previous_focus)
+        {
+            if (keyboard_scope == next_scope)
+                return;
+            Rml::Element* next = nullptr;
+            bool keyboard = true;
+            const auto saved = std::find_if(focus_returns.rbegin(), focus_returns.rend(), [&](const FocusReturn& item)
+                {
+                    return item.scope == next_scope;
+                });
+            if (saved != focus_returns.rend())
+            {
+                next = document->GetElementById(saved->element);
+                keyboard = saved->keyboard;
+                focus_returns.erase(saved.base() - 1, focus_returns.end());
+            }
+            else if (!next_scope.empty())
+                focus_returns.push_back({ keyboard_scope, previous_focus, focus_keyboard_visible });
+            else
+                focus_returns.clear();
+            keyboard_scope = std::move(next_scope);
+            if (keyboard_scope != "panel-command_search")
+                search_highlight.clear();
+            if (!keyboard_candidate(next, keyboard_scope))
+                next = nullptr;
+            if (!next && !keyboard_scope.empty())
+            {
+                const auto candidates = keyboard_controls();
+                // Search and Save are ready for typing. A destructive confirmation starts on
+                // Cancel so opening it can never turn a repeated Enter into data loss.
+                for (const auto& id : candidates)
+                {
+                    auto* candidate = document->GetElementById(id);
+                    const auto command = commands.find(id);
+                    if (candidate->IsClassSet("text-field") || (keyboard_scope == "panel-confirmation" && command != commands.end() && command->second.detail == "cancel"))
+                    {
+                        next = candidate;
+                        break;
+                    }
+                }
+                if (!next && !candidates.empty())
+                    next = document->GetElementById(candidates.front());
+            }
+            if (next)
+            {
+                focus_keyboard_visible = keyboard;
+                next->Focus(keyboard);
+                next->ScrollIntoView(false);
+            }
+            else
+            {
+                if (auto* focused = context->GetFocusElement())
+                    focused->Blur();
+                focus_keyboard_visible = false;
+            }
+        }
+
+        void number_error(Rml::Element* field, const Binding& binding, bool invalid)
+        {
+            if (!field)
+                return;
+            field->SetClass("is-invalid", invalid);
+            auto error_id = field->GetId();
+            if (const auto suffix = error_id.rfind("--field"); suffix != std::string::npos)
+                error_id.replace(suffix, std::string::npos, "--field-error");
+            if (auto* error = document->GetElementById(error_id))
+                set_text(error, invalid ? core::substitute("{} must be {} to {}.", binding.spec->label, core::format_quantity(binding.spec->number.minimum, binding.spec->number.quantity, binding.units), core::format_quantity(binding.spec->number.maximum, binding.spec->number.quantity, binding.units)) : "");
+        }
+
+        void synchronize_number_field(Rml::Element* element, Binding& binding, double value)
+        {
+            binding.model_value = value;
+            binding.mixed = false;
+            binding.unit = core::format_unit(value, binding.spec->number.quantity, binding.units, binding.spec->number.decimals);
+            if (auto* field = dynamic_cast<Rml::ElementFormControl*>(element))
+            {
+                synchronizing_control = true;
+                field->SetValue(field_text(binding));
+                synchronizing_control = false;
+                if (auto* line = field->GetParentNode(); line && line->GetNumChildren() > 1)
+                    set_text(line->GetChild(1), sign_in_field(*binding.spec) ? std::string {} : binding.unit);
+            }
+            number_error(element, binding, false);
+        }
+
+        void cancel_pointer_gesture()
+        {
+            std::optional<UiCommand> cancel;
+            if (const auto binding = bindings.find(active_slider); binding != bindings.end())
+            {
+                cancel = binding->second.command;
+                cancel->phase = UiEditPhase::cancel;
+            }
+            // Releasing a native range input normally emits dragend and commits. Cancellation
+            // must release its internal capture without committing or restarting the preview.
+            cancelling_pointer_edit = true;
+            context->ProcessMouseButtonUp(0, 0);
+            cancelling_pointer_edit = false;
+            active_slider.clear();
+            drag_moved = false;
+            pointer_captured = false;
+            measure_drag = false;
+            if (cancel)
+                pending.push_back(std::move(*cancel));
+        }
 
         void set_text(Rml::Element* element, std::string_view value)
         {
@@ -1094,6 +1299,10 @@ namespace rigidbodies::ui
             if (local == view_bindings.end() || !view)
                 return false;
             const auto& binding = local->second;
+            // Text fields update through their change events. Treating a click as a view
+            // activation would blur the field immediately after it receives focus.
+            if (binding.kind == ViewBindingKind::text)
+                return false;
             if (binding.kind == ViewBindingKind::tab)
                 view->set_active_tab(binding.key, binding.value);
             else if (binding.kind == ViewBindingKind::section)
@@ -1164,6 +1373,8 @@ namespace rigidbodies::ui
         }
         void ProcessEvent(Rml::Event& event) override
         {
+            if (cancelling_pointer_edit)
+                return;
             const auto& type = event.GetType();
             if (type == "dragstart")
             {
@@ -1179,10 +1390,7 @@ namespace rigidbodies::ui
                 const auto found = bindings.find(target ? target->GetId() : std::string {});
                 if (target && found != bindings.end() && found->second.slider)
                 {
-                    auto command = found->second.command;
-                    command.value = found->second.model_value;
-                    command.phase = UiEditPhase::commit;
-                    pending.push_back(std::move(command));
+                    pending.push_back(number_command(found->second, found->second.model_value, UiEditPhase::commit));
                     active_slider.clear();
                 }
                 return;
@@ -1203,6 +1411,8 @@ namespace rigidbodies::ui
                     return;
                 if (const auto* target = event.GetTargetElement(); target && target->GetId() == "region-scrim")
                 {
+                    if (cancel_confirmation())
+                        return;
                     UiCommand close;
                     close.detail = "view:close";
                     pending.push_back(std::move(close));
@@ -1246,6 +1456,8 @@ namespace rigidbodies::ui
                         if (auto* form = dynamic_cast<Rml::ElementFormControl*>(target))
                         {
                             view->set_value(local->second.key, form->GetValue());
+                            if (local->second.key == "search.query")
+                                highlight_search_result({});
                             for (auto* ancestor = target->GetParentNode(); ancestor; ancestor = ancestor->GetParentNode())
                                 if (ancestor->IsClassSet("row-text_field"))
                                 {
@@ -1289,11 +1501,10 @@ namespace rigidbodies::ui
                         command.value = std::round(command.value * precision) / precision;
                     }
                     found->second.model_value = command.value;
-                    command.phase = UiEditPhase::preview;
                     active_slider = target->GetId();
                     if (!preview_sent_this_frame)
                     {
-                        pending.push_back(command);
+                        pending.push_back(number_command(found->second, command.value, UiEditPhase::preview));
                         preview_sent_this_frame = true;
                     }
                 }
@@ -1309,12 +1520,9 @@ namespace rigidbodies::ui
                 {
                     const auto parsed = parse_field(found->second, field->GetValue());
                     const auto valid = parsed && *parsed >= found->second.spec->number.minimum && *parsed <= found->second.spec->number.maximum;
-                    if (valid && std::abs(*parsed - found->second.model_value) > 1.0e-12)
+                    if (valid && field->GetValue() != field_text(found->second) && std::abs(*parsed - found->second.model_value) > 1.0e-12)
                     {
-                        auto command = found->second.command;
-                        command.value = found->second.key == "world.gravity.tilt" ? -90.0 + *parsed : *parsed;
-                        command.phase = UiEditPhase::commit;
-                        pending.push_back(std::move(command));
+                        pending.push_back(number_command(found->second, *parsed, UiEditPhase::commit));
                     }
                     else if (!valid)
                     {
@@ -1322,7 +1530,7 @@ namespace rigidbodies::ui
                         field->SetValue(field_text(found->second));
                         synchronizing_control = false;
                     }
-                    target->SetClass("is-invalid", false);
+                    number_error(target, found->second, false);
                 }
             }
         }
@@ -1628,13 +1836,14 @@ namespace rigidbodies::ui
     {
         if (!impl_->context)
             return FocusOwner::scene;
+        if (impl_->select_box_open())
+            return FocusOwner::transient;
         auto* focus = impl_->context->GetFocusElement();
         // RmlUi never clears focus: it starts on the document and a blur hands it to the parent,
         // so a dock, a card or the document often holds it with no control focused.
         if (!focus || !takes_keyboard_focus(*focus))
             return FocusOwner::scene;
-        const auto focus_id = focus->GetId();
-        if (focus_id.size() >= 7 && focus_id.compare(focus_id.size() - 7, 7, "--field") == 0)
+        if (focus->IsClassSet("number-field") || focus->IsClassSet("text-field"))
             return FocusOwner::text_field;
         for (auto* element = focus; element; element = element->GetParentNode())
             if (element->IsClassSet("row-checklist") && element->IsClassSet("is-open"))
@@ -1644,11 +1853,19 @@ namespace rigidbodies::ui
 
     EscapeTarget DocumentBackend::escape_target() const
     {
+        if (!impl_->active_slider.empty() || impl_->measure_drag)
+            return EscapeTarget::text_field;
+        if (impl_->keyboard_scope == "panel-confirmation")
+            return EscapeTarget::control;
         const auto focus = focus_owner();
         if (focus == FocusOwner::text_field)
-            return EscapeTarget::text_field;
+        {
+            const auto* field = impl_->context->GetFocusElement();
+            if (impl_->keyboard_scope.empty() || (field && field->IsClassSet("number-field")))
+                return EscapeTarget::text_field;
+        }
         if (focus == FocusOwner::transient)
-            return EscapeTarget::transient;
+            return EscapeTarget::control;
         return EscapeTarget::none;
     }
 
@@ -1856,7 +2073,7 @@ namespace rigidbodies::ui
                 {
                     const auto logical_delta = (event.pointer_px.x - state.drag_start_x) / std::max(0.01f, state.scale);
                     const auto steps = static_cast<int>(logical_delta / 4.0);
-                    if (steps != 0)
+                    if (steps != 0 || state.drag_moved)
                     {
                         const auto& number = binding->second.spec->number;
                         double value = state.drag_start_value;
@@ -1882,10 +2099,7 @@ namespace rigidbodies::ui
                         state.drag_moved = true;
                         if (!state.preview_sent_this_frame)
                         {
-                            auto command = binding->second.command;
-                            command.value = value;
-                            command.phase = UiEditPhase::preview;
-                            state.pending.push_back(std::move(command));
+                            state.pending.push_back(Impl::number_command(binding->second, value, UiEditPhase::preview));
                             state.preview_sent_this_frame = true;
                         }
                     }
@@ -1893,16 +2107,13 @@ namespace rigidbodies::ui
             if (event.kind == UiEventKind::pointer_up)
             {
                 state.context->ProcessMouseButtonUp(button, mods);
-                if (!state.active_slider.empty())
+                if (event.button == PointerButton::primary && !state.active_slider.empty())
                 {
                     if (const auto binding = state.bindings.find(state.active_slider); binding != state.bindings.end())
                     {
                         if (!binding->second.scrub || state.drag_moved)
                         {
-                            auto command = binding->second.command;
-                            command.value = binding->second.model_value;
-                            command.phase = UiEditPhase::commit;
-                            state.pending.push_back(std::move(command));
+                            state.pending.push_back(Impl::number_command(binding->second, binding->second.model_value, UiEditPhase::commit));
                         }
                         else
                         {
@@ -1916,7 +2127,7 @@ namespace rigidbodies::ui
                     state.active_slider.clear();
                     state.drag_moved = false;
                 }
-                if (state.pointer_activation_queued)
+                if (event.button == PointerButton::primary && state.pointer_activation_queued)
                 {
                     if (auto* focused = state.context->GetFocusElement())
                         focused->Blur();
@@ -1924,54 +2135,50 @@ namespace rigidbodies::ui
                     state.focus_keyboard_visible = false;
                 }
             }
-            if (event.kind == UiEventKind::pointer_up)
+            if (event.kind == UiEventKind::pointer_up && (event.button == PointerButton::primary || state.active_slider.empty()))
                 state.pointer_captured = false;
             if (event.kind == UiEventKind::wheel)
                 state.context->ProcessMouseWheel(static_cast<float>(-event.wheel_delta), mods);
             break;
         case UiEventKind::key_down:
-            if ((event.key == UiKey::escape || event.key == UiKey::f12) && !state.active_slider.empty())
+            if ((event.key == UiKey::escape || event.key == UiKey::f12) && (!state.active_slider.empty() || state.measure_drag))
             {
-                if (const auto binding = state.bindings.find(state.active_slider); binding != state.bindings.end())
-                {
-                    auto command = binding->second.command;
-                    command.phase = UiEditPhase::cancel;
-                    state.pending.push_back(std::move(command));
-                }
-                state.active_slider.clear();
-                state.drag_moved = false;
+                state.cancel_pointer_gesture();
                 if (event.key == UiKey::escape)
                 {
                     consumed = true;
                     break;
                 }
             }
-            if (event.repeat && (event.key == UiKey::tab || event.key == UiKey::enter))
+            if (event.repeat && (event.key == UiKey::tab || event.key == UiKey::enter || event.key == UiKey::space))
                 break;
             if ((event.key == UiKey::tab || event.key == UiKey::f6) && !state.controls.empty())
             {
+                const auto controls = state.keyboard_controls();
                 auto* next = static_cast<Rml::Element*>(nullptr);
-                if (event.key == UiKey::f6)
+                if (event.key == UiKey::f6 && state.keyboard_scope.empty())
                 {
-                    const char* docks[] = { "region-command-bar", "region-inspector", "region-measure" };
-                    auto current = -1;
-                    if (auto* focus = state.context->GetFocusElement())
+                    const char* docks[] = { "region-command-bar", "region-guide", "region-inspector", "region-measure" };
+                    constexpr int scene = 4;
+                    auto current = scene;
+                    if (auto* focus = state.context->GetFocusElement(); focus && takes_keyboard_focus(*focus))
                         for (auto* ancestor = focus; ancestor; ancestor = ancestor->GetParentNode())
-                            for (int i = 0; i < 3; ++i)
+                            for (int i = 0; i < scene; ++i)
                                 if (ancestor->GetId() == docks[i])
                                     current = i;
                     const auto direction = event.modifiers.shift ? -1 : 1;
-                    for (int attempt = 1; attempt <= 4 && !next; ++attempt)
+                    for (int attempt = 1; attempt <= scene + 1 && !next; ++attempt)
                     {
-                        const auto region = (current + direction * attempt + 8) % 4;
-                        if (region == 3)
+                        const auto region = (current + direction * attempt + 2 * (scene + 1)) % (scene + 1);
+                        if (region == scene)
                         {
                             if (auto* focus = state.context->GetFocusElement())
                                 focus->Blur();
                             state.focus_keyboard_visible = false;
                             break;
                         }
-                        for (const auto& id : state.controls)
+                        for (const auto& id : controls)
+                        {
                             if (auto* candidate = state.document->GetElementById(id))
                                 for (auto* ancestor = candidate; ancestor; ancestor = ancestor->GetParentNode())
                                     if (ancestor->GetId() == docks[region])
@@ -1979,15 +2186,18 @@ namespace rigidbodies::ui
                                         next = candidate;
                                         break;
                                     }
+                            if (next)
+                                break;
+                        }
                     }
                 }
-                else
+                else if (!controls.empty())
                 {
                     const auto* focus = state.context->GetFocusElement();
-                    const auto found = std::find(state.controls.begin(), state.controls.end(), focus ? focus->GetId() : "");
-                    auto index = found == state.controls.end() ? (event.modifiers.shift ? 0 : -1) : static_cast<int>(found - state.controls.begin());
-                    index = (index + (event.modifiers.shift ? -1 : 1) + static_cast<int>(state.controls.size())) % static_cast<int>(state.controls.size());
-                    next = state.document->GetElementById(state.controls[static_cast<std::size_t>(index)]);
+                    const auto found = std::find(controls.begin(), controls.end(), focus ? focus->GetId() : "");
+                    auto index = found == controls.end() ? (event.modifiers.shift ? 0 : -1) : static_cast<int>(found - controls.begin());
+                    index = (index + (event.modifiers.shift ? -1 : 1) + static_cast<int>(controls.size())) % static_cast<int>(controls.size());
+                    next = state.document->GetElementById(controls[static_cast<std::size_t>(index)]);
                 }
                 if (next)
                 {
@@ -1997,9 +2207,18 @@ namespace rigidbodies::ui
                 }
                 consumed = true;
             }
-            else if (event.key == UiKey::enter)
+            else if (event.key == UiKey::enter || (event.key == UiKey::space && focus_owner() == FocusOwner::keyboard_control && !event.modifiers.control && !event.modifiers.alt))
             {
                 auto* focus = state.context->GetFocusElement();
+                const auto local = state.view_bindings.find(focus ? focus->GetId() : "");
+                if (local != state.view_bindings.end() && local->second.kind == Impl::ViewBindingKind::text && local->second.key == "search.query")
+                {
+                    const auto results = state.search_results();
+                    if (!results.empty())
+                        consumed = state.queue_command(std::find(results.begin(), results.end(), state.search_highlight) != results.end() ? state.search_highlight : results.front());
+                    if (consumed)
+                        break;
+                }
                 const auto binding = state.bindings.find(focus ? focus->GetId() : "");
                 const auto alternate = state.alternate_commands.find(focus ? focus->GetId() : "");
                 if (focus && alternate != state.alternate_commands.end())
@@ -2021,19 +2240,13 @@ namespace rigidbodies::ui
                     }
                     const auto parsed = field ? Impl::parse_field(binding->second, field->GetValue()) : std::optional<double> {};
                     const auto valid = parsed && *parsed >= binding->second.spec->number.minimum && *parsed <= binding->second.spec->number.maximum;
-                    focus->SetClass("is-invalid", !valid);
-                    auto error_id = focus->GetId();
-                    if (const auto suffix = error_id.rfind("--field"); suffix != std::string::npos)
-                        error_id.replace(suffix, std::string::npos, "--field-error");
-                    if (auto* error = state.document->GetElementById(error_id))
-                        state.set_text(error, valid ? "" : core::substitute("{} must be {} to {}.", binding->second.spec->label, core::format_quantity(binding->second.spec->number.minimum, binding->second.spec->number.quantity, binding->second.units), core::format_quantity(binding->second.spec->number.maximum, binding->second.spec->number.quantity, binding->second.units)));
-                    if (valid && std::abs(*parsed - binding->second.model_value) > 1.0e-12)
+                    state.number_error(focus, binding->second, !valid);
+                    if (valid && field->GetValue() != Impl::field_text(binding->second) && std::abs(*parsed - binding->second.model_value) > 1.0e-12)
                     {
-                        auto command = binding->second.command;
-                        command.value = binding->second.key == "world.gravity.tilt" ? -90.0 + *parsed : *parsed;
-                        command.phase = UiEditPhase::commit;
-                        state.pending.push_back(std::move(command));
+                        state.pending.push_back(Impl::number_command(binding->second, *parsed, UiEditPhase::commit));
                     }
+                    if (valid)
+                        state.synchronize_number_field(focus, binding->second, field->GetValue() == Impl::field_text(binding->second) ? binding->second.model_value : *parsed);
                     consumed = true;
                 }
                 else if (state.focus_keyboard_visible)
@@ -2042,12 +2255,27 @@ namespace rigidbodies::ui
                     {
                         consumed = true;
                     }
+                    else
+                        consumed = !state.context->ProcessKeyDown(rml_key(event.key), mods);
                 }
                 else
                     consumed = !state.context->ProcessKeyDown(rml_key(event.key), mods);
             }
             else if (event.key == UiKey::escape)
             {
+                if (state.cancel_confirmation())
+                {
+                    consumed = true;
+                    break;
+                }
+                for (const auto& id : state.selects)
+                    if (auto* select = dynamic_cast<Rml::ElementFormControlSelect*>(state.document->GetElementById(id)); select && select->IsSelectBoxVisible())
+                    {
+                        select->HideSelectBox();
+                        consumed = true;
+                    }
+                if (consumed)
+                    break;
                 if (auto* focus = state.context->GetFocusElement())
                 {
                     for (auto* ancestor = focus; ancestor; ancestor = ancestor->GetParentNode())
@@ -2060,7 +2288,7 @@ namespace rigidbodies::ui
                     if (consumed)
                         break;
                     const auto binding = state.bindings.find(focus->GetId());
-                    if (binding != state.bindings.end() && !binding->second.slider && binding->second.spec)
+                    if (binding != state.bindings.end() && !binding->second.slider && binding->second.spec && binding->second.spec->kind == ControlKind::number)
                     {
                         if (auto* field = dynamic_cast<Rml::ElementFormControl*>(focus))
                         {
@@ -2071,7 +2299,8 @@ namespace rigidbodies::ui
                         auto command = binding->second.command;
                         command.phase = UiEditPhase::cancel;
                         state.pending.push_back(std::move(command));
-                        focus->SetClass("is-invalid", false);
+                        if (binding->second.spec->kind == ControlKind::number)
+                            state.number_error(focus, binding->second, false);
                     }
                     focus->Blur();
                     consumed = true;
@@ -2081,6 +2310,22 @@ namespace rigidbodies::ui
             {
                 if (auto* focused = state.context->GetFocusElement())
                 {
+                    const auto local = state.view_bindings.find(focused->GetId());
+                    if (local != state.view_bindings.end() && local->second.kind == Impl::ViewBindingKind::text && local->second.key == "search.query" && !event.modifiers.control && !event.modifiers.alt)
+                    {
+                        const auto results = state.search_results();
+                        if (!results.empty())
+                        {
+                            const auto found = std::find(results.begin(), results.end(), state.search_highlight);
+                            const auto count = static_cast<int>(results.size());
+                            const auto current = found == results.end() ? (event.key == UiKey::arrow_down ? -1 : 0) : static_cast<int>(found - results.begin());
+                            const auto index = (current + (event.key == UiKey::arrow_down ? 1 : -1) + count) % count;
+                            state.highlight_search_result(results[static_cast<std::size_t>(index)]);
+                            state.document->GetElementById(state.search_highlight)->ScrollIntoView(false);
+                        }
+                        consumed = true;
+                        break;
+                    }
                     auto* row = focused;
                     while (row && string_attribute(row, "data-row-kind").empty())
                         row = row->GetParentNode();
@@ -2115,18 +2360,34 @@ namespace rigidbodies::ui
                     else if (binding != state.bindings.end() && !binding->second.slider && binding->second.spec && binding->second.spec->kind == ControlKind::number)
                     {
                         const auto& spec = binding->second.spec->number;
+                        auto value = binding->second.model_value;
+                        if (auto* field = dynamic_cast<Rml::ElementFormControl*>(focused); field && field->GetValue() != Impl::field_text(binding->second))
+                        {
+                            const auto parsed = Impl::parse_field(binding->second, field->GetValue());
+                            const auto valid = parsed && *parsed >= spec.minimum && *parsed <= spec.maximum;
+                            state.number_error(focused, binding->second, !valid);
+                            if (!valid)
+                            {
+                                consumed = true;
+                                break;
+                            }
+                            value = *parsed;
+                        }
                         const auto direction = event.key == UiKey::arrow_up ? 1.0 : -1.0;
                         const auto factor = event.modifiers.shift ? spec.coarse : event.modifiers.alt ? spec.fine
                                                                                                       : spec.step;
-                        auto value = spec.scale == NumberScale::logarithmic ? binding->second.model_value * (direction > 0 ? factor : 1.0 / factor) : binding->second.model_value + direction * spec.step * (event.modifiers.shift ? spec.coarse : event.modifiers.alt ? spec.fine
-                                                                                                                                                                                                                                                                       : 1.0);
+                        value = spec.scale == NumberScale::logarithmic ? value * (direction > 0 ? factor : 1.0 / factor) : value + direction * spec.step * (event.modifiers.shift ? spec.coarse : event.modifiers.alt ? spec.fine
+                                                                                                                                                                                                                      : 1.0);
                         value = std::clamp(value, spec.minimum, spec.maximum);
-                        auto command = binding->second.command;
-                        command.value = value;
-                        command.phase = UiEditPhase::commit;
-                        state.pending.push_back(std::move(command));
+                        state.pending.push_back(Impl::number_command(binding->second, value, UiEditPhase::commit));
+                        // The focused field is preserved during model refreshes. Keep it in sync
+                        // with keyboard steps so a later blur cannot restore its old value, and
+                        // repeated presses in the same frame build on the preceding adjustment.
+                        state.synchronize_number_field(focused, binding->second, value);
                         consumed = true;
                     }
+                    else if (dynamic_cast<Rml::ElementFormControl*>(focused))
+                        consumed = !state.context->ProcessKeyDown(rml_key(event.key), mods);
                     else if (auto* container = focused->GetClosestScrollableContainer())
                     {
                         container->SetScrollTop(container->GetScrollTop() + (event.key == UiKey::arrow_down ? 80.0f : -80.0f) * state.scale);
@@ -2170,6 +2431,8 @@ namespace rigidbodies::ui
                         }
                     }
                 }
+                if (!consumed)
+                    consumed = !state.context->ProcessKeyDown(rml_key(event.key), mods);
             }
             else if (event.key != UiKey::f1 && event.key != UiKey::f12)
                 consumed = !state.context->ProcessKeyDown(rml_key(event.key), mods);
@@ -2193,22 +2456,15 @@ namespace rigidbodies::ui
             state.context->ProcessMouseLeave();
             break;
         case UiEventKind::focus_lost:
+            state.pending.clear();
+            state.cancel_pointer_gesture();
+            state.cancelling_pointer_edit = true;
             state.context->ProcessMouseLeave();
             for (int released = 0; released < 3; ++released)
                 state.context->ProcessMouseButtonUp(released, 0);
             if (auto* focused = state.context->GetFocusElement())
                 focused->Blur();
-            state.pending.clear();
-            if (!state.active_slider.empty())
-            {
-                if (const auto binding = state.bindings.find(state.active_slider); binding != state.bindings.end())
-                {
-                    auto command = binding->second.command;
-                    command.phase = UiEditPhase::cancel;
-                    state.pending.push_back(std::move(command));
-                }
-                state.active_slider.clear();
-            }
+            state.cancelling_pointer_edit = false;
             state.pointer_captured = false;
             break;
         }
@@ -2236,6 +2492,12 @@ namespace rigidbodies::ui
         state.focus_keyboard_visible = false;
         commands.insert(commands.end(), state.pending.begin(), state.pending.end());
         state.pending.clear();
+    }
+
+    void DocumentBackend::take_pending_commands(std::vector<UiCommand>& commands)
+    {
+        commands.insert(commands.end(), impl_->pending.begin(), impl_->pending.end());
+        impl_->pending.clear();
     }
 
     void DocumentBackend::build(const UiFrameContext& frame, DrawList& list)
@@ -2296,7 +2558,7 @@ namespace rigidbodies::ui
         }
         state.layout_initialized = true;
         const auto* focus = state.context->GetFocusElement();
-        const auto focus_id = focus ? focus->GetId() : "";
+        auto focus_id = focus ? focus->GetId() : "";
         std::string focus_group;
         for (auto* ancestor = focus; ancestor && focus_group.empty(); ancestor = ancestor->GetParentNode())
             focus_group = string_attribute(ancestor, "data-group");
@@ -2321,6 +2583,8 @@ namespace rigidbodies::ui
         {
             if (!element)
                 return;
+            if (!visible && !state.active_slider.empty() && contains_element(element, state.document->GetElementById(state.active_slider)))
+                state.cancel_pointer_gesture();
             const auto id = element->GetId();
             const auto found = state.displays.find(id);
             if (found == state.displays.end() || found->second != visible)
@@ -2419,6 +2683,8 @@ namespace rigidbodies::ui
                 return frame.view && frame.view->transient_open("add_menu");
             if (panel->id() == "draw_options")
                 return frame.view && frame.view->transient_open("draw_options");
+            if (panel->id() == "playback_speed")
+                return frame.view && frame.view->transient_open("playback_speed");
             if (panel->id() == "present")
                 return frame.view && frame.view->present().mode;
             if (panel->id() == "present_caption")
@@ -2553,10 +2819,11 @@ namespace rigidbodies::ui
             {
                 const auto key = id == "main_menu" ? std::string_view { "view.menu" } : id == "add_menu" ? std::string_view { "view.add" }
                     : id == "draw_options"                                                               ? std::string_view { "draw.options.open" }
+                    : id == "playback_speed"                                                             ? std::string_view { "bar.speed.choice" }
                                                                                                          : std::string_view { "view.show" };
-                width = (id == "visualization" ? 320.0 : id == "draw_options" ? 340.0
-                                : id == "main_menu"                           ? 280.0
-                                                                              : 240.0) *
+                width = (id == "visualization" || id == "playback_speed" ? 320.0 : id == "draw_options" ? 340.0
+                                : id == "main_menu"                                                     ? 280.0
+                                                                                                        : 240.0) *
                     frame.scale;
                 if (const auto found = anchor_for(key))
                     anchor = *found;
@@ -2682,10 +2949,6 @@ namespace rigidbodies::ui
                     toast_stack->RemoveChild(child);
             }
         }
-        state.regions.clear();
-        for (const auto& region : computed.regions)
-            if (region.presentation != RegionPresentation::hidden && region.id != RegionId::stage && region.id != RegionId::performance_overlay && region.id != RegionId::show_popover && region.id != RegionId::present_caption && (region.id != RegionId::banner || banner_visible) && (region.id != RegionId::library_sheet || library_visible) && (region.id != RegionId::modal || modal_visible))
-                state.regions.push_back(region.bounds);
         std::string panel_signature;
         for (const auto* panel : frame.panels)
             if (panel && panel->is_visible())
@@ -2795,6 +3058,13 @@ namespace rigidbodies::ui
             draw_performance_overlay();
             return;
         }
+        // Cached frames keep the complete hit regions measured during the last layout, including
+        // floating panels, captions and dialog scrims. Replacing them with just the dock regions
+        // would let pointer input pass through those surfaces until the next content refresh.
+        state.regions.clear();
+        for (const auto& region : computed.regions)
+            if (region.presentation != RegionPresentation::hidden && region.id != RegionId::stage && region.id != RegionId::performance_overlay && region.id != RegionId::show_popover && region.id != RegionId::present_caption && (region.id != RegionId::banner || banner_visible) && (region.id != RegionId::library_sheet || library_visible) && (region.id != RegionId::modal || modal_visible))
+                state.regions.push_back(region.bounds);
         state.content_initialized = true;
         state.content_change_serial = frame.model->change_serial;
         state.content_refresh_bucket = refresh_bucket;
@@ -2937,6 +3207,8 @@ namespace rigidbodies::ui
                 // removed rather than adopted, so ids stay unique and only true children are moved.
                 if (element && element->GetParentNode() != card)
                 {
+                    if (!state.active_slider.empty() && contains_element(element, state.document->GetElementById(state.active_slider)))
+                        state.cancel_pointer_gesture();
                     if (auto* owner = element->GetParentNode())
                     {
                         ++state.structure_changes;
@@ -2947,6 +3219,8 @@ namespace rigidbodies::ui
                 const auto expected_kind = std::string(row_kind_name(item.row->kind));
                 if (element && string_attribute(element, "data-row-kind") != expected_kind)
                 {
+                    if (!state.active_slider.empty() && contains_element(element, state.document->GetElementById(state.active_slider)))
+                        state.cancel_pointer_gesture();
                     ++state.structure_changes;
                     card->RemoveChild(element);
                     element = nullptr;
@@ -2957,6 +3231,8 @@ namespace rigidbodies::ui
             for (int index = card->GetNumChildren() - 1; index >= 0; --index)
                 if (auto* child = card->GetChild(index); wanted.find(child->GetId()) == wanted.end())
                 {
+                    if (!state.active_slider.empty() && contains_element(child, state.document->GetElementById(state.active_slider)))
+                        state.cancel_pointer_gesture();
                     ++state.structure_changes;
                     // A row that is gone takes a focused control and any unconfirmed edit with it:
                     // the control must not keep taking keys, and its subject may no longer exist.
@@ -2984,7 +3260,7 @@ namespace rigidbodies::ui
                 state.text += row.text + " " + row.value + "\n";
                 // For disclosures, switches and checkboxes `selected` means open or on, which they
                 // show with their own indicator rather than a selection tint.
-                const auto selection_tint = row.selected && row.kind != PanelRowKind::section && row.kind != PanelRowKind::switch_control && row.kind != PanelRowKind::checkbox;
+                const auto selection_tint = (row.selected && row.kind != PanelRowKind::section && row.kind != PanelRowKind::switch_control && row.kind != PanelRowKind::checkbox) || (item.key == "search.result" && row_id == state.search_highlight);
                 element->SetClass("selected", selection_tint);
                 element->SetAttribute("data-control-key", item.key);
                 element->SetAttribute("data-instance", item.instance);
@@ -3147,8 +3423,51 @@ namespace rigidbodies::ui
                     state.set_text(state.document->GetElementById(row_id + "--label"), row.text);
                     const auto field_id = row_id + "--field";
                     auto* field = dynamic_cast<Rml::ElementFormControl*>(state.document->GetElementById(field_id));
-                    const auto formatted = row.mixed ? std::string {} : Impl::field_value(row.number_si, *row.spec, frame.model->display_units);
-                    if (field && state.context->GetFocusElement() != field && state.active_slider != row_id + "--slider" && field->GetValue() != formatted)
+                    const auto unit = row.mixed ? std::string(core::display_unit(row.spec->number.quantity, frame.model->display_units)) : core::format_unit(row.number_si, row.spec->number.quantity, frame.model->display_units, row.spec->number.decimals);
+                    auto field_binding = Impl::Binding { row.command, row.spec, item.key, row.number_si, frame.model->display_units, false, false, unit };
+                    field_binding.mixed = row.mixed;
+                    field_binding.document_id = frame.model->scenario_id;
+                    field_binding.edit_document = frame.model->edit_document;
+                    if (item.key.rfind("object.", 0) == 0)
+                    {
+                        field_binding.selection = frame.model->selected_bodies;
+                        if (item.key.rfind("object.shape.", 0) == 0)
+                            field_binding.document_id += ":part:" + std::to_string(frame.model->authored_part_index);
+                    }
+                    if (item.key.rfind("draw.", 0) == 0)
+                    {
+                        field_binding.selection = frame.model->selected_bodies;
+                        field_binding.document_id += ":draft:" + frame.model->shape_edit_target + ":part:" + std::to_string(frame.model->authored_part_index);
+                    }
+                    bool preserve_draft = false;
+                    if (const auto previous = state.bindings.find(field_id); field && previous != state.bindings.end())
+                    {
+                        const auto same_subject = Impl::same_number_subject(previous->second, field_binding);
+                        if ((!same_subject || !row.disabled_reason.empty()) && state.context->GetFocusElement() == field)
+                        {
+                            // Reusing a row for a different object must never submit the old
+                            // draft to the new selection when it later loses focus.
+                            state.synchronizing_control = true;
+                            field->Blur();
+                            state.synchronizing_control = false;
+                            if (focus_id == field_id)
+                                focus_id.clear();
+                            state.number_error(field, previous->second, false);
+                        }
+                        if ((!same_subject || !row.disabled_reason.empty() || row.mixed) && (state.active_slider == row_id + "--slider" || state.active_slider == row_id + "--label"))
+                            state.cancel_pointer_gesture();
+                        preserve_draft = same_subject && state.context->GetFocusElement() == field && field->GetValue() != Impl::field_text(previous->second);
+                        if (preserve_draft)
+                        {
+                            // Keep the displayed unit and precise edit baseline together. A
+                            // live value or preference change must not reinterpret bare digits.
+                            const auto current_command = field_binding.command;
+                            field_binding = previous->second;
+                            field_binding.command = current_command;
+                        }
+                    }
+                    const auto formatted = Impl::field_text(field_binding);
+                    if (field && !preserve_draft && state.active_slider != row_id + "--slider" && field->GetValue() != formatted)
                     {
                         state.synchronizing_control = true;
                         field->SetValue(formatted);
@@ -3158,14 +3477,11 @@ namespace rigidbodies::ui
                     element->SetClass("is-mixed", row.mixed);
                     if (field)
                         field->SetAttribute("aria-label", row.mixed ? row.text + ", mixed" : row.text);
-                    // A mixed row names no value, so its unit is the plain display unit rather than
-                    // one chosen to suit a magnitude.
-                    const auto unit = row.mixed ? std::string(core::display_unit(row.spec->number.quantity, frame.model->display_units)) : core::format_unit(row.number_si, row.spec->number.quantity, frame.model->display_units, row.spec->number.decimals);
                     if (element->GetNumChildren() > 1)
                     {
                         auto* line = element->GetChild(1);
                         if (line->GetNumChildren() > 1)
-                            state.set_text(line->GetChild(1), Impl::sign_in_field(*row.spec) ? std::string {} : unit);
+                            state.set_text(line->GetChild(1), Impl::sign_in_field(*row.spec) ? std::string {} : field_binding.unit);
                         if (line->GetNumChildren() > 2)
                             state.set_text(line->GetChild(2), state.context->GetFocusElement() == field ? "editing" : "");
                         if (line->GetNumChildren() > 3)
@@ -3173,8 +3489,6 @@ namespace rigidbodies::ui
                     }
                     if (row.disabled_reason.empty())
                     {
-                        auto field_binding = Impl::Binding { row.command, row.spec, item.key, row.number_si, frame.model->display_units, false, false, unit };
-                        field_binding.mixed = row.mixed;
                         state.bindings[field_id] = std::move(field_binding);
                         wanted_bindings.insert(field_id);
                         if (!row.mixed)
@@ -3483,7 +3797,7 @@ namespace rigidbodies::ui
                     element->SetClass("is-empty", field ? field->GetValue().empty() : row.value.empty());
                     if (field)
                         field->SetAttribute("aria-label", row.text);
-                    state.view_bindings[field_id] = { Impl::ViewBindingKind::text, item.key, {} };
+                    state.view_bindings[field_id] = { Impl::ViewBindingKind::text, row.view_key.empty() ? item.key : row.view_key, {} };
                     state.controls.push_back(field_id);
                 }
                 else if (row.kind == PanelRowKind::switch_control)
@@ -3546,6 +3860,8 @@ namespace rigidbodies::ui
                 element->SetClass("is-flash", !row.live && changed != state.value_changed_at.end() && now - changed->second < 0.6);
             }
         }
+        if (!state.active_slider.empty() && wanted_bindings.find(state.active_slider) == wanted_bindings.end())
+            state.cancel_pointer_gesture();
         for (auto iterator = state.bindings.begin(); iterator != state.bindings.end();)
             if (wanted_bindings.find(iterator->first) == wanted_bindings.end())
                 iterator = state.bindings.erase(iterator);
@@ -3806,9 +4122,12 @@ namespace rigidbodies::ui
             state.regions.push_back({ { 0.0, 0.0 }, { static_cast<double>(frame.viewport.width), static_cast<double>(frame.viewport.height) } });
         if (toast_stack && toast_stack->GetNumChildren() > 0)
         {
-            state.regions.push_back(bounds(toast_stack));
             for (int index = 0; index < toast_stack->GetNumChildren(); ++index)
-                state.shadows.push_back(bounds(toast_stack->GetChild(index)));
+            {
+                const auto card = bounds(toast_stack->GetChild(index));
+                state.regions.push_back(card);
+                state.shadows.push_back(card);
+            }
         }
         if (!focus_id.empty())
         {
@@ -3824,6 +4143,17 @@ namespace rigidbodies::ui
             }
         }
         release_hidden_focus();
+        std::string next_scope;
+        for (const auto* panel : frame.panels)
+            if (panel_has_content(panel) && (panel->region() == RegionId::modal || panel->region() == RegionId::library_sheet))
+                next_scope = "panel-" + std::string(panel->id());
+        // Sheets render above popovers that remain open beneath them. Their keyboard scope
+        // must follow that same order (for example Ctrl+K from the custom speed popover).
+        if (next_scope.empty() && popover_panel && popover_panel->id() != "hover_card" && !frame.model->confirmation)
+            next_scope = "panel-" + std::string(popover_panel->id());
+        if (frame.model->confirmation)
+            next_scope = "panel-confirmation";
+        state.change_keyboard_scope(std::move(next_scope), focus_id);
         state.update_tooltip(tooltip_now, frame.scale, frame.viewport);
         for (const auto region : state.shadows)
             shadow(list, region, frame.scale);

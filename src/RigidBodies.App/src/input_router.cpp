@@ -22,10 +22,14 @@ namespace rigidbodies::app
             if (!is_key(event))
                 return false;
             if (event.modifiers.alt)
-                return false;
+                return !event.modifiers.control && (event.key == ui::UiKey::arrow_up || event.key == ui::UiKey::arrow_down);
             if (event.modifiers.control)
                 return event.key == ui::UiKey::a || event.key == ui::UiKey::c || event.key == ui::UiKey::v ||
-                    event.key == ui::UiKey::x || event.key == ui::UiKey::z;
+                    event.key == ui::UiKey::x || event.key == ui::UiKey::y || event.key == ui::UiKey::z ||
+                    event.key == ui::UiKey::backspace || event.key == ui::UiKey::delete_key ||
+                    event.key == ui::UiKey::arrow_left || event.key == ui::UiKey::arrow_right ||
+                    event.key == ui::UiKey::arrow_up || event.key == ui::UiKey::arrow_down ||
+                    event.key == ui::UiKey::home || event.key == ui::UiKey::end;
             switch (event.key)
             {
             case ui::UiKey::backspace:
@@ -84,9 +88,13 @@ namespace rigidbodies::app
                 return EscapeStep::cancel_gesture;
             if (context.interface_escape == ui::EscapeTarget::text_field)
                 return EscapeStep::revert_field;
+            if (context.interface_escape == ui::EscapeTarget::control)
+                return EscapeStep::close_control;
             if (context.interface_escape == ui::EscapeTarget::transient)
                 return EscapeStep::close_transient;
             if (context.interface_escape == ui::EscapeTarget::sheet)
+                return EscapeStep::close_sheet;
+            if (context.interface_modal)
                 return EscapeStep::close_sheet;
             if (context.draw_active)
             {
@@ -111,7 +119,8 @@ namespace rigidbodies::app
         RouteDecision result;
         if (event.kind == ui::UiEventKind::key_down && event.key == ui::UiKey::f12)
         {
-            result.action = AppAction::toggle_developer_overlay;
+            if (!event.repeat)
+                result.action = AppAction::toggle_developer_overlay;
             return result;
         }
         if (context.developer_captured)
@@ -121,13 +130,16 @@ namespace rigidbodies::app
         }
         if (event.repeat && is_key(event))
         {
-            result.to_interface = context.focus == ui::FocusOwner::text_field;
+            const auto navigation = event.key == ui::UiKey::arrow_left || event.key == ui::UiKey::arrow_right ||
+                event.key == ui::UiKey::arrow_up || event.key == ui::UiKey::arrow_down || event.key == ui::UiKey::home || event.key == ui::UiKey::end;
+            result.to_interface = context.focus == ui::FocusOwner::text_field ||
+                (navigation && (context.focus == ui::FocusOwner::keyboard_control || context.focus == ui::FocusOwner::transient));
             return result;
         }
         if (event.kind == ui::UiEventKind::key_down && event.key == ui::UiKey::escape)
         {
             result.escape = escape_step(context);
-            result.to_interface = result.escape == EscapeStep::revert_field || result.escape == EscapeStep::close_transient ||
+            result.to_interface = result.escape == EscapeStep::revert_field || result.escape == EscapeStep::close_control || result.escape == EscapeStep::close_transient ||
                 result.escape == EscapeStep::close_sheet || result.escape == EscapeStep::leave_keyboard_mode || result.escape == EscapeStep::leave_present;
             result.to_scene = result.escape == EscapeStep::cancel_gesture || result.escape == EscapeStep::draw_deselect_node ||
                 result.escape == EscapeStep::draw_confirm_discard || result.escape == EscapeStep::draw_discard ||
@@ -158,7 +170,7 @@ namespace rigidbodies::app
             return result;
         }
         if (context.focus == ui::FocusOwner::keyboard_control && is_key(event) &&
-            (event.key == ui::UiKey::enter || event.key == ui::UiKey::arrow_left || event.key == ui::UiKey::arrow_right ||
+            (event.key == ui::UiKey::enter || (event.key == ui::UiKey::space && !event.modifiers.control && !event.modifiers.alt) || event.key == ui::UiKey::arrow_left || event.key == ui::UiKey::arrow_right ||
                 event.key == ui::UiKey::arrow_up || event.key == ui::UiKey::arrow_down))
         {
             result.to_interface = true;
@@ -171,6 +183,24 @@ namespace rigidbodies::app
         }
         if (bound_action && *bound_action != AppAction::none && event.kind == ui::UiEventKind::key_down)
         {
+            if (context.interface_modal)
+            {
+                switch (*bound_action)
+                {
+                case AppAction::quit:
+                case AppAction::toggle_help:
+                case AppAction::open_library:
+                case AppAction::open_main_menu:
+                case AppAction::open_preferences:
+                case AppAction::open_command_search:
+                case AppAction::save_setup:
+                case AppAction::save_setup_as:
+                case AppAction::open_setup:
+                    break;
+                default:
+                    return result;
+                }
+            }
             if (context.present && context.present_locked)
             {
                 const auto allowed = *bound_action == AppAction::toggle_present || *bound_action == AppAction::toggle_pause || *bound_action == AppAction::pause_at_next_impact ||

@@ -66,6 +66,8 @@ namespace rigidbodies::ui
         builder.label(model.draft.target_name.empty() ? "New shape" : model.draft.target_name);
         builder.present_last(presentation().overflow_at(3));
         builder.select_row(spec("draw.bar.material"), model.draft.material_name.empty() ? model.shape_material_name : model.draft.material_name, draw(UiCommandKind::set_shape_material));
+        if (!model.shape_can_change_material)
+            builder.disable_last("Apply the outline, then change material in Selection › Properties.");
         builder.present_last(presentation().overflow_at(5));
         builder.end_group();
 
@@ -143,6 +145,8 @@ namespace rigidbodies::ui
             return;
         builder.title(title());
         builder.select_row(spec("draw.bar.material"), model.draft.material_name.empty() ? model.shape_material_name : model.draft.material_name, draw(UiCommandKind::set_shape_material));
+        if (!model.shape_can_change_material)
+            builder.disable_last("Apply the outline, then change material in Selection › Properties.");
         builder.instance_last("options");
         builder.heading("Snapping");
         snapping_rows(model, builder, "options");
@@ -159,6 +163,13 @@ namespace rigidbodies::ui
         if (model.shape_node_selected)
         {
             builder.heading("Selected point");
+            auto position = draw(UiCommandKind::set_shape_node_position);
+            position.id = std::to_string(model.shape_selected_node);
+            position.detail = "x";
+            builder.number_row(spec("draw.node.position_x"), model.shape_node_world_m.x, position);
+            position.detail = "y";
+            builder.number_row(spec("draw.node.position_y"), model.shape_node_world_m.y, position);
+            builder.label("World coordinates. On canvas: Alt+arrows nudges 1 cm; Shift+Alt+arrows nudges 10 cm.");
             builder.segmented_row(spec("draw.node.edge"), model.shape_selected_edge_cubic ? "curved" : "straight", draw(UiCommandKind::set_shape_edge));
             builder.instance_last("options");
             builder.segmented_row(spec("draw.node.join"), model.shape_continuity.empty() ? "corner" : model.shape_continuity, draw(UiCommandKind::set_shape_continuity));

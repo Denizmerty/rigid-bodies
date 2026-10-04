@@ -452,7 +452,7 @@ namespace rigidbodies::app
         }
 
         scenario_id_ = std::string { id };
-        current_setup_path_.clear();
+        setup_file_ = std::make_shared<SetupFileAssociation>();
         if (const auto* document = physics::scenario_document_for_id(id))
         {
             scenario_document_ = std::make_shared<physics::ScenarioDocument>(*document);
@@ -502,6 +502,7 @@ namespace rigidbodies::app
         setup_.world = world_.snapshot();
         setup_.gravity_direction_degrees = original_.gravity_direction_degrees;
         rebuild_snapshot_views();
+        setup_file_->saved_setup_fingerprint = setup_fingerprint();
         gravity_direction_degrees_ = setup_.gravity_direction_degrees;
         state_setup_toast_shown_ = false;
         reset_measurements();
@@ -515,6 +516,7 @@ namespace rigidbodies::app
         // take precedence, while an untouched session uses the demonstration's own environment.
         frame_subject();
         core::log_info("scenario \"{}\" loaded with {} objects", scenario_id_, world_.body_ids().size());
+        speed_preview_start_.reset();
         mark_edit_changed();
         return true;
     }
@@ -546,6 +548,7 @@ namespace rigidbodies::app
             single_step_pending_ = false;
             reset_measurements();
             state_setup_toast_shown_ = false;
+            speed_preview_start_.reset();
             mark_edit_changed();
             pause_reason_ = {};
         }
@@ -1643,7 +1646,7 @@ namespace rigidbodies::app
                 return true;
             }
         }
-        if (!interface_consumed && event.kind == ui::UiEventKind::pointer_down && event.button == ui::PointerButton::primary)
+        if (!interface_consumed && !shape_editor_.active() && event.kind == ui::UiEventKind::pointer_down && event.button == ui::PointerButton::primary)
         {
             for (std::size_t index = 0; index < inspected_impacts_.size(); ++index)
             {
@@ -2033,10 +2036,11 @@ namespace rigidbodies::app
             if (const auto index = shape_editor_.selected_node())
             {
                 model.shape_selected_node = *index;
+                model.shape_node_world_m = math::transform_point(shape_editor_.placement(), outline.nodes[*index].position_m);
                 model.shape_selected_edge_cubic = outline.nodes[*index].outgoing_edge == physics::OutlineEdgeKind::cubic;
                 const auto continuity = outline.nodes[*index].continuity;
-                model.shape_continuity = continuity == physics::OutlineContinuity::corner ? "corner" : continuity == physics::OutlineContinuity::aligned ? "aligned"
-                                                                                                                                                         : "mirrored";
+                model.shape_continuity = continuity == physics::OutlineContinuity::corner ? "corner" : continuity == physics::OutlineContinuity::aligned ? "smooth"
+                                                                                                                                                         : "symmetric";
             }
             const auto result = shape_editor_.build();
             model.shape_can_commit = result.succeeded();
@@ -2962,6 +2966,8 @@ namespace rigidbodies::app
 
     bool SimulationSession::has_setup_changes() const
     {
+        if (!setup_file_->saved_setup_fingerprint.empty())
+            return setup_fingerprint() != setup_file_->saved_setup_fingerprint;
         return user_object_count() > 0 || !compute_setup_changes(setup_view_, original_view_).empty();
     }
 
@@ -2977,7 +2983,22 @@ namespace rigidbodies::app
         model.changes = compute_setup_changes(setup_view_, original_view_);
         model.scenario_content = experiment_content_;
         model.selected_connection = selected_connection_;
-        if (!pending_leave_scenario_.empty())
+        if (pending_setup_open_)
+        {
+            ui::UiCommand confirm { ui::UiCommandKind::open_arrangement };
+            confirm.flag = true;
+            ui::UiCommand cancel { ui::UiCommandKind::open_arrangement };
+            cancel.detail = "cancel";
+            ui::UiCommand save { ui::UiCommandKind::save_arrangement };
+            model.confirmation = ui::ConfirmationModel { "Open " + pending_setup_open_->title + "?",
+                shape_editor_.active() ? "The open shape draft and any unsaved setup changes will be lost." : "Unsaved setup changes will be lost.",
+                "Discard and open",
+                std::move(confirm),
+                std::move(cancel),
+                std::move(save),
+                shape_editor_.active() ? "Save setup…" : "Save and open…" };
+        }
+        else if (!pending_leave_scenario_.empty())
         {
             ui::UiCommand confirm { ui::UiCommandKind::load_scenario };
             confirm.id = pending_leave_scenario_;
@@ -2985,14 +3006,14 @@ namespace rigidbodies::app
             ui::UiCommand cancel { ui::UiCommandKind::load_scenario };
             cancel.detail = "cancel";
             ui::UiCommand save { ui::UiCommandKind::save_arrangement };
-            const auto count = user_object_count();
             const auto title = scenario_document_ ? scenario_document_->metadata.title : scenario_id_;
             model.confirmation = ui::ConfirmationModel { "Leave " + title + "?",
-                core::substitute("{}{}{} will be lost.", count, count == 1 ? " drawn or imported object" : " drawn or imported objects", shape_editor_.active() ? " and an open draft" : ""),
+                shape_editor_.active() ? "The open shape draft and any unsaved setup changes will be lost." : "Unsaved setup changes will be lost.",
                 "Leave",
                 std::move(confirm),
                 std::move(cancel),
-                std::move(save) };
+                std::move(save),
+                shape_editor_.active() ? "Save setup…" : "Save and leave…" };
         }
         else if (pending_quit_confirmation_)
         {
@@ -3001,8 +3022,7 @@ namespace rigidbodies::app
             ui::UiCommand cancel { ui::UiCommandKind::quit };
             cancel.detail = "cancel";
             ui::UiCommand save { ui::UiCommandKind::save_arrangement };
-            const auto count = compute_setup_changes(setup_view_, original_view_).size();
-            model.confirmation = ui::ConfirmationModel { "Quit?", core::substitute("Quit and lose {} change{}?", count, count == 1 ? "" : "s"), "Quit", std::move(confirm), std::move(cancel), std::move(save) };
+            model.confirmation = ui::ConfirmationModel { "Quit?", shape_editor_.active() ? "Quit and discard the open shape draft and any unsaved setup changes?" : "Quit and lose unsaved setup changes?", "Quit", std::move(confirm), std::move(cancel), std::move(save), shape_editor_.active() ? "Save setup…" : "Save and quit…" };
         }
         const auto first = undo_edits_.size() > 20 ? undo_edits_.size() - 20 : 0;
         for (std::size_t index = undo_edits_.size(); index > first; --index)
@@ -3060,6 +3080,7 @@ namespace rigidbodies::app
     ui::UiModel SimulationSession::build_model() const
     {
         ui::UiModel model;
+        model.edit_document = setup_file_;
         model.world = &world_;
         model.setup_world = setup_.world.is_valid() ? &setup_view_ : nullptr;
         model.original_world = original_.world.is_valid() ? &original_view_ : nullptr;

@@ -92,6 +92,33 @@ namespace
         send(session, ui::UiCommandKind::set_time_scale, 0.5);
         RIGIDBODIES_EXPECT(session.build_model().undo_history.size() == before, "speed is interface transport state, not an edit");
     }
+
+    RIGIDBODIES_TEST("committing a speed preview establishes the next cancellation baseline")
+    {
+        app::SimulationSession session;
+        session.load_scenario("free_fall");
+        const auto history_size = session.build_model().undo_history.size();
+        ui::UiCommand speed;
+        speed.kind = ui::UiCommandKind::set_time_scale;
+        speed.phase = ui::UiEditPhase::preview;
+        speed.value = 0.5;
+        session.apply(speed);
+        speed.value = 0.75;
+        session.apply(speed);
+        speed.phase = ui::UiEditPhase::commit;
+        session.apply(speed);
+        speed.phase = ui::UiEditPhase::cancel;
+        session.apply(speed);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().time_scale, 0.75, 1.0e-12, "a stale cancel cannot undo a committed preview");
+        speed.phase = ui::UiEditPhase::preview;
+        speed.value = 1.5;
+        session.apply(speed);
+        speed.phase = ui::UiEditPhase::cancel;
+        session.apply(speed);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().time_scale, 0.75, 1.0e-12, "the next cancellation restores the last confirmed speed");
+        RIGIDBODIES_EXPECT(session.build_model().undo_history.size() == history_size && session.build_model().held_reason.empty(),
+            "speed transactions create neither experiment history nor a simulation hold");
+    }
 }
 
 int main()

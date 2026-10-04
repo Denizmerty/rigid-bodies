@@ -12,8 +12,9 @@ namespace rigidbodies::app
     {
         std::mutex mutex;
         bool ready { false };
-        std::string path, error, text, default_location, title, based_on;
-        bool current_moment { false }, include_guide { true };
+        std::string path, error, text, default_location;
+        std::optional<SetupSaveSnapshot> setup_save;
+        std::optional<SetupDeparture> continuation;
         ui::UiCommandKind operation { ui::UiCommandKind::none };
         static void SDLCALL complete(void* userdata, const char* const* paths, int)
         {
@@ -39,18 +40,33 @@ namespace rigidbodies::app
             return true;
         auto state = std::make_shared<ContentFileDialog>();
         state->operation = command.kind;
-        state->title = command.detail;
-        state->based_on = session_.scenario_id();
-        state->current_moment = command.value >= 0.5;
-        state->include_guide = command.flag;
-        if (saving && !(shape ? session_.export_shape(state->text, state->error) : session_.save_arrangement(state->text, state->error, state->title, state->current_moment, state->include_guide)))
+        if (command.kind == K::save_arrangement)
+            state->setup_save = session_.capture_setup_save(state->error, command.detail, command.value >= 0.5, command.flag);
+        if (saving && !(shape ? session_.export_shape(state->text, state->error) : state->setup_save.has_value()))
         {
+            save_continuation_.reset();
             session_.notify(ui::Severity::error, state->error, "content");
             return true;
         }
+        if (state->setup_save)
+        {
+            state->continuation = std::move(save_continuation_);
+            save_continuation_.reset();
+            interface_.request(ui::ViewRequest::close_top_surface);
+        }
         session_.notify(ui::Severity::info, "Choose a file.", "content");
         paths_.ensure_user_data_root();
-        state->default_location = (saving ? paths_.user_data(shape ? "shape.rbshape.json" : "arrangement.rbscenario.json") : paths_.user_data_root()).u8string();
+        auto folder = last_content_folder_;
+        if (folder.empty() && !session_.current_setup_path().empty())
+            folder = std::filesystem::u8path(session_.current_setup_path()).parent_path();
+        std::error_code code;
+        if (folder.empty() || !std::filesystem::is_directory(folder, code))
+            folder = paths_.user_data_root();
+        auto title = command.detail;
+        if (shape && title.empty())
+            if (const auto* selected = session_.world().find_body(session_.selection()))
+                title = selected->name();
+        state->default_location = (saving ? folder / std::filesystem::u8path(suggested_content_filename(title, shape)) : folder).u8string();
         content_dialog_ = state;
         static const SDL_DialogFileFilter scenario_filters[] { { "Rigid Bodies arrangement (JSON)", "json" }, { "All files", "*" } };
         static const SDL_DialogFileFilter shape_filters[] { { "Rigid Bodies shape (JSON)", "json" }, { "All files", "*" } };
@@ -84,27 +100,35 @@ namespace rigidbodies::app
             return;
         }
         using K = ui::UiCommandKind;
-        const auto path = std::filesystem::u8path(state->path);
         const bool saving = state->operation == K::save_arrangement || state->operation == K::export_shape;
+        const auto path = saving ? content_save_destination(std::filesystem::u8path(state->path), state->operation == K::export_shape) : std::filesystem::u8path(state->path);
         bool success = false;
         if (saving)
-            success = write_content_file(path, state->text, state->error);
+        {
+            std::error_code code;
+            if (state->setup_save && !session_.can_write_setup_save(*state->setup_save, path.u8string(), state->error))
+                success = false;
+            else if (path != std::filesystem::u8path(state->path) && std::filesystem::exists(path, code))
+                state->error = "A file with the document extension already exists. Choose its full name to confirm replacing it.";
+            else
+                success = write_content_file(path, state->setup_save ? state->setup_save->text : state->text, state->error);
+        }
         else if (read_content_file(path, state->text, state->error))
-            success = state->operation == K::import_shape ? session_.import_shape(state->text, state->error) : session_.open_arrangement(state->text, state->error);
+            success = state->operation == K::import_shape ? session_.import_shape(state->text, state->error) : session_.request_open_arrangement(std::move(state->text), state->error, path.u8string());
         if (!success)
+        {
             session_.notify(ui::Severity::error, state->error, "content");
+        }
         else if (state->operation == K::save_arrangement)
         {
-            session_.note_setup_file(path.u8string(), state->title, state->based_on);
-            session_.notify(ui::Severity::success, "Saved " + path.filename().u8string() + ".", "content");
-        }
-        else if (state->operation == K::open_arrangement)
-        {
-            const auto model = session_.build_model();
-            const auto based_on = model.scenario_content ? model.scenario_content->based_on : std::string {};
-            session_.note_setup_file(path.u8string(), model.scenario_title, based_on);
+            const auto current = session_.complete_setup_save(*state->setup_save, path.u8string());
+            session_.notify(ui::Severity::success, "Saved " + path.filename().u8string() + (current ? "." : " as it was when the dialog opened."), "content");
+            if (current && state->continuation)
+                session_.complete_saved_departure(*state->continuation);
         }
         else if (saving)
             session_.notify(ui::Severity::success, "Saved " + path.filename().u8string() + ".", "content");
+        if (success)
+            last_content_folder_ = path.parent_path();
     }
 }

@@ -479,8 +479,9 @@ namespace rigidbodies::ui
                     return std::string(current);
             if (const auto value = option_number(current))
             {
+                const auto tolerance = spec.key == "bar.speed.choice" ? 1.0e-10 : 1.0e-4;
                 for (const auto& option : spec.options)
-                    if (const auto candidate = option_number(option.id); candidate && std::abs(*candidate - *value) <= 1.0e-4 * std::max(std::abs(*candidate), 1.0e-9))
+                    if (const auto candidate = option_number(option.id); candidate && std::abs(*candidate - *value) <= tolerance * std::max(std::abs(*candidate), 1.0e-9))
                         return std::string(option.id);
                 for (const auto& option : spec.options)
                     if (option.id == "custom")
@@ -553,6 +554,9 @@ namespace rigidbodies::ui
             return;
         }
         auto row = control_row(PanelRowKind::select, spec, command_template, {}, matching_option(spec, current));
+        // Keep a custom value visible while leaving the Custom… action independently selectable.
+        if (row.selected_option == "custom" && current != "custom" && !unlisted_label.empty())
+            row.selected_option = std::string(current);
         const auto listed = std::any_of(spec.options.begin(), spec.options.end(), [&](const OptionSpec& option)
             {
                 return option.id == row.selected_option;
@@ -714,12 +718,13 @@ namespace rigidbodies::ui
         rows_->push_back(std::move(row));
     }
 
-    void PanelBuilder::text_field(std::string_view key, std::string_view label, std::string_view value, std::string_view placeholder)
+    void PanelBuilder::text_field(std::string_view key, std::string_view label, std::string_view value, std::string_view placeholder, std::string_view view_key)
     {
         if (!rows_)
             return;
         PanelRow row { PanelRowKind::text_field, label };
         row.key = std::string(key);
+        row.view_key = std::string(view_key.empty() ? key : view_key);
         row.value = std::string(value);
         row.hint = std::string(placeholder);
         row.group = group_;

@@ -25,6 +25,15 @@ namespace rigidbodies::ui
         void build(const UiModel&, PanelBuilder&) override;
     };
 
+    class PlaybackSpeedPanel final : public Panel
+    {
+    public:
+        [[nodiscard]] std::string_view id() const override;
+        [[nodiscard]] std::string_view title() const override;
+        [[nodiscard]] RegionId region() const override;
+        void build(const UiModel&, PanelBuilder&) override;
+    };
+
     class LibraryPanel final : public Panel
     {
     public:
@@ -32,6 +41,11 @@ namespace rigidbodies::ui
         [[nodiscard]] std::string_view title() const override;
         [[nodiscard]] RegionId region() const override;
         void build(const UiModel&, PanelBuilder&) override;
+
+    private:
+        // Select bindings survive a frame, so their option text belongs to the panel.
+        std::vector<std::string> collection_ids_, collection_labels_;
+        std::vector<OptionSpec> collection_options_;
     };
 
     class MainMenuPanel final : public Panel

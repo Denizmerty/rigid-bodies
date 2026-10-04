@@ -360,7 +360,9 @@ namespace
         RIGIDBODIES_EXPECT(!focused.empty(), "Tab gives a control visible keyboard focus");
         fixture.key(ui::UiKey::tab, false, true);
         RIGIDBODIES_EXPECT(fixture.backend.focused_element() == focused, "a repeated Tab press does not move focus again");
-        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::space).empty(), "Space emits no interface command while a control has keyboard focus");
+        const auto space = fixture.key(ui::UiKey::space);
+        RIGIDBODIES_EXPECT(space.size() == 1 && space.front().kind == ui::UiCommandKind::toggle_pause, "Space activates the focused control");
+        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::space, false, true).empty(), "holding Space never repeatedly activates the focused control");
         RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::enter, false, true).empty(), "a repeated Enter press does not activate the focused control");
         auto commands = fixture.key(ui::UiKey::enter);
         RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().kind == ui::UiCommandKind::toggle_pause, "Enter activates the focused play or pause control");

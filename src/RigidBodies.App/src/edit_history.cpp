@@ -75,6 +75,7 @@ namespace rigidbodies::app
             case K::set_shape_edge:
             case K::set_shape_continuity:
             case K::set_shape_material:
+            case K::set_shape_node_position:
             case K::set_shape_vertex_budget:
             case K::set_shape_render_tolerance:
             case K::set_shape_collision_tolerance:
@@ -140,6 +141,7 @@ namespace rigidbodies::app
             case K::set_selected_angular_velocity:
             case K::set_selected_position:
             case K::set_shape_grid_spacing:
+            case K::set_shape_node_position:
             case K::set_shape_vertex_budget:
             case K::set_shape_render_tolerance:
             case K::set_shape_collision_tolerance:
@@ -228,6 +230,7 @@ namespace rigidbodies::app
         state.selected_connection = selected_connection_;
         state.scenario_id = scenario_id_;
         state.scenario_document = scenario_document_;
+        state.setup_file = setup_file_;
         state.gravity_direction_degrees = gravity_direction_degrees_;
         state.state_setup_toast_shown = state_setup_toast_shown_;
         return state;
@@ -236,6 +239,7 @@ namespace rigidbodies::app
     void SimulationSession::restore_edit_state(const SessionEditState& state, std::optional<ui::EditCategory> category)
     {
         restoring_edit_ = true;
+        speed_preview_start_.reset();
         const auto runtime_parallel = world_.parallel_settings();
         const auto runtime_profile = world_.profiling_enabled();
         world_.restore(state.world);
@@ -261,6 +265,13 @@ namespace rigidbodies::app
         selected_connection_ = state.selected_connection;
         scenario_id_ = state.scenario_id;
         scenario_document_ = state.scenario_document;
+        setup_file_ = state.setup_file;
+        // Guide content and body annotations are derived from the document. Restoring only
+        // the world would leave the previous experiment's labels and controls on screen.
+        if (scenario_document_)
+            experiment_content_ = parse_experiment_content(*scenario_document_);
+        else
+            experiment_content_.reset();
         gravity_direction_degrees_ = state.gravity_direction_degrees;
         state_setup_toast_shown_ = state.state_setup_toast_shown;
         scene_settings_.selection = state.selection;
@@ -483,26 +494,60 @@ namespace rigidbodies::app
 
     void SimulationSession::apply(const ui::UiCommand& command)
     {
+        if (shape_editor_.active() && command.kind == ui::UiCommandKind::set_selected_position && command.detail == "offset")
+        {
+            auto point_command = command;
+            point_command.kind = ui::UiCommandKind::set_shape_node_position;
+            point_command.id = shape_editor_.selected_node() ? std::to_string(*shape_editor_.selected_node()) : std::string {};
+            apply(point_command);
+            return;
+        }
         command_target_body_ = command.body.is_valid() ? command.body : selection();
         using K = ui::UiCommandKind;
         const auto changed = [&]()
         {
+            if (command.kind == K::set_time_scale)
+            {
+                if (command.phase == ui::UiEditPhase::cancel)
+                {
+                    if (!speed_preview_start_)
+                        return false;
+                    const auto previous = stepper_.time_scale();
+                    stepper_.set_time_scale(*speed_preview_start_);
+                    speed_preview_start_.reset();
+                    if (stepper_.time_scale() == 0.0)
+                        synchronize_render_history();
+                    return previous != stepper_.time_scale();
+                }
+                if (command.phase == ui::UiEditPhase::preview)
+                {
+                    if (!speed_preview_start_)
+                        speed_preview_start_ = stepper_.time_scale();
+                }
+                else
+                    speed_preview_start_.reset();
+            }
             if (command.kind == K::load_scenario)
             {
+                ++departure_serial_;
+                pending_setup_open_.reset();
                 if (command.detail == "cancel")
                 {
                     pending_leave_scenario_.clear();
                     return true;
                 }
-                if (!command.flag && (shape_editor_.active() || user_object_count() > 0))
+                if (!command.flag && (shape_editor_.active() || has_setup_changes()))
                 {
                     pending_leave_scenario_ = command.id;
+                    pending_quit_confirmation_ = false;
                     return true;
                 }
                 pending_leave_scenario_.clear();
             }
             if (command.kind == K::quit)
             {
+                ++departure_serial_;
+                pending_setup_open_.reset();
                 if (command.detail == "cancel")
                 {
                     pending_quit_confirmation_ = false;
@@ -511,9 +556,29 @@ namespace rigidbodies::app
                 if (!command.flag && (shape_editor_.active() || has_setup_changes()))
                 {
                     pending_quit_confirmation_ = true;
+                    pending_leave_scenario_.clear();
                     return true;
                 }
                 pending_quit_confirmation_ = false;
+            }
+            if (command.kind == K::open_arrangement)
+            {
+                ++departure_serial_;
+                if (command.detail == "cancel")
+                {
+                    pending_setup_open_.reset();
+                    return true;
+                }
+                if (command.flag && pending_setup_open_)
+                {
+                    const auto opening = std::move(pending_setup_open_);
+                    pending_setup_open_.reset();
+                    std::string error;
+                    if (!open_arrangement(opening->text, error, opening->path))
+                        notify(ui::Severity::error, error, "content");
+                    return true;
+                }
+                return false;
             }
             if (command.kind == K::undo || command.kind == K::redo)
             {

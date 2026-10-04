@@ -125,6 +125,8 @@ namespace rigidbodies::app
         InputTranslator input_;
         FrameCapture frame_capture_;
         std::shared_ptr<ContentFileDialog> content_dialog_;
+        std::optional<SetupDeparture> save_continuation_;
+        std::filesystem::path last_content_folder_;
         math::Vec2 input_pixel_scale_ { 1.0, 1.0 };
 
 #if defined(RIGIDBODIES_DEVELOPER_OVERLAY)

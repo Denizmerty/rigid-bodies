@@ -1,4 +1,5 @@
 #include <rigidbodies/app/simulation_session.hpp>
+#include <rigidbodies/app/content_files.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/physics/shape_document.hpp>
@@ -28,6 +29,35 @@ namespace rigidbodies::app
                 (integer && std::floor(value->as_number()) != value->as_number()))
                 throw std::invalid_argument(std::string { "Invalid saved setting: " } + key);
             return value->as_number();
+        }
+
+        bool read_saved_presentation(const physics::ScenarioDocument& document, physics::TimeStepper& pacing,
+            render::Camera2D& view, std::string& error)
+        {
+            try
+            {
+                if (const auto* playback = document.root.find("playback"))
+                {
+                    const auto saved_speed = document_number(*playback, "time_scale", pacing.time_scale(), -std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+                    pacing.set_time_scale(std::clamp(saved_speed, 0.05, 4.0));
+                }
+                const auto* saved_view = document.root.find("view");
+                if (const auto* presentation = document.root.find("presentation"); presentation && presentation->is_object())
+                    if (const auto* preferred = presentation->find("view"))
+                        saved_view = preferred;
+                if (saved_view)
+                {
+                    view.set_center({ document_number(*saved_view, "center_x_m", view.center_m().x, -1.0e9, 1.0e9),
+                        document_number(*saved_view, "center_y_m", view.center_m().y, -1.0e9, 1.0e9) });
+                    view.set_view_height(document_number(*saved_view, "height_m", view.view_height_m(), view.minimum_view_height_m(), view.maximum_view_height_m()));
+                }
+            }
+            catch (const std::exception& exception)
+            {
+                error = exception.what();
+                return false;
+            }
+            return true;
         }
     }
     void SimulationSession::set_content_message(std::string message)
@@ -120,9 +150,137 @@ namespace rigidbodies::app
         return physics::write_scenario_document(document, text, error);
     }
 
-    void SimulationSession::note_setup_file(std::string path, std::string title, std::string based_on)
+    bool SimulationSession::save_current_arrangement(std::string& text, std::string& error) const
     {
-        current_setup_path_ = std::move(path);
+        if (setup_file_->path.empty())
+        {
+            error = "Choose a destination with Save as before saving this setup.";
+            return false;
+        }
+        return save_arrangement(text, error, setup_file_->title, setup_file_->current_moment, setup_file_->include_guide);
+    }
+
+    std::string SimulationSession::setup_fingerprint() const
+    {
+        physics::ScenarioMetadata metadata;
+        metadata.id = "saved_setup";
+        metadata.title = "Saved setup";
+        physics::ScenarioDocument document;
+        std::string text, error;
+        if (!physics::capture_scenario_document(setup_view_, metadata, document, error) ||
+            !physics::write_scenario_document(document, text, error))
+            return {};
+        return text;
+    }
+
+    std::optional<SetupSaveSnapshot> SimulationSession::capture_setup_save(std::string& error,
+        std::string_view title, bool current_moment, bool include_guide) const
+    {
+        SetupSaveSnapshot snapshot;
+        if (!save_arrangement(snapshot.text, error, title, current_moment, include_guide))
+            return std::nullopt;
+        snapshot.document = setup_file_;
+        snapshot.file = *setup_file_;
+        snapshot.file.title = title.empty() ? (scenario_document_ ? scenario_document_->metadata.title : "My setup") : std::string(title);
+        snapshot.file.based_on = experiment_content_ && !experiment_content_->based_on.empty() ? experiment_content_->based_on : scenario_id_;
+        snapshot.file.current_moment = current_moment;
+        snapshot.file.include_guide = include_guide;
+        snapshot.file.saved_setup_fingerprint = setup_fingerprint();
+        snapshot.serial = ++setup_file_->save_request_serial;
+        return snapshot;
+    }
+
+    std::optional<SetupSaveSnapshot> SimulationSession::capture_current_setup_save(std::string& error) const
+    {
+        if (setup_file_->path.empty())
+        {
+            error = "Choose a destination with Save as before saving this setup.";
+            return std::nullopt;
+        }
+        return capture_setup_save(error, setup_file_->title, setup_file_->current_moment, setup_file_->include_guide);
+    }
+
+    bool SimulationSession::can_write_setup_save(const SetupSaveSnapshot& snapshot, std::string_view path, std::string& error) const
+    {
+        if (!snapshot.document)
+        {
+            error = "The setup save is no longer available.";
+            return false;
+        }
+        if (snapshot.serial < snapshot.document->save_completion_serial &&
+            same_content_file(std::filesystem::u8path(path), std::filesystem::u8path(snapshot.document->path)))
+        {
+            error = "A newer version was already saved to this file. Save again or choose a different file name.";
+            return false;
+        }
+        error.clear();
+        return true;
+    }
+
+    bool SimulationSession::complete_setup_save(const SetupSaveSnapshot& snapshot, std::string path)
+    {
+        if (!snapshot.document)
+            return false;
+        auto saved = snapshot.file;
+        saved.path = std::move(path);
+        publish_setup_file(saved);
+        // A newer quick Save may have completed while an older native dialog was still open.
+        if (snapshot.serial < snapshot.document->save_completion_serial)
+            return false;
+        saved.save_request_serial = snapshot.document->save_request_serial;
+        saved.save_completion_serial = snapshot.serial;
+        *snapshot.document = std::move(saved);
+        return setup_file_ == snapshot.document && !has_setup_changes();
+    }
+
+    std::optional<SetupDeparture> SimulationSession::take_pending_departure_for_save()
+    {
+        std::optional<SetupDeparture> departure;
+        if (pending_quit_confirmation_)
+            departure = SetupDeparture { ui::UiCommand { ui::UiCommandKind::quit } };
+        else if (pending_setup_open_)
+            departure = SetupDeparture { ui::UiCommand { ui::UiCommandKind::open_arrangement }, pending_setup_open_ };
+        else if (!pending_leave_scenario_.empty())
+        {
+            departure = SetupDeparture { ui::UiCommand { ui::UiCommandKind::load_scenario } };
+            departure->command.id = pending_leave_scenario_;
+        }
+        if (departure)
+        {
+            departure->command.flag = true;
+            departure->document = setup_file_;
+            departure->serial = departure_serial_;
+        }
+        pending_quit_confirmation_ = false;
+        pending_leave_scenario_.clear();
+        pending_setup_open_.reset();
+        return departure;
+    }
+
+    void SimulationSession::complete_saved_departure(const SetupDeparture& departure)
+    {
+        // A setup file contains committed shapes; saving must never silently discard a draft.
+        if (departure.serial != departure_serial_ || departure.document != setup_file_ || shape_editor_.active() || has_setup_changes())
+            return;
+        if (departure.opening)
+        {
+            std::string error;
+            if (!open_arrangement(departure.opening->text, error, departure.opening->path))
+                notify(ui::Severity::error, error, "content");
+        }
+        else if (departure.command.kind == ui::UiCommandKind::quit || departure.command.kind == ui::UiCommandKind::load_scenario)
+            apply(departure.command);
+    }
+
+    void SimulationSession::note_setup_file(std::string path, std::string title, std::string based_on,
+        bool current_moment, bool include_guide)
+    {
+        *setup_file_ = { std::move(path), std::move(title), std::move(based_on), current_moment, include_guide, setup_fingerprint() };
+        publish_setup_file(*setup_file_);
+    }
+
+    void SimulationSession::publish_setup_file(const SetupFileAssociation& file)
+    {
         const auto now = std::time(nullptr);
         std::tm local {};
 #if defined(_WIN32)
@@ -132,10 +290,34 @@ namespace rigidbodies::app
 #endif
         std::ostringstream date;
         date << std::put_time(&local, "%Y-%m-%d %H:%M");
-        last_setup_file_ = ui::SetupFileInfo { ++setup_file_serial_, std::move(title), std::move(based_on), date.str(), current_setup_path_ };
+        last_setup_file_ = ui::SetupFileInfo { ++setup_file_serial_, file.title, file.based_on, date.str(), file.path };
     }
 
-    bool SimulationSession::open_arrangement(std::string_view text, std::string& error)
+    bool SimulationSession::request_open_arrangement(std::string text, std::string& error, std::string path)
+    {
+        physics::ScenarioDocument document;
+        auto pacing = stepper_;
+        auto view = camera_;
+        physics::World validation_world;
+        if (!physics::parse_scenario_document(text, document, error) ||
+            !read_saved_presentation(document, pacing, view, error) ||
+            !physics::populate_world(document, validation_world, error))
+            return false;
+        ++departure_serial_;
+        pending_leave_scenario_.clear();
+        pending_quit_confirmation_ = false;
+        pending_setup_open_.reset();
+        if (shape_editor_.active() || has_setup_changes())
+        {
+            pending_setup_open_ = std::make_shared<PendingSetupOpen>(PendingSetupOpen { std::move(text), std::move(path), document.metadata.title });
+            ++change_serial_;
+            error.clear();
+            return true;
+        }
+        return open_arrangement(text, error, std::move(path));
+    }
+
+    bool SimulationSession::open_arrangement(std::string_view text, std::string& error, std::string path)
     {
         const auto carried_lab = lab_;
         const auto had_setup = setup_.world.is_valid();
@@ -145,29 +327,8 @@ namespace rigidbodies::app
 
         auto pacing = stepper_;
         auto view = camera_;
-        try
-        {
-            if (const auto* playback = document.root.find("playback"))
-            {
-                const auto saved_speed = document_number(*playback, "time_scale", pacing.time_scale(), -std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-                pacing.set_time_scale(std::clamp(saved_speed, 0.05, 4.0));
-            }
-            const auto* saved_view = document.root.find("view");
-            if (const auto* presentation = document.root.find("presentation"); presentation && presentation->is_object())
-                if (const auto* preferred = presentation->find("view"))
-                    saved_view = preferred;
-            if (saved_view)
-            {
-                view.set_center({ document_number(*saved_view, "center_x_m", view.center_m().x, -1.0e9, 1.0e9),
-                    document_number(*saved_view, "center_y_m", view.center_m().y, -1.0e9, 1.0e9) });
-                view.set_view_height(document_number(*saved_view, "height_m", view.view_height_m(), view.minimum_view_height_m(), view.maximum_view_height_m()));
-            }
-        }
-        catch (const std::exception& exception)
-        {
-            error = exception.what();
+        if (!read_saved_presentation(document, pacing, view, error))
             return false;
-        }
 
         if (interaction_.active)
             cancel_interaction();
@@ -183,6 +344,7 @@ namespace rigidbodies::app
             scenario_document_ = std::make_shared<physics::ScenarioDocument>(std::move(document));
             experiment_content_ = parse_experiment_content(*scenario_document_);
             scenario_id_ = scenario_document_->metadata.id;
+            setup_file_ = std::make_shared<SetupFileAssociation>();
             run_recorder_.set_experiment(scenario_id_);
             notifier_.clear_source("shape");
             scene_settings_.selection = {};
@@ -197,6 +359,7 @@ namespace rigidbodies::app
             apply_lab_settings(had_setup && keep_lab_settings_ ? carried_lab : default_lab_);
             setup_ = { world_.snapshot(), gravity_direction_degrees_ };
             rebuild_snapshot_views();
+            setup_file_->saved_setup_fingerprint = setup_fingerprint();
             reset_measurements();
             synchronize_render_history();
             const auto* presentation = scenario_document_->root.find("presentation");
@@ -206,6 +369,13 @@ namespace rigidbodies::app
                 frame_subject();
             mark_edit_changed();
             commit_edit();
+            if (!path.empty())
+                note_setup_file(std::move(path), scenario_document_->metadata.title, experiment_content_->based_on, false, scenario_document_->root.find("guide") != nullptr);
+            pending_setup_open_.reset();
+            pending_leave_scenario_.clear();
+            pending_quit_confirmation_ = false;
+            speed_preview_start_.reset();
+            ++departure_serial_;
             notify(ui::Severity::success, "Arrangement opened.", "content");
             return true;
         }

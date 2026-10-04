@@ -151,6 +151,18 @@ namespace rigidbodies::ui
                 return "Momentum y";
             if (key == "speed")
                 return "Speed";
+            if (key == "velocity_x")
+                return "Velocity x";
+            if (key == "velocity_y")
+                return "Velocity y";
+            if (key == "height")
+                return "Height";
+            if (key == "position_x")
+                return "Position x";
+            if (key == "spin")
+                return "Spin";
+            if (key == "rotation")
+                return "Rotation";
             if (const auto channel = ledger_channel(key))
                 return std::string(ledger_quantities[*channel].label);
             return "Mechanical energy";
@@ -162,6 +174,20 @@ namespace rigidbodies::ui
             if (key == "speed")
                 return "m/s";
             return "J";
+        }
+        core::DisplayQuantity display_quantity(std::string_view key)
+        {
+            if (key == "momentum_x" || key == "momentum_y")
+                return core::DisplayQuantity::momentum;
+            if (key == "speed" || key == "velocity_x" || key == "velocity_y")
+                return core::DisplayQuantity::velocity;
+            if (key == "height" || key == "position_x")
+                return core::DisplayQuantity::length;
+            if (key == "spin")
+                return core::DisplayQuantity::angular_velocity;
+            if (key == "rotation")
+                return core::DisplayQuantity::angle;
+            return core::DisplayQuantity::energy;
         }
         // Energy kinds keep one colour everywhere: kinetic is series 1, lost series 2 and potential
         // series 3, as on the Energy tab's share bars. Other quantities take the colours left.
@@ -480,6 +506,14 @@ namespace rigidbodies::ui
                 return "At end";
             }
         }
+        std::string pinned_label(const UiModel& model, const PinnedValue& value)
+        {
+            const auto scope = value.body.is_valid() ? display_name(model, value.body) : "Whole scene";
+            const auto when = value.aggregator == RunAggregator::at_time
+                ? "At " + core::format_quantity(value.time_s, core::DisplayQuantity::time, model.display_units)
+                : aggregator_label(value.aggregator);
+            return quantity_label(value.quantity) + " · " + scope + " · " + when;
+        }
     }
 
     std::size_t listed_impact_count(const UiModel& model, std::string_view filter)
@@ -727,6 +761,14 @@ namespace rigidbodies::ui
         }
         else if (tab == "graph")
         {
+            const auto* reviewed_run = run_number(model.runs, builder.view_value("measure.graph.review_run"));
+            const auto* current_run = reviewed_run ? reviewed_run : model.current_run;
+            const auto* previous_run = reviewed_run ? nullptr : model.previous_run;
+            if (reviewed_run)
+            {
+                builder.value_row("Viewing", "Run " + std::to_string(reviewed_run->number));
+                builder.action_row("measure.graph.live", "Back to live graph", state_value("measure.graph.review_run", ""));
+            }
             static constexpr OptionSpec energy_quantities[] { { "mechanical", "Mechanical", {}, {} }, { "kinetic_moving", "Kinetic (moving)", {}, {} }, { "kinetic_spinning", "Kinetic (spinning)", {}, {} }, { "potential_height", "Potential (height)", {}, {} }, { "potential_springs", "Potential (springs)", {}, {} }, { "lost_impacts", "Lost in impacts", {}, {} }, { "lost_friction", "Lost to friction", {}, {} } };
             static constexpr OptionSpec motion_quantities[] { { "momentum_x", "Momentum x", {}, {} }, { "momentum_y", "Momentum y", {}, {} }, { "speed", "Speed", {}, {} } };
             // The other rows of the energy budget can be plotted wherever the Energy tab lists them.
@@ -739,6 +781,10 @@ namespace rigidbodies::ui
                 for (std::size_t index = 0; index < ledger_offered.size(); ++index)
                     ledger_offered[index] = ledger_kinds[index] || std::abs(ledger_values[index]) >= 0.005;
             }
+            for (const auto& run : model.runs)
+                for (std::size_t index = 0; index < run.series.ledger.size(); ++index)
+                    if (std::isfinite(run.series.ledger[index]) && std::abs(run.series.ledger[index]) >= 0.005)
+                        ledger_offered[index % ledger_stride] = true;
             graph_quantity_options_.assign(std::begin(energy_quantities), std::end(energy_quantities));
             for (std::size_t index = 0; index < ledger_offered.size(); ++index)
                 if (ledger_offered[index])
@@ -766,6 +812,18 @@ namespace rigidbodies::ui
                 compare = "none";
             const auto graph_scope = std::string(builder.view_value("measure.graph.scope", "selection"));
             const auto previous_visible = builder.view_value("measure.graph.previous_run", "on") != "off";
+            std::vector<physics::BodyId> graph_bodies;
+            const auto include_bodies = [&](const RunRecord* run)
+            {
+                if (run)
+                    for (const auto id : run->series.object_ids)
+                        if (std::find(graph_bodies.begin(), graph_bodies.end(), id) == graph_bodies.end())
+                            graph_bodies.push_back(id);
+            };
+            include_bodies(current_run);
+            include_bodies(previous_run);
+            for (const auto& run : model.runs)
+                include_bodies(&run);
 
             plot_ = {};
             plot_values_.clear();
@@ -774,8 +832,8 @@ namespace rigidbodies::ui
             std::vector<physics::BodyId> scoped_bodies;
             if (graph_scope == "selection")
                 scoped_bodies = selected_objects(model);
-            else if (model.current_run)
-                for (const auto id : model.current_run->series.object_ids)
+            else
+                for (const auto id : graph_bodies)
                     if (body_key(id) == graph_scope)
                         scoped_bodies.push_back(id);
             const auto slots = series_slots(selected);
@@ -806,6 +864,8 @@ namespace rigidbodies::ui
                                 total += run->series.objects[sample * stride + object * object_stride + *channel];
                             values.push_back(total);
                         }
+                        else if (graph_scope != "scene" && graph_scope != "selection")
+                            values.push_back(std::numeric_limits<float>::quiet_NaN());
                         else if (key == "mechanical")
                         {
                             const auto base = sample * scene_stride;
@@ -821,25 +881,27 @@ namespace rigidbodies::ui
                     plot_.series.push_back({ quantity_label(key), values.data(), run->series.time_s.data(), values.size(), style, slots[slot], source, quantity_unit(key) });
                 }
             };
-            append(model.current_run, SeriesStyle::solid, "This run");
-            if (previous_visible)
-                append(model.previous_run, SeriesStyle::dashed, "Previous run");
+            append(current_run, SeriesStyle::solid, reviewed_run ? "Run " + std::to_string(reviewed_run->number) : "This run");
+            if (previous_visible && previous_run != current_run)
+                append(previous_run, SeriesStyle::dashed, "Previous run");
             if (compare != "none")
                 for (const auto& run : model.runs)
-                    if (compare == std::to_string(run.number))
+                    if (compare == std::to_string(run.number) && &run != current_run && (!previous_visible || &run != previous_run))
                         append(&run, SeriesStyle::dotted, "Run " + std::to_string(run.number));
-            for (const auto& marker : model.graph_markers)
+            for (const auto& marker : reviewed_run ? reviewed_run->markers : model.graph_markers)
                 plot_.markers.push_back({ marker.time_s, marker.label, PlotMarkerKind::intervention });
             double window_s = 10.0;
             if (window_text == "30")
                 window_s = 30.0;
             else if (window_text == "60")
                 window_s = 60.0;
-            double x_max = model.current_run ? model.current_run->duration_s : model.previous_run ? model.previous_run->duration_s
-                                                                                                  : window_s;
+            const auto* comparison_run = run_number(model.runs, compare);
+            double x_max = current_run ? current_run->duration_s : previous_visible && previous_run ? previous_run->duration_s
+                : comparison_run                                                                    ? comparison_run->duration_s
+                                                                                                    : window_s;
             double x_min = std::max(0.0, x_max - window_s);
-            if (model.current_run)
-                x_min = std::max(x_min, model.current_run->plot_start_s);
+            if (current_run && !reviewed_run)
+                x_min = std::max(x_min, current_run->plot_start_s);
             plot_.x = { "Time", "s", x_min, std::max(x_min + 1.0e-3, x_max) };
             double y_min = 0.0, y_max = 0.0;
             bool finite_value = false;
@@ -881,13 +943,14 @@ namespace rigidbodies::ui
             plot_.y = { y_label, shared_unit ? y_unit : std::string {}, y_min, y_max };
 
             // Say why a chosen quantity has nothing to draw, rather than implying nothing ran.
-            const auto* reference_run = model.current_run ? model.current_run : model.previous_run;
+            const auto* reference_run = current_run ? current_run : previous_visible && previous_run ? previous_run
+                                                                                                     : comparison_run;
             const auto resolved_objects = reference_run ? recorded_objects(*reference_run, scoped_bodies) : std::vector<std::size_t> {};
             const auto object_resolved = !resolved_objects.empty();
             const auto several_objects = resolved_objects.size() > 1;
             // Impacts are marked when they involve what is plotted: any of them for the whole
             // scene, otherwise only those of the plotted objects.
-            if (model.current_run)
+            if (model.current_run && !reviewed_run)
                 for (const auto& impact : model.impacts)
                 {
                     const auto involves = [&](physics::BodyId id)
@@ -905,6 +968,8 @@ namespace rigidbodies::ui
                 plot_.subject = core::substitute("{} selected objects", resolved_objects.size());
             else if (object_resolved)
                 plot_.subject = display_name(model, reference_run->series.object_ids[resolved_objects.front()]);
+            else if (graph_scope != "selection" && graph_scope != "scene")
+                plot_.subject = scoped_bodies.empty() ? "Object not recorded" : display_name(model, scoped_bodies.front());
             else if (graph_scope != "selection" || !reference_run)
                 plot_.subject = "Whole scene";
             else if (!model.selection.is_valid())
@@ -941,7 +1006,7 @@ namespace rigidbodies::ui
                 plot_.empty_title = "Choose a quantity to plot";
                 plot_.empty_detail = "Pick one or more under Quantities.";
             }
-            else if (!model.current_run && !model.previous_run && compare == "none")
+            else if (!current_run && !previous_run && compare == "none")
             {
                 plot_.empty_title = "Run the experiment to record a graph";
                 plot_.empty_detail = core::substitute("Press Play. The graph follows the last {} s.", window_seconds);
@@ -977,8 +1042,8 @@ namespace rigidbodies::ui
             option_labels_.clear();
             graph_compare_options_.clear();
             graph_scope_options_.clear();
-            option_ids_.reserve(model.runs.size() * 2 + 64);
-            option_labels_.reserve(model.runs.size() * 2 + 64);
+            option_ids_.reserve(model.runs.size() + graph_bodies.size() + 3);
+            option_labels_.reserve(model.runs.size() + graph_bodies.size() + 3);
             const auto add_option = [&](std::vector<OptionSpec>& options, std::string id, std::string label)
             {
                 option_ids_.push_back(std::move(id));
@@ -987,9 +1052,8 @@ namespace rigidbodies::ui
             };
             add_option(graph_scope_options_, "scene", "Whole scene");
             add_option(graph_scope_options_, "selection", "Follow selection");
-            if (model.current_run)
-                for (const auto id : model.current_run->series.object_ids)
-                    add_option(graph_scope_options_, body_key(id), display_name(model, id));
+            for (const auto id : graph_bodies)
+                add_option(graph_scope_options_, body_key(id), display_name(model, id));
             ControlSpec scope_spec = spec("measure.graph.scope");
             scope_spec.options = graph_scope_options_;
             builder.select_row(scope_spec, graph_scope, state_choice("measure.graph.scope"));
@@ -1007,8 +1071,9 @@ namespace rigidbodies::ui
             compare_spec.options = graph_compare_options_;
             builder.select_row(compare_spec, compare, state_choice("measure.graph.compare_with"));
 
-            builder.checkbox_row(spec("measure.graph.previous_run"), previous_visible, state_value("measure.graph.previous_run", previous_visible ? "off" : "on"));
-            builder.action_row("measure.graph.clear", "Clear graph", action(UiCommandKind::clear_energy_history));
+            if (!reviewed_run)
+                builder.checkbox_row(spec("measure.graph.previous_run"), previous_visible, state_value("measure.graph.previous_run", previous_visible ? "off" : "on"));
+            builder.action_row("measure.graph.clear", "Clear graph", action(UiCommandKind::clear_energy_history), reviewed_run ? "Return to the live graph to clear it." : "");
             builder.end_group();
             if (controls_beside)
             {
@@ -1125,12 +1190,31 @@ namespace rigidbodies::ui
         }
         else if (tab == "runs")
         {
+            std::vector<physics::BodyId> available_bodies;
+            const auto add_body = [&](physics::BodyId id)
+            {
+                if (std::find(available_bodies.begin(), available_bodies.end(), id) == available_bodies.end())
+                    available_bodies.push_back(id);
+            };
+            if (model.world)
+            {
+                std::size_t recorded = 0;
+                for (const auto id : model.world->body_ids())
+                    if (const auto* body = model.world->find_body(id); body && body->type() == physics::BodyType::dynamic_body && recorded++ < 32)
+                        add_body(id);
+            }
+            if (model.current_run)
+                for (const auto id : model.current_run->series.object_ids)
+                    add_body(id);
+            for (const auto& run : model.runs)
+                for (const auto id : run.series.object_ids)
+                    add_body(id);
             option_ids_.clear();
             option_labels_.clear();
             run_options_.clear();
             object_options_.clear();
-            option_ids_.reserve(model.runs.size() + 96);
-            option_labels_.reserve(model.runs.size() + 96);
+            option_ids_.reserve(model.runs.size() + available_bodies.size() + 1);
+            option_labels_.reserve(model.runs.size() + available_bodies.size() + 1);
             const auto add_option = [&](std::vector<OptionSpec>& options, std::string id, std::string label)
             {
                 option_ids_.push_back(std::move(id));
@@ -1172,15 +1256,33 @@ namespace rigidbodies::ui
             if (model.runs.size() == 1 && !model.current_run)
                 builder.paragraph("Change one thing and play again to compare.");
             builder.heading("Pinned values");
+            const RunRecord* inspected_run = nullptr;
+            if (!model.runs.empty())
+            {
+                inspected_run = run_number(model.runs, builder.view_value("measure.runs.inspect"));
+                if (!inspected_run)
+                    inspected_run = &model.runs.back();
+                ControlSpec inspect = spec("measure.runs.inspect");
+                inspect.options = run_options_;
+                builder.select_row(inspect, std::to_string(inspected_run->number), state_choice("measure.runs.inspect"));
+                if (!inspected_run->series.time_s.empty() && inspected_run->series.time_s.front() > 0.05f)
+                    builder.paragraph("Values use the retained samples from " + core::format_quantity(inspected_run->series.time_s.front(), core::DisplayQuantity::time, model.display_units) + " to " + core::format_quantity(inspected_run->series.time_s.back(), core::DisplayQuantity::time, model.display_units) + ". Earlier samples are no longer available.");
+                UiCommand show;
+                show.detail = "show-run-in-graph:" + std::to_string(inspected_run->number);
+                builder.action_row("measure.runs.inspect_graph", "Show this run in graph", show);
+            }
             if (model.pinned_values.empty())
                 builder.paragraph("Choose Add value to record a quantity for every run, or right-click any value and choose Add to runs table.");
             for (std::size_t index = 0; index < model.pinned_values.size(); ++index)
             {
                 const auto& pinned = model.pinned_values[index];
-                builder.value_row(quantity_label(pinned.quantity), aggregator_label(pinned.aggregator));
+                const auto value = inspected_run && index < inspected_run->pinned_results.size() ? inspected_run->pinned_results[index] : std::optional<double> {};
+                const auto missing = !inspected_run ? "Keep a run to see its value" : pinned.aggregator == RunAggregator::at_first_impact && !inspected_run->first_impact_s ? "No impact recorded"
+                                                                                                                                                                            : "Not recorded";
+                builder.value_row(pinned_label(model, pinned), value ? core::format_quantity(*value, display_quantity(pinned.quantity), model.display_units) : missing);
                 auto remove = action(UiCommandKind::unpin_run_value);
                 remove.id = pinned.key;
-                builder.action_row("Remove " + quantity_label(pinned.quantity), remove);
+                builder.action_row("measure.runs.remove_value." + pinned.key, "Remove " + quantity_label(pinned.quantity), remove);
             }
             const auto add_open = builder.view_value("measure.runs.add_open", "false") == "true";
             builder.action_row("measure.runs.add_value", add_open ? "Close Add value" : "Add value", state_value("measure.runs.add_open", add_open ? "false" : "true"), model.pinned_values.size() >= 12 ? "At most 12 values can be pinned. Remove one first." : "");
@@ -1200,40 +1302,54 @@ namespace rigidbodies::ui
                 const auto aggregator_id = std::string(builder.view_value("measure.runs.add_aggregator", "at_end"));
                 builder.select_row(quantity, quantity_id, state_choice("measure.runs.add_quantity"));
                 add_option(object_options_, "scene", "Whole scene");
-                const auto* source = model.current_run ? model.current_run : model.previous_run;
-                if (!source && !model.runs.empty())
-                    source = &model.runs.back();
-                if (source)
-                    for (const auto id : source->series.object_ids)
-                        add_option(object_options_, body_key(id), display_name(model, id));
+                for (const auto id : available_bodies)
+                    add_option(object_options_, body_key(id), display_name(model, id));
                 ControlSpec object = spec("measure.runs.add_object");
                 object.options = object_options_;
                 const auto object_id = std::string(builder.view_value("measure.runs.add_object", "scene"));
                 builder.select_row(object, object_id, state_choice("measure.runs.add_object"));
                 builder.select_row(aggregator, aggregator_id, state_choice("measure.runs.add_aggregator"));
                 double at_time = 0.0;
+                std::string invalid_reason;
                 if (aggregator_id == "at_time")
                 {
                     builder.text_field("measure.runs.add_time", "Time (0–60 s)", builder.view_value("measure.runs.add_time", "0"));
-                    try
-                    {
-                        at_time = std::clamp(std::stod(std::string(builder.view_value("measure.runs.add_time", "0"))), 0.0, 60.0);
-                    }
-                    catch (...)
-                    {
-                        at_time = 0.0;
-                    }
+                    const auto parsed = core::parse_quantity(builder.view_value("measure.runs.add_time", "0"), core::DisplayQuantity::time, model.display_units);
+                    if (!parsed || !std::isfinite(*parsed) || *parsed < 0.0 || *parsed > 60.0)
+                        invalid_reason = "Enter a time from 0 to 60 s.";
+                    else
+                        at_time = *parsed;
                 }
                 auto add = action(UiCommandKind::pin_run_value);
                 add.id = quantity_id;
                 add.detail = aggregator_id;
                 add.value = at_time;
-                if (source && object_id != "scene")
-                    for (const auto id : source->series.object_ids)
+                if (object_id != "scene")
+                    for (const auto id : available_bodies)
                         if (body_key(id) == object_id)
                             add.body = id;
                 const auto scene_only = quantity_id == "lost_impacts" || quantity_id == "lost_friction";
-                builder.action_row("measure.runs.add", "Add", add, scene_only && add.body.is_valid() ? "Contact losses are measured for the whole scene only." : "");
+                if (invalid_reason.empty() && object_id != "scene" && !add.body.is_valid())
+                    invalid_reason = "Choose an object available in this experiment.";
+                if (invalid_reason.empty() && scene_only && add.body.is_valid())
+                    invalid_reason = "Contact losses are measured for the whole scene only.";
+                if (invalid_reason.empty() && quantity_id == "speed" && !add.body.is_valid())
+                    invalid_reason = "Choose an object to measure its speed.";
+                const auto same_aggregator = [&](RunAggregator value)
+                {
+                    return aggregator_id == (value == RunAggregator::maximum ? "maximum" : value == RunAggregator::minimum ? "minimum"
+                                                    : value == RunAggregator::at_first_impact                              ? "at_first_impact"
+                                                    : value == RunAggregator::at_time                                      ? "at_time"
+                                                                                                                           : "at_end");
+                };
+                if (invalid_reason.empty() && std::any_of(model.pinned_values.begin(), model.pinned_values.end(), [&](const auto& value)
+                                                  {
+                                                      return value.quantity == add.id && value.body == add.body && same_aggregator(value.aggregator) && (value.aggregator != RunAggregator::at_time || value.time_s == at_time);
+                                                  }))
+                    invalid_reason = "This value is already pinned.";
+                if (!invalid_reason.empty())
+                    builder.notice("measure.runs.add_error", Severity::info, invalid_reason);
+                builder.action_row("measure.runs.add", "Add", add, invalid_reason);
             }
             if (model.runs.size() >= 2)
             {
@@ -1267,11 +1383,16 @@ namespace rigidbodies::ui
                 {
                     const auto comparison = compare_run_value(a, b, index);
                     if (!comparison.a || !comparison.b)
-                        builder.value_row(quantity_label(model.pinned_values[index].quantity), "—");
+                        builder.value_row(pinned_label(model, model.pinned_values[index]), "—");
                     else
                     {
-                        const auto percent = comparison.delta_percent ? core::format_quantity(*comparison.delta_percent, core::DisplayQuantity::percentage, model.display_units) : "—";
-                        builder.value_row(quantity_label(model.pinned_values[index].quantity), core::substitute("{} · {} · {} · {}", core::fixed(*comparison.a, 3), core::fixed(*comparison.b, 3), core::fixed(*comparison.delta, 3), percent));
+                        const auto percent = comparison.delta_percent ? core::format_quantity(*comparison.delta_percent, core::DisplayQuantity::scale, model.display_units) : "—";
+                        const auto quantity = display_quantity(model.pinned_values[index].quantity);
+                        const auto formatted = [&](double value)
+                        {
+                            return core::format_quantity(value, quantity, model.display_units);
+                        };
+                        builder.value_row(pinned_label(model, model.pinned_values[index]), core::substitute("{} · {} · {} · {}", formatted(*comparison.a), formatted(*comparison.b), formatted(*comparison.delta), percent));
                     }
                 }
                 const auto differences = setup_difference_count(a, b);

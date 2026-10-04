@@ -100,6 +100,11 @@ try
         created_utc = [DateTime]::UtcNow.ToString('o')
     }
     $provenance | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $releaseDirectory "$baseName-build.json") -Encoding utf8
+    $releaseNotes = Join-Path $projectRoot "docs/releases/$version.md"
+    if (Test-Path -LiteralPath $releaseNotes -PathType Leaf)
+    {
+        Copy-Item -LiteralPath $releaseNotes -Destination (Join-Path $releaseDirectory 'RELEASE-NOTES.md')
+    }
     $checksums = Get-ChildItem -LiteralPath $releaseDirectory -File | Sort-Object Name | ForEach-Object {
         "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
     }

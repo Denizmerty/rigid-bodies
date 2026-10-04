@@ -216,7 +216,7 @@ namespace rigidbodies::core
             case DisplayQuantity::coefficient:
                 return { fixed_number(value_si, 2), {} };
             case DisplayQuantity::multiplier:
-                return { fixed_number(value_si, 2, true), "\xC3\x97", true };
+                return { fixed_number(value_si, precision < 0 ? 2 : precision, true), "\xC3\x97", true };
             case DisplayQuantity::percentage:
                 return { std::abs(value_si - std::round(value_si)) < 0.0005 ? fixed_number(value_si, 0) : significant(value_si, 2), "%" };
             case DisplayQuantity::count:

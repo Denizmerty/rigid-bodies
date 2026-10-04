@@ -4,6 +4,9 @@
 #include <chrono>
 #include <fstream>
 #include <system_error>
+#include <algorithm>
+#include <cctype>
+#include <cwctype>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -15,6 +18,88 @@
 
 namespace rigidbodies::app
 {
+    std::string suggested_content_filename(std::string_view title, bool shape)
+    {
+        std::string name;
+        for (const auto value : title)
+        {
+            const auto byte = static_cast<unsigned char>(value);
+            if (byte < 32 || std::string_view("<>:\"/\\|?*").find(value) != std::string_view::npos)
+            {
+                if (!name.empty() && name.back() != ' ')
+                    name.push_back(' ');
+            }
+            else
+                name.push_back(value);
+        }
+        const auto first = name.find_first_not_of(" .\t");
+        name = first == std::string::npos ? std::string {} : name.substr(first);
+        if (name.size() > 120)
+        {
+            auto end = std::size_t { 120 };
+            while (end > 0 && (static_cast<unsigned char>(name[end]) & 0xc0) == 0x80)
+                --end;
+            name.resize(end);
+        }
+        const auto last = name.find_last_not_of(" .\t");
+        name = last == std::string::npos ? std::string {} : name.substr(0, last + 1);
+        if (name.empty())
+            name = shape ? "My shape" : "My setup";
+        auto stem = name.substr(0, name.find('.'));
+        std::transform(stem.begin(), stem.end(), stem.begin(), [](unsigned char value)
+            {
+                return static_cast<char>(std::toupper(value));
+            });
+        if (stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL" ||
+            (stem.size() == 4 && (stem.substr(0, 3) == "COM" || stem.substr(0, 3) == "LPT") && stem[3] >= '1' && stem[3] <= '9'))
+            name.insert(name.begin(), '_');
+        return name + (shape ? ".rbshape.json" : ".rbscenario.json");
+    }
+
+    std::filesystem::path content_save_destination(std::filesystem::path path, bool shape)
+    {
+        if (!path.empty() && !path.filename().empty() && !path.has_extension())
+            path += shape ? ".rbshape.json" : ".rbscenario.json";
+        return path;
+    }
+
+    bool same_content_file(const std::filesystem::path& first, const std::filesystem::path& second)
+    {
+        if (first.empty() || second.empty())
+            return false;
+        std::error_code code;
+        if (std::filesystem::equivalent(first, second, code) && !code)
+            return true;
+        const auto normalized = [](const std::filesystem::path& path)
+        {
+            std::error_code error;
+            auto result = std::filesystem::weakly_canonical(path, error);
+            if (error)
+            {
+                error.clear();
+                result = std::filesystem::absolute(path, error).lexically_normal();
+                if (error)
+                    result = path.lexically_normal();
+            }
+            return result;
+        };
+#if defined(_WIN32)
+        auto left = normalized(first).native();
+        auto right = normalized(second).native();
+        std::transform(left.begin(), left.end(), left.begin(), [](wchar_t value)
+            {
+                return static_cast<wchar_t>(std::towlower(value));
+            });
+        std::transform(right.begin(), right.end(), right.begin(), [](wchar_t value)
+            {
+                return static_cast<wchar_t>(std::towlower(value));
+            });
+        return left == right;
+#else
+        return normalized(first) == normalized(second);
+#endif
+    }
+
     bool read_content_file(const std::filesystem::path& path, std::string& text, std::string& error)
     {
         std::error_code code;

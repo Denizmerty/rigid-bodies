@@ -102,7 +102,7 @@ namespace rigidbodies::ui
 
     std::string_view ViewState::value(std::string_view key, std::string_view fallback) const
     {
-        if (key == "measure.runs.compare_a" || key == "measure.runs.compare_b" || key == "measure.graph.compare_with")
+        if (key == "measure.runs.compare_a" || key == "measure.runs.compare_b" || key == "measure.runs.inspect" || key == "measure.graph.compare_with" || key == "measure.graph.review_run")
         {
             const auto experiment = experiment_values_.find(experiment_context_);
             if (experiment != experiment_values_.end())
@@ -119,7 +119,7 @@ namespace rigidbodies::ui
 
     void ViewState::set_value(std::string_view key, std::string_view value)
     {
-        if (key == "measure.runs.compare_a" || key == "measure.runs.compare_b" || key == "measure.graph.compare_with")
+        if (key == "measure.runs.compare_a" || key == "measure.runs.compare_b" || key == "measure.runs.inspect" || key == "measure.graph.compare_with" || key == "measure.graph.review_run")
         {
             experiment_values_[experiment_context_][std::string(key)] = value;
             return;

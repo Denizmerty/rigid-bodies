@@ -310,7 +310,8 @@ button.row-list_item.has-actions .list-actions { display: flex; flex-direction: 
 .popovers .row-heading:first-child { padding-top: 4dp; }
 .popovers .row-paragraph { font-size: 12.5dp; line-height: 1.45; padding: 2dp 8dp; }
 .popovers button.row { min-height: 30dp; padding: 0dp 8dp; margin: 0dp; column-gap: 10dp; border-radius: 6dp; font-weight: 400; }
-.popovers button.row .shortcut { display: block; }
+.popovers button.row:not(.header-action) .shortcut { display: block; }
+.popovers button.row.header-action { top: 0dp; right: 0dp; padding: 0dp; min-height: 28dp; }
 .popovers button.row .icon { display: block; width: 16dp; }
 .popovers button.row-switch_control { padding: 0dp 8dp; }
 .popovers .row-readout, .popovers .row-number, .popovers .row-select, .popovers .row-segmented, .popovers .row-radio_list, .popovers .row-stepper, .popovers .row-label { padding-left: 8dp; padding-right: 8dp; }
@@ -324,7 +325,7 @@ button.row-list_item.has-actions .list-actions { display: flex; flex-direction: 
 
 /* Popover shadow: translucent rounded layers beneath the card, drawn in the interface layer so
    the shadow also falls across docked panels. */
-.shadow-layer { position: absolute; z-index: 59; display: none; }
+.shadow-layer { position: absolute; z-index: 59; pointer-events: none; }
 .shadow-layer div { position: absolute; display: block; }
 .shadow-layer .s1 { left: -1dp; top: 0dp; right: -1dp; bottom: -2dp; border-radius: 11dp; }
 .shadow-layer .s2 { left: -3dp; top: 1dp; right: -3dp; bottom: -5dp; border-radius: 13dp; }
@@ -347,6 +348,9 @@ button.row-list_item.has-actions .list-actions { display: flex; flex-direction: 
    there: a translucent edge would show the docked Guide's text through it. */
 .sheets #panel-library { height: 100%; border-width: 0dp 1dp 0dp 0dp; border-radius: 0dp 12dp 0dp 0dp; }
 .compact .sheets #panel-library { border-width: 0dp; border-radius: 0dp; }
+/* Library filters show their choices directly; the two small actions share a line. */
+#panel-library button.row.group-filters { display: inline-flex; width: auto; min-height: 28dp; padding: 0dp 10dp; margin: 4dp 8dp 4dp 0dp; }
+#legacy-library-results-count { padding-top: 12dp; font-weight: 500; }
 .sheets .select { min-width: 168dp; }
 .sheets .row-select .select, .inspector .row-select .select, .guide .row-select .select { min-width: 150dp; }
 .scrim { position: absolute; left: 0dp; top: 0dp; right: 0dp; bottom: 0dp; }
@@ -358,7 +362,7 @@ button.row-list_item.has-actions .list-actions { display: flex; flex-direction: 
 .hint .row-title { font-size: 13dp; padding-bottom: 4dp; }
 .hint .row-paragraph { font-size: 12.5dp; }
 .hint button.row { display: inline-flex; min-height: 28dp; padding: 0dp 12dp; margin-top: 6dp; }
-.toast { display: block; margin-top: 8dp; padding: 10dp 12dp 10dp 14dp; border-width: 1dp; border-left-width: 3dp; border-radius: 8dp; font-size: 12.5dp; }
+.toast { display: block; pointer-events: auto; margin-top: 8dp; padding: 10dp 12dp 10dp 14dp; border-width: 1dp; border-left-width: 3dp; border-radius: 8dp; font-size: 12.5dp; }
 .toast-dismiss { float: right; min-width: 22dp; min-height: 22dp; margin: -4dp -6dp 0dp 8dp; padding: 0dp; border-width: 2dp; border-radius: 5dp; }
 .toast-action { display: inline-block; min-height: 24dp; margin-top: 6dp; padding: 0dp 10dp; border-width: 1dp; border-radius: 6dp; font-weight: 500; }
 .tooltip { padding: 5dp 8dp; border-radius: 6dp; font-size: 12dp; font-weight: 500; white-space: nowrap; }

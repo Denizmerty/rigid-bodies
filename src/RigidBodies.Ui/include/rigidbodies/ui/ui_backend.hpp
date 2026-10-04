@@ -27,6 +27,7 @@ namespace rigidbodies::ui
     {
         none,
         text_field,
+        control,
         transient,
         sheet
     };
@@ -130,6 +131,12 @@ namespace rigidbodies::ui
         }
 
         virtual void build(const UiFrameContext& context, DrawList& list) = 0;
+
+        // Reconciliation can end a disappearing edit or move focus as a surface opens.
+        // Deliver those commands without waiting for another user input event.
+        virtual void take_pending_commands(std::vector<UiCommand>&)
+        {
+        }
 
         [[nodiscard]] virtual FocusOwner focus_owner() const
         {

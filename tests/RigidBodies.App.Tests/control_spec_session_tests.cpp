@@ -37,6 +37,15 @@ namespace
             ui::UiCommand draw;
             draw.kind = ui::UiCommandKind::start_new_shape;
             session.apply(draw);
+            if (spec.command == ui::UiCommandKind::set_shape_node_position)
+            {
+                ui::UiEvent point;
+                point.kind = ui::UiEventKind::pointer_down;
+                point.pointer_px = session.camera().world_to_screen({});
+                session.handle_scene_event(point, false);
+                point.kind = ui::UiEventKind::pointer_up;
+                session.handle_scene_event(point, false);
+            }
         }
     }
 
@@ -44,6 +53,12 @@ namespace
     {
         const auto model = session.build_model();
         const auto* body = session.world().find_body(session.selection());
+        if (spec.key == "bar.speed.custom")
+            return model.time_scale;
+        if (spec.key == "draw.node.position_x")
+            return model.shape_node_world_m.x;
+        if (spec.key == "draw.node.position_y")
+            return model.shape_node_world_m.y;
         if (spec.key == "camera.scale.height")
             return model.view_height_m;
         if (spec.key == "draw.precision.collision")
@@ -161,9 +176,9 @@ namespace
         command.id = std::string(spec.command_id);
         if (spec.key == "show.arrows.scale")
             command.id = "velocity";
-        if (spec.key == "object.motion.position_x")
+        if (spec.key == "object.motion.position_x" || spec.key == "draw.node.position_x")
             command.detail = "x";
-        if (spec.key == "object.motion.position_y")
+        if (spec.key == "object.motion.position_y" || spec.key == "draw.node.position_y")
             command.detail = "y";
         if (spec.key == "joint.motor.angular_speed")
             command.id = "driven_hinge";

@@ -62,7 +62,7 @@ namespace
         // the overlay backend the platform's title bar does their work.
         const std::set<K> window_title_bar { K::minimize_window, K::toggle_maximize_window };
         std::set<K> result;
-        for (int value = static_cast<int>(K::undo); value <= static_cast<int>(K::toggle_maximize_window); ++value)
+        for (int value = static_cast<int>(K::undo); value <= static_cast<int>(K::set_shape_node_position); ++value)
             if (!developer_only.count(static_cast<K>(value)) && !window_title_bar.count(static_cast<K>(value)))
                 result.insert(static_cast<K>(value));
         // The combined velocity setter is emitted by the stage handle, not a panel row.

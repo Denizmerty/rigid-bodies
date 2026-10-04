@@ -2,6 +2,7 @@
 #include <rigidbodies/app/stage_overlay_drawing.hpp>
 #include <rigidbodies/core/display_units.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
+#include <rigidbodies/physics/convex_distance.hpp>
 #include <rigidbodies/physics/joint.hpp>
 
 #include <algorithm>
@@ -17,6 +18,36 @@ namespace rigidbodies::app
         bool finite(const math::Vec2& value)
         {
             return std::isfinite(value.x) && std::isfinite(value.y);
+        }
+
+        double segment_distance_squared(const math::Vec2& point, const math::Vec2& first, const math::Vec2& second)
+        {
+            const auto delta = second - first;
+            const auto squared = math::length_squared(delta);
+            const auto t = squared > 0.0 ? std::clamp(math::dot(point - first, delta) / squared, 0.0, 1.0) : 0.0;
+            return math::length_squared(point - (first + delta * t));
+        }
+
+        bool near_shape(const physics::Shape& shape, const math::Vec2& local, double tolerance)
+        {
+            if (shape.contains_local_point(local))
+                return true;
+            if (const auto* circle = dynamic_cast<const physics::CircleShape*>(&shape))
+                return math::length(local - circle->local_center_m()) <= circle->radius_m() + tolerance;
+            const auto squared = tolerance * tolerance;
+            if (const auto* polygon = dynamic_cast<const physics::ConvexPolygonShape*>(&shape))
+            {
+                const auto& vertices = polygon->vertices();
+                for (std::size_t i = 0; i < vertices.size(); ++i)
+                    if (segment_distance_squared(local, vertices[i], vertices[(i + 1) % vertices.size()]) <= squared)
+                        return true;
+                return false;
+            }
+            if (const auto* segment = dynamic_cast<const physics::SegmentShape*>(&shape))
+                return segment_distance_squared(local, segment->start_m(), segment->end_m()) <= squared;
+            const physics::CircleShape probe(tolerance, local);
+            const auto distance = physics::convex_distance(shape, {}, probe, {});
+            return distance.valid && distance.intersecting;
         }
 
         math::Vec2 limited(const math::Vec2& value, double maximum)
@@ -183,11 +214,14 @@ namespace rigidbodies::app
         physics::BodyId hit;
         double smallest_area = std::numeric_limits<double>::infinity();
         const auto tolerance = 6.0 * std::max(0.01, logical_scale);
+        const auto point = camera_.screen_to_world(screen_point_px);
+        const auto tolerance_m = camera_.screen_to_world_length(tolerance);
         world_.for_each_body([&](physics::BodyId id, const physics::RigidBody& body)
             {
                 if (is_marker(id))
                     return;
-                const auto bounds = body.compute_bounds(body.interpolated_transform(scene_settings_.interpolation_alpha));
+                const auto placement = body.interpolated_transform(scene_settings_.interpolation_alpha);
+                const auto bounds = body.compute_bounds(placement);
                 if (bounds.is_empty())
                     return;
                 const auto a = camera_.world_to_screen(bounds.minimum);
@@ -198,9 +232,13 @@ namespace rigidbodies::app
                     return;
                 const auto size = bounds.maximum - bounds.minimum;
                 const auto area = std::abs(size.x * size.y);
-                const auto point = camera_.screen_to_world(screen_point_px);
-                if (!body.contains_world_point(point, body.interpolated_transform(scene_settings_.interpolation_alpha)) &&
-                    (screen_point_px.x < minimum.x || screen_point_px.x > maximum.x || screen_point_px.y < minimum.y || screen_point_px.y > maximum.y))
+                // Bounds are only a broad check: empty corners and gaps between compound parts
+                // must remain clickable. Keep a small screen-space margin around real geometry.
+                const auto near_collider = std::any_of(body.colliders().begin(), body.colliders().end(), [&](const auto& collider)
+                    {
+                        return collider.shape && near_shape(*collider.shape, math::inverse_transform_point(math::concatenate(placement, collider.local_transform), point), tolerance_m);
+                    });
+                if (!near_collider)
                     return;
                 if (area < smallest_area)
                 {

@@ -27,7 +27,11 @@ RIGIDBODIES_TEST("opening an experiment applies the complete scoping table")
     command(session, ui::UiCommandKind::set_pause_on_impact, 0.0, true);
     session.set_selection(session.world().body_ids().front());
     command(session, ui::UiCommandKind::set_interaction_mode, 0.0, false, "throw");
-    RIGIDBODIES_EXPECT(session.load_scenario("ramp"), "Ramp and friction opens");
+    RIGIDBODIES_EXPECT(session.load_scenario("ramp"), "Ramp and friction exists");
+    const auto confirmation = session.build_model().confirmation;
+    RIGIDBODIES_EXPECT(confirmation && session.scenario_id() == "free_fall", "opening another experiment waits for confirmation of the unsaved edits");
+    session.apply(confirmation->confirm);
+    RIGIDBODIES_EXPECT(session.scenario_id() == "ramp" && !session.build_model().confirmation, "confirming discard opens Ramp and friction");
     const auto model = session.build_model();
     RIGIDBODIES_EXPECT_NEAR(math::length(session.world().settings().gravity_m_s2), physics::standard_gravity_m_s2, 1.0e-12, "the new experiment supplies gravity");
     RIGIDBODIES_EXPECT(session.world().integrator().name() == "runge_kutta_4" && model.lab_changes.size() == 1, "lab setting is kept and reported by the chip model");
@@ -49,7 +53,11 @@ RIGIDBODIES_TEST("Keep lab settings preference can reset lab settings on open")
     preference.id = preference.detail = "prefs.experiments.keep_lab_settings";
     preference.flag = false;
     session.apply(preference);
-    RIGIDBODIES_EXPECT(session.load_scenario("ramp"), "another experiment opens");
+    RIGIDBODIES_EXPECT(session.load_scenario("ramp"), "another experiment exists");
+    const auto confirmation = session.build_model().confirmation;
+    RIGIDBODIES_EXPECT(confirmation && session.scenario_id() == "free_fall", "the edited lab settings are protected until departure is confirmed");
+    session.apply(confirmation->confirm);
+    RIGIDBODIES_EXPECT(session.scenario_id() == "ramp" && !session.build_model().confirmation, "confirming discard opens the next experiment");
     RIGIDBODIES_EXPECT(session.world().integrator().name() == "semi_implicit_euler" && session.build_model().lab_changes.empty(), "the new experiment's lab defaults apply when the preference is off");
 }
 

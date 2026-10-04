@@ -19,7 +19,9 @@ namespace
     public:
         bool insert_above { false };
         bool tilt_only { false };
+        bool show_number { true }, number_disabled { false };
         double mass { 1.0 };
+        physics::BodyId target;
         std::string live_text { "0.00 s" };
 
         std::string_view id() const override
@@ -36,6 +38,8 @@ namespace
         }
         void build(const ui::UiModel&, ui::PanelBuilder& builder) override
         {
+            if (!show_number)
+                return;
             if (insert_above)
                 builder.heading("Inserted above");
             if (tilt_only)
@@ -48,7 +52,10 @@ namespace
             {
                 ui::UiCommand command;
                 command.kind = ui::UiCommandKind::set_selected_mass;
+                command.body = target;
                 builder.number_row(*ui::find_control_spec("object.properties.mass"), mass, command);
+                if (number_disabled)
+                    builder.disable_last("No longer editable");
                 builder.readout("bar.time.readout", "Elapsed", live_text, ui::RowTone::normal, true);
             }
         }
@@ -303,6 +310,196 @@ namespace
         RIGIDBODIES_EXPECT(commands.size() == 1 && std::abs(commands.front().value - 0.3) < 1.0e-12, "an explicit unit always wins");
     }
 
+    RIGIDBODIES_TEST("number drafts keep their displayed units when the model and preferences change")
+    {
+        Fixture fixture;
+        auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+        panel->mass = 0.005;
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        const auto field = ui::element_id("legacy", "object.properties.mass") + "--field";
+        fixture.replace_text("2");
+        panel->mass = 3.0;
+        ++fixture.model.change_serial;
+        fixture.build();
+        auto commands = fixture.key(ui::UiKey::enter);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "the draft remains editable across live refreshes");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 0.002, 1e-12, "bare digits retain the original grams instead of becoming kilograms");
+
+        panel->mass = 1.0;
+        ++fixture.model.change_serial;
+        fixture.build();
+        fixture.replace_text("2");
+        fixture.model.display_units = core::DisplayUnits::centimetre_gram;
+        ++fixture.model.change_serial;
+        fixture.build();
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) == std::optional<std::string> { "2" }, "changing units preserves an unfinished draft");
+        commands = fixture.key(ui::UiKey::enter);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "the preference change leaves one confirmable edit");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 2.0, 1e-12, "the draft still means the kilograms shown when typing began");
+    }
+
+    RIGIDBODIES_TEST("reusing a number row for another subject cancels the old draft")
+    {
+        for (const auto group_selection : { false, true })
+        {
+            Fixture fixture;
+            auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+            if (group_selection)
+                fixture.model.selected_bodies = { { 1, 1 }, { 2, 1 } };
+            else
+                panel->target = { 1, 1 };
+            fixture.build();
+            (void)fixture.key(ui::UiKey::tab);
+            fixture.replace_text("9");
+            panel->mass = 3.0;
+            if (group_selection)
+                fixture.model.selected_bodies = { { 2, 1 }, { 3, 1 } };
+            else
+                panel->target = { 2, 1 };
+            ++fixture.model.change_serial;
+            fixture.build();
+            const auto field = ui::element_id("legacy", "object.properties.mass") + "--field";
+            RIGIDBODIES_EXPECT(fixture.backend.focused_element() != field, "a changed target ends the previous field edit");
+            RIGIDBODIES_EXPECT(fixture.backend.element_value(field) != std::optional<std::string> { "9" }, "the new target displays its own value");
+            RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::enter).empty(), "reconciliation never submits the old draft to either target");
+        }
+    }
+
+    RIGIDBODIES_TEST("an unchanged focused number tracks external model updates without submitting its previous value")
+    {
+        Fixture fixture;
+        auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        panel->mass = 7.0;
+        ++fixture.model.change_serial;
+        fixture.build();
+        const auto field = ui::element_id("legacy", "object.properties.mass") + "--field";
+        const auto displayed = core::parse_quantity(fixture.backend.element_value(field).value_or("") + " kg", core::DisplayQuantity::mass, fixture.model.display_units);
+        RIGIDBODIES_EXPECT(displayed && *displayed == 7.0, "a clean field follows external edits while focused");
+        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::enter).empty(), "confirming a clean field cannot undo the external edit");
+    }
+
+    RIGIDBODIES_TEST("opening another document cancels drafts even when scenario and body identifiers match")
+    {
+        Fixture fixture;
+        fixture.model.scenario_id = "same_experiment";
+        fixture.model.edit_document = std::make_shared<int>(1);
+        auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+        panel->target = { 1, 1 };
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        fixture.replace_text("9");
+        fixture.model.edit_document = std::make_shared<int>(2);
+        ++fixture.model.change_serial;
+        fixture.build();
+        RIGIDBODIES_EXPECT(fixture.backend.focus_owner() != ui::FocusOwner::text_field, "a different document ends the edit despite reused identifiers");
+        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::enter).empty(), "the old draft is never submitted into the replacement document");
+    }
+
+    RIGIDBODIES_TEST("number fields support caret movement and selection with arrow keys")
+    {
+        Fixture fixture;
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        const auto field = ui::element_id("legacy", "object.properties.mass") + "--field";
+        fixture.replace_text("12");
+        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::arrow_left).empty(), "moving the caret does not commit a number");
+        ui::UiEvent text;
+        text.kind = ui::UiEventKind::text_input;
+        text.text = "3";
+        (void)fixture.event(text);
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) == std::optional<std::string> { "132" }, "Left moves the caret between the digits before typing");
+
+        (void)fixture.key(ui::UiKey::home);
+        (void)fixture.key(ui::UiKey::arrow_right);
+        ui::UiEvent selection;
+        selection.kind = ui::UiEventKind::key_down;
+        selection.key = ui::UiKey::arrow_right;
+        selection.modifiers.shift = true;
+        (void)fixture.event(selection);
+        text.text = "4";
+        (void)fixture.event(text);
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) == std::optional<std::string> { "142" }, "Right and Shift+Right select only the middle digit for replacement");
+
+        (void)fixture.key(ui::UiKey::end);
+        (void)fixture.key(ui::UiKey::arrow_left, true);
+        text.text = "0";
+        (void)fixture.event(text);
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) == std::optional<std::string> { "0142" }, "Ctrl+Left moves to the start of the numeric word");
+    }
+
+    RIGIDBODIES_TEST("number arrow adjustments update the focused field and survive leaving it")
+    {
+        Fixture fixture;
+        auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        const auto field = ui::element_id("legacy", "object.properties.mass") + "--field";
+        const auto initial_text = fixture.backend.element_value(field);
+        auto commands = fixture.key(ui::UiKey::arrow_up);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "Up commits a numeric adjustment");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 1.1, 1.0e-12, "Up takes one logarithmic step from the displayed mass");
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) != initial_text, "the focused field displays the new mass immediately");
+
+        commands = fixture.key(ui::UiKey::arrow_up);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "a second Up before the next frame also commits");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 1.21, 1.0e-12, "successive key events accumulate instead of repeating the same value");
+        panel->mass = commands.front().value;
+        fixture.build();
+        commands.clear();
+        fixture.backend.release_focus(commands);
+        RIGIDBODIES_EXPECT(commands.empty(), "leaving the field never commits its old text over the accepted arrow adjustment");
+    }
+
+    RIGIDBODIES_TEST("number arrow adjustments retain their value when the display unit changes")
+    {
+        Fixture fixture;
+        auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+        panel->mass = 0.99;
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        auto commands = fixture.key(ui::UiKey::arrow_up);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "the arrow commits a value that crosses from grams to kilograms");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 1.089, 1.0e-12, "the adjustment keeps its full precision");
+        panel->mass = commands.front().value;
+        RIGIDBODIES_EXPECT(fixture.key(ui::UiKey::enter).empty(), "confirming unchanged formatted text neither rescales nor rounds the accepted value");
+        fixture.build();
+        commands.clear();
+        fixture.backend.release_focus(commands);
+        RIGIDBODIES_EXPECT(commands.empty(), "leaving the refreshed field preserves the precise accepted value");
+    }
+
+    RIGIDBODIES_TEST("number adjustments use the typed draft and cancellation restores the last confirmation")
+    {
+        Fixture fixture;
+        fixture.build();
+        (void)fixture.key(ui::UiKey::tab);
+        const auto row = ui::element_id("legacy", "object.properties.mass");
+        const auto field = row + "--field";
+        fixture.replace_text("2 kg");
+        auto commands = fixture.key(ui::UiKey::arrow_up);
+        RIGIDBODIES_EXPECT(commands.size() == 1, "a valid draft can be adjusted directly");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, 2.2, 1.0e-12, "the arrow steps from the typed value rather than the previous model value");
+
+        fixture.replace_text("abc");
+        commands = fixture.key(ui::UiKey::arrow_down);
+        RIGIDBODIES_EXPECT(commands.empty() && fixture.backend.element_value(field) == std::optional<std::string> { "abc" }, "an invalid draft is preserved for correction rather than overwritten by an arrow");
+        RIGIDBODIES_EXPECT(fixture.backend.element_has_class(field, "is-invalid") && !fixture.backend.element_text(row + "--field-error").empty(), "invalid adjustment explains the allowed range");
+        (void)fixture.key(ui::UiKey::escape);
+        RIGIDBODIES_EXPECT(!fixture.backend.element_has_class(field, "is-invalid") && fixture.backend.element_text(row + "--field-error").empty(), "Escape clears both validation state and its message");
+
+        (void)fixture.key(ui::UiKey::tab);
+        fixture.replace_text("3 kg");
+        commands = fixture.key(ui::UiKey::enter);
+        RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().value == 3.0, "Enter establishes a new accepted value");
+        const auto accepted_text = fixture.backend.element_value(field);
+        fixture.replace_text("9 kg");
+        (void)fixture.key(ui::UiKey::escape);
+        RIGIDBODIES_EXPECT(fixture.backend.element_value(field) == accepted_text, "Escape before another frame restores the last confirmed value");
+    }
+
     RIGIDBODIES_TEST("a hidden inspector stays hidden until the learner selects something else")
     {
         auto* surface = SDL_CreateSurface(1600, 900, SDL_PIXELFORMAT_RGBA32);
@@ -339,6 +536,83 @@ namespace
         fixture.replace_text("30\xC2\xB0");
         const auto commands = fixture.key(ui::UiKey::enter);
         RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().kind == ui::UiCommandKind::set_gravity_angle_degrees && std::abs(commands.front().value + 60.0) < 1.0e-12, "30 degrees of tilt sends the required -60 degree direction");
+    }
+
+    RIGIDBODIES_TEST("tilt arrow adjustments retain the straight-down reference angle")
+    {
+        for (const auto direction : { ui::UiKey::arrow_up, ui::UiKey::arrow_down })
+            for (const auto modifiers : { ui::KeyModifiers {}, ui::KeyModifiers { true, false, false }, ui::KeyModifiers { false, false, true } })
+            {
+                Fixture fixture;
+                static_cast<KeyedPanel*>(fixture.panel.get())->tilt_only = true;
+                fixture.build();
+                (void)fixture.key(ui::UiKey::tab);
+                ui::UiEvent event;
+                event.kind = ui::UiEventKind::key_down;
+                event.key = direction;
+                event.modifiers = modifiers;
+                const auto commands = fixture.event(event);
+                const auto delta = (direction == ui::UiKey::arrow_up ? 1.0 : -1.0) * (modifiers.shift ? 1.0 : modifiers.alt ? 0.01
+                                                                                                                            : 0.1);
+                RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().kind == ui::UiCommandKind::set_gravity_angle_degrees, "the tilt field sends exactly one gravity angle adjustment");
+                RIGIDBODIES_EXPECT_NEAR(commands.front().value, -90.0 + delta, 1.0e-12, "ordinary, coarse and fine arrow steps stay relative to straight down");
+            }
+    }
+
+    RIGIDBODIES_TEST("tilt label scrubbing previews and commits a direction relative to straight down")
+    {
+        Fixture fixture;
+        static_cast<KeyedPanel*>(fixture.panel.get())->tilt_only = true;
+        fixture.build();
+        const auto label = ui::element_id("legacy", "world.gravity.tilt") + "--label";
+        const auto bounds = fixture.backend.element_bounds(label);
+        RIGIDBODIES_EXPECT(bounds.has_value(), "the tilt label exposes a scrub target");
+        ui::UiEvent pointer;
+        pointer.button = ui::PointerButton::primary;
+        pointer.pointer_px = (bounds->minimum + bounds->maximum) * 0.5;
+        pointer.kind = ui::UiEventKind::pointer_down;
+        (void)fixture.event(pointer);
+        pointer.kind = ui::UiEventKind::pointer_move;
+        pointer.pointer_px.x += 8.0;
+        auto commands = fixture.event(pointer);
+        RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().phase == ui::UiEditPhase::preview, "scrubbing sends one preview");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, -89.8, 1.0e-12, "a 0.2 degree tilt preview means a -89.8 degree direction");
+        pointer.kind = ui::UiEventKind::pointer_up;
+        commands = fixture.event(pointer);
+        RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().phase == ui::UiEditPhase::commit, "release commits the preview");
+        RIGIDBODIES_EXPECT_NEAR(commands.front().value, -89.8, 1.0e-12, "release preserves the same transformed direction");
+    }
+
+    RIGIDBODIES_TEST("disappearing and disabled number rows cancel their gesture before losing the binding")
+    {
+        for (const auto native_slider : { false, true })
+            for (const auto disable : { false, true })
+            {
+                Fixture fixture;
+                fixture.build();
+                const auto id = ui::element_id("legacy", "object.properties.mass") + (native_slider ? "--slider" : "--label");
+                const auto bounds = fixture.backend.element_bounds(id);
+                RIGIDBODIES_EXPECT(bounds.has_value(), "the numeric gesture target exists");
+                ui::UiEvent pointer;
+                pointer.button = ui::PointerButton::primary;
+                pointer.pointer_px = (bounds->minimum + bounds->maximum) * 0.5;
+                pointer.kind = ui::UiEventKind::pointer_down;
+                (void)fixture.event(pointer);
+                pointer.kind = ui::UiEventKind::pointer_move;
+                pointer.pointer_px.x += 20.0;
+                (void)fixture.event(pointer);
+                auto* panel = static_cast<KeyedPanel*>(fixture.panel.get());
+                panel->number_disabled = disable;
+                panel->show_number = disable;
+                ++fixture.model.change_serial;
+                fixture.build();
+                std::vector<ui::UiCommand> commands;
+                fixture.backend.take_pending_commands(commands);
+                RIGIDBODIES_EXPECT(commands.size() == 1 && commands.front().phase == ui::UiEditPhase::cancel, "reconciliation immediately cancels instead of committing a removed or disabled edit");
+                RIGIDBODIES_EXPECT(!fixture.backend.pointer_captured(), "the disappearing control releases pointer capture");
+                pointer.kind = ui::UiEventKind::pointer_up;
+                RIGIDBODIES_EXPECT(fixture.event(pointer).empty(), "a later release cannot revive or commit the cancelled edit");
+            }
     }
 
     RIGIDBODIES_TEST("slider drag emits bounded previews then a commit across refresh")

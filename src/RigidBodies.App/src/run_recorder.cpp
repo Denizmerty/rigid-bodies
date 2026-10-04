@@ -358,12 +358,25 @@ namespace rigidbodies::app
 
     bool RunRecorder::pin(ui::PinnedValue value)
     {
+        if ((value.body.is_valid() ? !object_channel(value.quantity) : value.quantity != "mechanical" && !scene_channel(value.quantity)) ||
+            (value.aggregator == ui::RunAggregator::at_time && (!std::isfinite(value.time_s) || value.time_s < 0.0 || value.time_s > 60.0)))
+            return false;
         ensure_unique();
         auto& experiment = state_->experiments[state_->experiment_id];
+        if (!value.key.empty() && std::any_of(experiment.pinned.begin(), experiment.pinned.end(), [&](const auto& existing)
+                                      {
+                                          return existing.key == value.key;
+                                      }))
+            return false;
         if (experiment.pinned.size() >= maximum_pinned_values)
             return false;
         if (value.key.empty())
-            value.key = value.quantity + ":" + std::to_string(experiment.pinned.size() + 1);
+            do
+                value.key = value.quantity + ":" + std::to_string(experiment.next_pinned_number++);
+            while (std::any_of(experiment.pinned.begin(), experiment.pinned.end(), [&](const auto& existing)
+                {
+                    return existing.key == value.key;
+                }));
         experiment.pinned.push_back(std::move(value));
         for (auto& run : experiment.kept)
             update_pinned_results(experiment, run);
@@ -434,7 +447,7 @@ namespace rigidbodies::app
             else if (pinned.aggregator == ui::RunAggregator::at_time || pinned.aggregator == ui::RunAggregator::at_first_impact)
             {
                 const auto requested_time = pinned.aggregator == ui::RunAggregator::at_first_impact ? run.first_impact_s : std::optional<double> { pinned.time_s };
-                if (!requested_time || *requested_time < run.series.time_s.front() || *requested_time > run.series.time_s.back())
+                if (!requested_time || static_cast<float>(*requested_time) < run.series.time_s.front() || static_cast<float>(*requested_time) > run.series.time_s.back())
                 {
                     run.pinned_results.push_back({});
                     continue;
@@ -442,6 +455,13 @@ namespace rigidbodies::app
                 const auto found = std::lower_bound(run.series.time_s.begin(), run.series.time_s.end(), static_cast<float>(*requested_time));
                 const auto index = static_cast<std::size_t>(std::distance(run.series.time_s.begin(), found));
                 value = sample_at(std::min(index, samples - 1));
+                if (pinned.aggregator == ui::RunAggregator::at_time && index > 0 && index < samples && *requested_time < run.series.time_s[index])
+                {
+                    const auto before = sample_at(index - 1);
+                    const auto span = static_cast<double>(run.series.time_s[index] - run.series.time_s[index - 1]);
+                    if (span > 0.0)
+                        value = before + (*value - before) * ((*requested_time - run.series.time_s[index - 1]) / span);
+                }
             }
             else
             {
@@ -456,7 +476,7 @@ namespace rigidbodies::app
                 if (std::isfinite(aggregate))
                     value = aggregate;
             }
-            run.pinned_results.push_back(value);
+            run.pinned_results.push_back(value && std::isfinite(*value) ? value : std::nullopt);
         }
     }
 

@@ -1,6 +1,9 @@
 #include <rigidbodies/ui/icons.hpp>
 #include <rigidbodies/ui/panels.hpp>
 #include <rigidbodies/ui/command_search.hpp>
+
+#include <algorithm>
+#include <optional>
 namespace rigidbodies::ui
 {
     std::string_view CommandSearchPanel::id() const
@@ -29,11 +32,19 @@ namespace rigidbodies::ui
             builder.present_last(presentation(icons::close, "Esc").icon_label_only().in_header());
         }
         const auto query = builder.view_value("search.query", "");
-        builder.text_field("search.field.query", "Search actions and settings", query, "Search actions and settings…");
+        builder.text_field("search.field.query", "Search actions and settings", query, "Search actions and settings…", "search.query");
         builder.present_last(presentation(icons::search));
+        const auto list_result = [&](const CommandSearchResult& result)
+        {
+            auto command = result.command;
+            if (command.detail.rfind("view:", 0) != 0 && command.detail.rfind("search-reveal:", 0) != 0)
+                command.detail = "search-run:" + result.key;
+            builder.action_row("search.result", result.label, command);
+            builder.present_last(presentation({}, result.shortcut.empty() ? result.location : result.location + " \xC2\xB7 " + result.shortcut));
+        };
         if (query.empty())
         {
-            const auto listed = [&](const std::string_view key)
+            const auto resolve = [&](const std::string_view key) -> std::optional<CommandSearchResult>
             {
                 if (const auto* spec = find_control_spec(key))
                 {
@@ -46,21 +57,44 @@ namespace rigidbodies::ui
                     }
                     else
                         command.detail = "search-reveal:" + std::string(spec->key);
-                    builder.action_row("search.result", std::string(spec->label), command);
-                    builder.present_last(presentation({}, spec->location));
+                    return CommandSearchResult { spec, std::string(spec->label), std::string(spec->location), std::string(spec->key), command, std::string(spec->shortcut), 0 };
                 }
+                // Shortcut searches also produce keyboard identities. A later label search may
+                // deduplicate that action against a ControlSpec, so accept its equivalent label.
+                if (key.rfind("key:", 0) == 0)
+                {
+                    const auto results = search_commands(key.substr(4), model.keyboard_reference);
+                    const auto found = std::find_if(results.begin(), results.end(), [&](const auto& result)
+                        {
+                            return result.key == key || result.label == key.substr(4);
+                        });
+                    if (found != results.end())
+                    {
+                        auto result = *found;
+                        result.key = std::string(key);
+                        return result;
+                    }
+                }
+                return std::nullopt;
             };
             const auto recent = builder.view_search_recent();
-            builder.heading(recent.empty() ? "Suggestions" : "Recent");
+            std::vector<CommandSearchResult> recent_results;
+            for (const auto& key : recent)
+                if (auto result = resolve(key))
+                    recent_results.push_back(std::move(*result));
+            builder.heading(recent_results.empty() ? "Suggestions" : "Recent");
             builder.begin_group("results");
             // Before anything has been searched, the settings a lesson most often changes show
             // what the palette can reach.
-            if (recent.empty())
+            if (recent_results.empty())
                 for (const auto key : { "world.gravity.strength", "world.air.resistance", "show.arrows.auto_length", "prefs.units.system", "prefs.appearance.theme", "camera.frame.everything" })
-                    listed(key);
+                {
+                    if (const auto result = resolve(key))
+                        list_result(*result);
+                }
             else
-                for (const auto& key : recent)
-                    listed(key);
+                for (const auto& result : recent_results)
+                    list_result(result);
             builder.end_group();
             builder.paragraph("Search for gravity, theme, step or units. Press Enter to run an action or open a setting.");
             return;
@@ -73,13 +107,7 @@ namespace rigidbodies::ui
         }
         builder.begin_group("results");
         for (const auto& result : results)
-        {
-            auto command = result.command;
-            if (command.detail.rfind("view:", 0) != 0 && command.detail.rfind("search-reveal:", 0) != 0)
-                command.detail = "search-run:" + result.key;
-            builder.action_row("search.result", result.label, command);
-            builder.present_last(presentation({}, result.shortcut.empty() ? result.location : result.location + " \xC2\xB7 " + result.shortcut));
-        }
+            list_result(result);
         builder.end_group();
     }
 }

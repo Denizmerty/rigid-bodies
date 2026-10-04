@@ -441,6 +441,119 @@ RIGIDBODIES_TEST("the graph plots the budget's other rows and marks only the plo
     RIGIDBODIES_EXPECT(plot.size() == 1 && impact_markers(*plot.front()->plot) == 1, "a plotted object shows only its own impacts");
 }
 
+RIGIDBODIES_TEST("saved graphs retain object scope and reviewing a run uses that run's time and data")
+{
+    using namespace rigidbodies;
+    const physics::BodyId body { 3, 1 };
+    ui::RunRecord saved;
+    saved.number = 1;
+    saved.duration_s = 80.0;
+    saved.series.time_s = { 70.0f, 75.0f, 80.0f };
+    saved.series.scene.assign(24, 1.0f);
+    saved.series.object_ids = { body };
+    saved.series.objects.assign(42, 7.0f);
+    std::vector<ui::RunRecord> kept { saved };
+    ui::UiModel model;
+    model.runs = kept;
+    model.previous_run = &kept.front();
+    model.objects = { { body, {}, "Steel ball", "free" } };
+    ui::MeasurePanel panel;
+    ui::ViewState view;
+    view.set_active_tab("measure.header.tabs", "graph");
+    view.set_value("measure.graph.scope", "3:1");
+    auto built = rows(panel, model, view);
+    auto plots = rows_with(built, ui::PanelRowKind::plot);
+    RIGIDBODIES_EXPECT(plots.size() == 1 && plots.front()->plot->subject == "Steel ball", "Back to start keeps the recorded object as the graph subject");
+    RIGIDBODIES_EXPECT(plots.front()->plot->series.front().values[0] == 7.0f, "saved object scope plots object data rather than silently summing the whole scene");
+    const auto scopes = rows_with(built, ui::PanelRowKind::select, "measure.graph.scope");
+    RIGIDBODIES_EXPECT(std::any_of(scopes.front()->spec->options.begin(), scopes.front()->spec->options.end(), [](const auto& option)
+                           {
+                               return option.id == "3:1";
+                           }),
+        "recorded objects remain selectable without an active run");
+    model.previous_run = nullptr;
+    view.set_value("measure.graph.compare_with", "1");
+    built = rows(panel, model, view);
+    plots = rows_with(built, ui::PanelRowKind::plot);
+    RIGIDBODIES_EXPECT(plots.front()->plot->x.maximum == 80.0 && plots.front()->plot->x.minimum == 70.0, "a historical-only comparison uses its recorded interval instead of an empty 0–10 s window");
+    ui::RunRecord live = saved;
+    live.number = 2;
+    live.duration_s = 1.0;
+    model.current_run = &live;
+    view.set_value("measure.graph.review_run", "1");
+    built = rows(panel, model, view);
+    plots = rows_with(built, ui::PanelRowKind::plot);
+    RIGIDBODIES_EXPECT(plots.front()->plot->x.maximum == 80.0 && plots.front()->plot->series.size() == 1 && plots.front()->plot->series.front().source == "Run 1", "reviewing Run 1 is independent of the new recording and never duplicates its comparison series");
+    RIGIDBODIES_EXPECT(has_key(built, "measure.graph.live"), "review has an explicit way back to the live graph");
+    view.set_value("measure.graph.scope", "9:1");
+    built = rows(panel, model, view);
+    plots = rows_with(built, ui::PanelRowKind::plot);
+    RIGIDBODIES_EXPECT(!std::isfinite(plots.front()->plot->series.front().values[0]), "an absent explicitly chosen object never substitutes whole-scene values");
+}
+
+RIGIDBODIES_TEST("Add value can target objects before recording and validates scope and exact time")
+{
+    using namespace rigidbodies;
+    physics::World world;
+    physics::BodyDefinition definition;
+    physics::Collider collider;
+    collider.shape = physics::make_circle(0.1);
+    definition.colliders.push_back(collider);
+    const auto body = world.create_body(definition);
+    ui::UiModel model;
+    model.world = &world;
+    model.objects = { { body, {}, "Steel ball", "free" } };
+    ui::MeasurePanel panel;
+    ui::ViewState view;
+    view.set_active_tab("measure.header.tabs", "runs");
+    view.set_value("measure.runs.add_open", "true");
+    view.set_value("measure.runs.add_quantity", "speed");
+    auto built = rows(panel, model, view);
+    auto add = rows_with(built, ui::PanelRowKind::action, "measure.runs.add");
+    RIGIDBODIES_EXPECT(!add.front()->disabled_reason.empty() && has_text(built, "Choose an object to measure its speed"), "whole-scene Speed explains its required object");
+    view.set_value("measure.runs.add_object", std::to_string(body.index) + ":" + std::to_string(body.generation));
+    view.set_value("measure.runs.add_aggregator", "at_time");
+    for (const auto* invalid : { "1oops", "NaN", "-1", "61", "" })
+    {
+        view.set_value("measure.runs.add_time", invalid);
+        built = rows(panel, model, view);
+        add = rows_with(built, ui::PanelRowKind::action, "measure.runs.add");
+        RIGIDBODIES_EXPECT(!add.front()->disabled_reason.empty(), "malformed and out-of-range times cannot silently become different measurements");
+    }
+    view.set_value("measure.runs.add_time", "0.25 s");
+    built = rows(panel, model, view);
+    add = rows_with(built, ui::PanelRowKind::action, "measure.runs.add");
+    RIGIDBODIES_EXPECT(add.front()->disabled_reason.empty() && add.front()->command.body == body && add.front()->command.value == 0.25, "a valid object measurement can be prepared before the first run");
+}
+
+RIGIDBODIES_TEST("one kept run shows scoped pinned results and comparison percentages use percent units")
+{
+    using namespace rigidbodies;
+    const physics::BodyId body { 3, 1 };
+    std::vector<ui::PinnedValue> pinned { { "speed:1", "speed", body, ui::RunAggregator::at_time, 1.5 } };
+    std::vector<ui::RunRecord> kept(1);
+    kept[0].number = 1;
+    kept[0].pinned_results = { 2.0 };
+    ui::UiModel model;
+    model.objects = { { body, {}, "Steel ball", "free" } };
+    model.runs = kept;
+    model.pinned_values = pinned;
+    ui::MeasurePanel panel;
+    ui::ViewState view;
+    view.set_active_tab("measure.header.tabs", "runs");
+    auto built = rows(panel, model, view);
+    RIGIDBODIES_EXPECT(has_key(built, "measure.runs.inspect_graph") && has_text(built, "Steel ball") && has_text(built, "At " + core::format_quantity(1.5, core::DisplayQuantity::time, model.display_units)) && has_text(built, core::format_quantity(2.0, core::DisplayQuantity::velocity, model.display_units)), "one kept run already exposes its measured value, object, requested time and unit");
+    kept.push_back(kept.front());
+    kept.back().number = 2;
+    kept.back().pinned_results = { 3.0 };
+    model.runs = kept;
+    built = rows(panel, model, view);
+    RIGIDBODIES_EXPECT(has_text(built, core::format_quantity(50.0, core::DisplayQuantity::percentage, model.display_units)), "an increase from 2 to 3 is shown as 50 percent, not 0.5 percent");
+    model.display_units = core::DisplayUnits::centimetre_gram;
+    built = rows(panel, model, view);
+    RIGIDBODIES_EXPECT(has_text(built, "cm/s"), "pinned and comparison values honor the selected display units");
+}
+
 int main()
 {
     return rigidbodies::testing::run_all();

@@ -17,7 +17,7 @@ namespace rigidbodies::ui
     {
         // Menus and popovers that close when another opens, when an item is chosen, or when the
         // pointer presses elsewhere.
-        constexpr std::array<const char*, 5> menu_transients { "main_menu", "add_menu", "context_menu", "show", "draw_options" };
+        constexpr std::array<const char*, 6> menu_transients { "main_menu", "add_menu", "context_menu", "show", "draw_options", "playback_speed" };
     }
 
     std::string_view to_string(UiBackendKind kind)
@@ -379,6 +379,8 @@ namespace rigidbodies::ui
                     surface_visible = view_state_.transient_open("context_menu");
                 else if (panel->id() == "add_menu")
                     surface_visible = view_state_.transient_open("add_menu");
+                else if (panel->id() == "playback_speed")
+                    surface_visible = view_state_.transient_open("playback_speed");
                 else if (panel->id() == "hover_card")
                     surface_visible = model.hover && !model.hover->card_lines.empty() && view_state_.sheets().empty() && view_state_.transients().empty();
                 else if (panel->id() == "hints")
@@ -401,6 +403,11 @@ namespace rigidbodies::ui
                     surface_visible = model.confirmation.has_value();
                 if (view_state_.present().mode && (panel->id() == "command_bar" || panel->id() == "status_line" || panel->id() == "guide" || panel->id() == "inspector" || panel->id() == "measure" || panel->id() == "draw_bar" || panel->id() == "library"))
                     surface_visible = false;
+                // A session confirmation sits above the existing sheets and menus. Keep their
+                // view state so Cancel can return to them, but never layer a palette over it.
+                if (model.confirmation && panel->id() != "confirmation" &&
+                    (panel->region() == RegionId::modal || panel->region() == RegionId::library_sheet || panel->region() == RegionId::show_popover))
+                    surface_visible = false;
             }
             if (panel->is_visible() && surface_visible)
             {
@@ -420,6 +427,7 @@ namespace rigidbodies::ui
             backend_->focus_field(*pending_focus_);
             pending_focus_.reset();
         }
+        backend_->take_pending_commands(commands_);
     }
 
     std::vector<UiCommand> UiContext::take_commands()
@@ -529,6 +537,12 @@ namespace rigidbodies::ui
                                     request(ViewRequest::toggle_show);
                                 else if (name == "draw_options")
                                     open_menu("draw_options");
+                                else if (name == "playback_speed")
+                                {
+                                    close_menus();
+                                    view_state_.open_transient("playback_speed");
+                                    pending_focus_ = "bar.speed.custom";
+                                }
                                 else if (name == "measure")
                                     request(ViewRequest::toggle_measure);
                                 else if (name == "world")
@@ -575,10 +589,16 @@ namespace rigidbodies::ui
                                     view_state_.set_value(assignment.substr(0, separator), assignment.substr(separator + 1));
                                 return true;
                             }
-                            if (command.kind == UiCommandKind::none && command.detail == "library-show")
+                            if (command.kind == UiCommandKind::none && (command.detail == "library-show" || command.detail == "library-reset-filters"))
                             {
-                                view_state_.set_value("library.selected", command.id);
-                                reveal("library.cards.card", command.id);
+                                view_state_.set_value("library.search", "");
+                                view_state_.set_value("library.collection", "all");
+                                view_state_.set_value("library.visited", "all");
+                                if (command.detail == "library-show")
+                                {
+                                    view_state_.set_value("library.selected", command.id);
+                                    reveal("library.cards.card", command.id);
+                                }
                                 return true;
                             }
                             if (command.kind == UiCommandKind::none && command.detail.rfind("state-id:", 0) == 0)
@@ -588,9 +608,11 @@ namespace rigidbodies::ui
                             }
                             if (command.kind == UiCommandKind::none && command.detail.rfind("show-run-in-graph:", 0) == 0)
                             {
-                                view_state_.set_value("measure.graph.compare_with", std::string_view(command.detail).substr(18));
+                                view_state_.set_value("measure.graph.review_run", std::string_view(command.detail).substr(18));
+                                view_state_.set_value("measure.graph.compare_with", "none");
                                 view_state_.set_active_tab("measure.header.tabs", "graph");
                                 view_state_.set_surface_open("measure.open", true);
+                                pending_reveal_ = { "measure.header.tabs", std::string {} };
                                 return true;
                             }
                             if (command.kind == UiCommandKind::load_scenario)
@@ -599,6 +621,8 @@ namespace rigidbodies::ui
                                 view_state_.set_value("library.last_experiment", command.id);
                                 view_state_.close_sheet("library");
                             }
+                            if (command.kind == UiCommandKind::clear_runs)
+                                view_state_.set_value("measure.runs.confirm_clear", "false");
                             if (command.kind == UiCommandKind::toggle_pause)
                                 view_state_.dismiss_hint("play");
                             if (command.kind == UiCommandKind::select_body || command.kind == UiCommandKind::select_bodies)
@@ -681,13 +705,16 @@ namespace rigidbodies::ui
 
     EscapeTarget UiContext::escape_target() const
     {
+        const auto edit_target = backend_ ? backend_->escape_target() : EscapeTarget::none;
+        if (edit_target == EscapeTarget::text_field || edit_target == EscapeTarget::control)
+            return edit_target;
+        if (!view_state_.sheets().empty())
+            return EscapeTarget::sheet;
         if (view_state_.section_open("draw.discard_prompt", false))
             return EscapeTarget::transient;
         if (!view_state_.transients().empty())
             return EscapeTarget::transient;
-        if (!view_state_.sheets().empty())
-            return EscapeTarget::sheet;
-        return backend_ ? backend_->escape_target() : EscapeTarget::none;
+        return edit_target;
     }
 
     bool UiContext::wants_text_input() const
@@ -828,10 +855,10 @@ namespace rigidbodies::ui
             view_state_.close_transient("show");
             break;
         case ViewRequest::close_top_surface:
-            if (!view_state_.transients().empty())
-                view_state_.close_transient(view_state_.transients().back());
-            else if (!view_state_.sheets().empty())
+            if (!view_state_.sheets().empty())
                 view_state_.close_sheet(view_state_.sheets().back());
+            else if (!view_state_.transients().empty())
+                view_state_.close_transient(view_state_.transients().back());
             break;
         }
         if (request == ViewRequest::open_shortcuts && !key.empty())
@@ -884,6 +911,20 @@ namespace rigidbodies::ui
         }
         else if (key.rfind("prefs.", 0) == 0)
             view_state_.open_sheet("preferences");
+        else if (key.rfind("draw.", 0) == 0)
+        {
+            close_menus();
+            view_state_.open_transient("draw_options");
+            if (key == "draw.bar.material" || key == "draw.node.edge" || key == "draw.node.join" || key.rfind("draw.snap.", 0) == 0)
+                pending_reveal_ = { std::string(key), "options" };
+        }
+        else if (key == "bar.speed.custom" || key == "bar.speed.choice")
+        {
+            close_menus();
+            view_state_.open_transient("playback_speed");
+            pending_reveal_ = { "bar.speed.custom", std::string {} };
+            pending_focus_ = "bar.speed.custom";
+        }
         const auto first_dot = key.find('.');
         if (first_dot != std::string_view::npos)
             view_state_.set_section_open(key.substr(0, key.find('.', first_dot + 1)), true);

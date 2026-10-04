@@ -133,5 +133,5 @@ reproducible across machines: `--size WxH` (window size in physical pixels), `--
 `--run-frames N` (advance the simulation N sixtieths of a second first) and `--state a,b,c`, which
 applies interface states in order: `guide`, `noguide`, `inspector`, `noinspector`, `measure`,
 `graph`, `collisions`, `runs`, `world`, `library`, `preferences`, `shortcuts`, `about`, `search`,
-`menu`, `add`, `show`, `present`, `spotlight`, `unlock`, `performance`, `nohints`, `select`,
+`menu`, `add`, `show`, `playback_speed`, `present`, `spotlight`, `unlock`, `performance`, `nohints`, `select`,
 `selectall`, `context`, `hover`, `draw`, `draw-options`, `reduce-motion` and `run`.

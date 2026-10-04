@@ -609,6 +609,7 @@ namespace rigidbodies::app
                 InputContext context;
                 context.focus = interface_.focus_owner();
                 context.interface_escape = interface_.escape_target();
+                context.interface_modal = !interface_.view_state().sheets().empty() || !interface_.view_state().transients().empty() || model.confirmation.has_value();
                 context.developer_captured = developer_consumed;
                 context.pointer_over_surface = interface_.surface_at(input.pointer_px);
                 context.pointer_captured_by_interface = interface_.pointer_captured();
@@ -875,47 +876,55 @@ namespace rigidbodies::app
                 window_->toggle_maximized();
             return;
         }
+        if (command.kind == ui::UiCommandKind::open_arrangement && (command.flag || command.detail == "cancel"))
+        {
+            session_.apply(command);
+            return;
+        }
         if (command.kind == ui::UiCommandKind::open_arrangement && !command.id.empty())
         {
             std::string text, error;
             const auto path = std::filesystem::u8path(command.id);
-            if (!read_content_file(path, text, error) || !session_.open_arrangement(text, error))
+            if (!read_content_file(path, text, error) || !session_.request_open_arrangement(std::move(text), error, path.u8string()))
                 session_.notify(ui::Severity::error, error, "content");
             else
-            {
-                const auto model = session_.build_model();
-                const auto based_on = model.scenario_content ? model.scenario_content->based_on : std::string {};
-                session_.note_setup_file(path.u8string(), model.scenario_title, based_on);
-            }
+                last_content_folder_ = path.parent_path();
             return;
         }
         if (command.kind == ui::UiCommandKind::save_arrangement && command.detail.empty())
         {
+            save_continuation_ = session_.take_pending_departure_for_save();
             if (command.flag || session_.current_setup_path().empty())
             {
                 const auto model = session_.build_model();
-                interface_.view_state().set_value("save.title", (model.scenario_title.empty() ? std::string { "My setup" } : model.scenario_title) + " (my version)");
-                interface_.view_state().set_value("save.mode", "starting");
-                interface_.view_state().set_value("save.include_guide", "true");
+                const auto& file = session_.current_setup_file();
+                const auto title = file.title.empty() ? (model.scenario_title.empty() ? std::string { "My setup" } : model.scenario_title) : file.title;
+                interface_.view_state().set_value("save.title", title + (file.path.empty() ? " (my version)" : " (copy)"));
+                interface_.view_state().set_value("save.mode", file.current_moment ? "current" : "starting");
+                interface_.view_state().set_value("save.include_guide", file.include_guide ? "true" : "false");
                 interface_.request(ui::ViewRequest::open_save_details);
                 return;
             }
-            std::string text, error;
-            const auto model = session_.build_model();
-            const auto title = model.scenario_title.empty() ? std::string { "My setup" } : model.scenario_title;
-            if (!session_.save_arrangement(text, error, title, false, true) ||
-                !write_content_file(std::filesystem::u8path(session_.current_setup_path()), text, error))
+            std::string error;
+            const auto snapshot = session_.capture_current_setup_save(error);
+            if (!snapshot || !session_.can_write_setup_save(*snapshot, snapshot->file.path, error) ||
+                !write_content_file(std::filesystem::u8path(snapshot->file.path), snapshot->text, error))
+            {
+                save_continuation_.reset();
                 session_.notify(ui::Severity::error, error, "content");
+            }
             else
             {
-                const auto based_on = model.scenario_content ? model.scenario_content->based_on : model.scenario_id;
-                session_.note_setup_file(session_.current_setup_path(), title, based_on);
+                const auto current = session_.complete_setup_save(*snapshot, snapshot->file.path);
+                last_content_folder_ = std::filesystem::u8path(snapshot->file.path).parent_path();
                 session_.notify(ui::Severity::success, "Setup saved.", "content");
+                const auto continuation = std::move(save_continuation_);
+                save_continuation_.reset();
+                if (current && continuation)
+                    session_.complete_saved_departure(*continuation);
             }
             return;
         }
-        if (command.kind == ui::UiCommandKind::save_arrangement)
-            interface_.request(ui::ViewRequest::close_top_surface);
         if (begin_content_dialog(command))
             return;
         if (command.kind == ui::UiCommandKind::export_still)
@@ -969,6 +978,9 @@ namespace rigidbodies::app
             for (const auto& command : developer_overlay_->take_commands())
                 apply_command(command);
 #endif
+        // Closing Save details with Cancel or Escape must not make a later Save quit the app.
+        if (save_continuation_ && !content_dialog_ && !interface_.view_state().sheet_open("save_details"))
+            save_continuation_.reset();
     }
 
     void Application::update(double frame_time_s)
@@ -1291,6 +1303,8 @@ namespace rigidbodies::app
                 interface_.request(ui::ViewRequest::open_about);
             else if (state == "search")
                 interface_.request(ui::ViewRequest::open_command_search);
+            else if (state == "playback_speed")
+                interface_.reveal("bar.speed.custom");
             else if (state == "menu")
                 interface_.request(ui::ViewRequest::open_main_menu);
             else if (state == "add")

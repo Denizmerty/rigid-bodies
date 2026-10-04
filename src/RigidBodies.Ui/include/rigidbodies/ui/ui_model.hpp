@@ -16,6 +16,7 @@
 #include <string_view>
 #include <optional>
 #include <cstdint>
+#include <memory>
 
 namespace rigidbodies::ui
 {
@@ -78,6 +79,7 @@ namespace rigidbodies::ui
     {
         std::string title, text, confirm_label;
         UiCommand confirm, cancel, save;
+        std::string save_label { "Save setup…" };
     };
 
     enum class StageTargetKind : std::uint8_t
@@ -173,10 +175,13 @@ namespace rigidbodies::ui
         PerformanceModel performance;
         std::optional<SetupFileInfo> last_setup_file;
         DraftModel draft;
+        // Stable identity across frames and undo, including setups with the same scenario ID.
+        std::shared_ptr<const void> edit_document;
         PauseState pause_reason;
         std::size_t user_object_count {};
         std::size_t shape_node_count { 0 };
         std::size_t shape_selected_node { 0 };
+        math::Vec2 shape_node_world_m {};
         std::size_t shape_render_vertex_count { 0 };
         std::size_t shape_collision_vertex_count { 0 };
         std::size_t shape_convex_part_count { 0 };

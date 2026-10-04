@@ -102,6 +102,82 @@ namespace
         return physics::create_authored_body(session.world(), definition, { part });
     }
 
+    RIGIDBODIES_TEST("exact point coordinates use world space and preserve draft undo and body placement")
+    {
+        app::SimulationSession session;
+        setup(session);
+        const auto id = authored_body(session, { 1.0, 0.5 });
+        auto* body = session.world().find_body(id);
+        body->set_orientation(0.4);
+        const auto body_position = body->position_m();
+        session.set_selection(id);
+        command(session, K::edit_selected_shape);
+        precise(session);
+        const auto original = math::transform_point(session.shape_editor().placement(), session.shape_editor().outline().nodes[0].position_m);
+        click(session, original);
+        RIGIDBODIES_EXPECT(session.shape_editor().selected_node() == std::optional<std::size_t> { 0 }, "select the rotated outline's first point");
+        ui::UiCommand position;
+        position.kind = K::set_shape_node_position;
+        position.id = "0";
+        position.detail = "x";
+        position.value = 2.25;
+        position.phase = ui::UiEditPhase::preview;
+        session.apply(position);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.x, 2.25, 1.0e-12, "field edits world x even on a rotated part");
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.y, original.y, 1.0e-12, "editing x preserves world y");
+        position.phase = ui::UiEditPhase::cancel;
+        session.apply(position);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.x, original.x, 1.0e-12, "Escape restores the exact point");
+        position.phase = ui::UiEditPhase::commit;
+        session.apply(position);
+        command(session, K::undo);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.x, original.x, 1.0e-12, "Undo restores the point");
+        command(session, K::redo);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.x, 2.25, 1.0e-12, "Redo restores exact coordinates");
+        session.apply(app::command_for_action(app::AppAction::nudge_up));
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.y, original.y + 0.01, 1.0e-12, "Alt+Up nudges the selected point");
+        RIGIDBODIES_EXPECT(session.world().find_body(id)->position_m() == body_position, "nudging a draft never moves its source body");
+        RIGIDBODIES_EXPECT_NEAR(session.world().find_body(id)->orientation_rad(), 0.4, 0.0, "source orientation is preserved");
+        position.id = "1";
+        position.value = 9.0;
+        session.apply(position);
+        RIGIDBODIES_EXPECT_NEAR(session.build_model().shape_node_world_m.x, 2.25, 1.0e-12, "stale commands cannot change another selected point");
+        command(session, K::set_shape_continuity, 0.0, false, "smooth");
+        RIGIDBODIES_EXPECT(session.build_model().shape_continuity == "smooth", "the Smooth segment has a matching selected value");
+        command(session, K::set_shape_continuity, 0.0, false, "symmetric");
+        RIGIDBODIES_EXPECT(session.build_model().shape_continuity == "symmetric", "the Symmetric segment has a matching selected value");
+    }
+
+    RIGIDBODIES_TEST("cancelled pointer capture cannot close an outline on a later release")
+    {
+        app::ShapeEditor editor;
+        physics::Outline outline;
+        for (const auto point : { math::Vec2 { -0.5, -0.5 }, math::Vec2 { 0.5, -0.5 }, math::Vec2 { 0.0, 0.5 } })
+        {
+            physics::OutlineNode node;
+            node.position_m = point;
+            outline.nodes.push_back(node);
+        }
+        render::Camera2D camera;
+        camera.set_viewport({ 1000, 800 });
+        editor.begin(outline);
+        ui::UiEvent event;
+        event.kind = ui::UiEventKind::pointer_down;
+        event.pointer_px = camera.world_to_screen(outline.nodes[0].position_m);
+        editor.handle_event(event, camera, {});
+        editor.release_pointer();
+        event.kind = ui::UiEventKind::pointer_up;
+        editor.handle_event(event, camera, {});
+        RIGIDBODIES_EXPECT(!editor.outline().closed, "cancelling capture also cancels a pending click-to-close");
+        event.kind = ui::UiEventKind::pointer_down;
+        editor.handle_event(event, camera, {});
+        editor.end();
+        editor.begin(outline);
+        event.kind = ui::UiEventKind::pointer_up;
+        editor.handle_event(event, camera, {});
+        RIGIDBODIES_EXPECT(!editor.outline().closed, "a new draft never inherits the old draft's pending click");
+    }
+
     RIGIDBODIES_TEST("point drawing closes and commits one material-aware body then resumes the session")
     {
         app::SimulationSession session;

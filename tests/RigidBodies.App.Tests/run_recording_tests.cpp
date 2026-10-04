@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 
 namespace
 {
@@ -317,6 +318,74 @@ namespace
         session.reset_scenario();
         runs = session.build_model().runs;
         RIGIDBODIES_EXPECT(runs.size() == 2 && !runs.back().prediction, "later runs receive no prediction until one is made again");
+    }
+
+    RIGIDBODIES_TEST("removing and replacing pinned values never reuses a live identity")
+    {
+        auto world = world_with_objects(1);
+        app::RunRecorder recorder;
+        recorder.set_experiment("pin identity");
+        ui::PinnedValue value { {}, "speed", world.body_ids().front(), ui::RunAggregator::maximum, 0.0 };
+        for (int index = 0; index < 3; ++index)
+            RIGIDBODIES_EXPECT(recorder.pin(value), "a value can be added");
+        const auto first = recorder.pinned("pin identity")[0].key;
+        const auto last = recorder.pinned("pin identity")[2].key;
+        RIGIDBODIES_EXPECT(recorder.unpin(first) && recorder.pin(value), "a removed slot can be replaced");
+        const auto replacement = recorder.pinned("pin identity")[2].key;
+        RIGIDBODIES_EXPECT(replacement != last && replacement != first, "the replacement has a new stable identity");
+        RIGIDBODIES_EXPECT(recorder.unpin(last) && recorder.pinned("pin identity").size() == 2, "removing the original value removes exactly one definition");
+        value.key = replacement;
+        RIGIDBODIES_EXPECT(!recorder.pin(value), "an explicit duplicate identity is rejected");
+    }
+
+    RIGIDBODIES_TEST("pinned times interpolate samples and missing body values remain unavailable")
+    {
+        auto world = world_with_objects(1);
+        const auto body = world.body_ids().front();
+        app::RunRecorder recorder;
+        recorder.set_experiment("pin samples");
+        RIGIDBODIES_EXPECT(recorder.pin({ "speed:time", "speed", body, ui::RunAggregator::at_time, 0.0125 }), "a between-sample time can be measured");
+        RIGIDBODIES_EXPECT(recorder.pin({ "speed:end", "speed", body, ui::RunAggregator::at_end, 0.0 }), "an end value can be measured");
+        RIGIDBODIES_EXPECT(recorder.pin({ "speed:future", "speed", body, ui::RunAggregator::at_time, 1.0 }), "a future instant can be requested before recording");
+        recorder.begin_run(world, {}, {});
+        world.find_body(body)->set_linear_velocity({ 1.0, 0.0 });
+        recorder.record_sample(world, 0.0);
+        world.find_body(body)->set_linear_velocity({ 3.0, 0.0 });
+        recorder.record_sample(world, 0.025);
+        world.destroy_body(body);
+        for (int sample = 2; sample <= 20; ++sample)
+            recorder.record_sample(world, sample * 0.025);
+        recorder.close_run(true, true);
+        RIGIDBODIES_EXPECT(recorder.kept("pin samples").size() == 1, "the fixture records a complete half-second run");
+        const auto& results = recorder.kept("pin samples").front().pinned_results;
+        RIGIDBODIES_EXPECT(results[0].has_value(), "the requested time is in the recorded interval");
+        RIGIDBODIES_EXPECT_NEAR(*results[0], 2.0, 1.0e-6, "At time measures that instant rather than always rounding forward");
+        RIGIDBODIES_EXPECT(!results[1], "a missing final object does not expose NaN as a measured value");
+        RIGIDBODIES_EXPECT(!results[2], "an instant beyond the last recorded sample never substitutes the final value");
+    }
+
+    RIGIDBODIES_TEST("invalid pinned scopes quantities and times cannot enter the runs table")
+    {
+        auto world = world_with_objects(1);
+        app::RunRecorder recorder;
+        recorder.set_experiment("pin validation");
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "speed", {}, ui::RunAggregator::maximum, 0.0 }), "Speed needs an object");
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "lost_impacts", world.body_ids().front(), ui::RunAggregator::maximum, 0.0 }), "contact losses need whole-scene scope");
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "unknown", {}, ui::RunAggregator::maximum, 0.0 }), "unknown channels are rejected");
+        for (const auto time : { -1.0, 60.1, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity() })
+            RIGIDBODIES_EXPECT(!recorder.pin({ {}, "mechanical", {}, ui::RunAggregator::at_time, time }), "invalid requested times cannot masquerade as zero");
+        RIGIDBODIES_EXPECT(recorder.pinned("pin validation").empty(), "invalid values consume no pin slots");
+        RIGIDBODIES_EXPECT(recorder.pin({ {}, "mechanical", {}, ui::RunAggregator::at_time, 0.7 }) &&
+                recorder.pin({ {}, "mechanical", {}, ui::RunAggregator::at_time, 0.701 }),
+            "valid requested times can be prepared before a run");
+        recorder.begin_run(world, {}, {});
+        recorder.record_sample(world, 0.0);
+        for (int sample = 1; sample <= 28; ++sample)
+            recorder.record_sample(world, sample * 0.025);
+        recorder.close_run(true, true);
+        RIGIDBODIES_EXPECT(recorder.kept("pin validation").size() == 1, "the fixture records all samples through 0.7 s");
+        const auto& results = recorder.kept("pin validation").front().pinned_results;
+        RIGIDBODIES_EXPECT(results[0].has_value() && !results[1], "float timestamp rounding preserves the exact recorded endpoint without admitting a later instant");
     }
 
     RIGIDBODIES_TEST("run comparison uses B minus A absolute-A percentages and exact setup differences")

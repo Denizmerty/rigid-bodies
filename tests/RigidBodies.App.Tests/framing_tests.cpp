@@ -1,6 +1,7 @@
 #include <rigidbodies/app/key_bindings.hpp>
 #include <rigidbodies/app/simulation_session.hpp>
 #include <rigidbodies/physics/scenario.hpp>
+#include <rigidbodies/physics/scenario_document.hpp>
 #ifdef RIGIDBODIES_HAS_RMLUI
 #include <rigidbodies/ui/document_backend.hpp>
 #else
@@ -127,6 +128,10 @@ namespace
             for (const auto& scenario : physics::available_scenarios())
             {
                 RIGIDBODIES_EXPECT(session.load_scenario(scenario.id), "catalogue experiment loads");
+                // A relativity experiment's subject is its probe, not a World body; its own framing
+                // is checked against the band and the apparatus.
+                if (session.relativity_active())
+                    continue;
                 if (scenario.id == "empty_lab")
                 {
                     const auto ids = session.world().body_ids();
@@ -238,6 +243,9 @@ namespace
                 if (scenario.id == "empty_lab" || scenario.id == "fast_projectile")
                     continue;
                 RIGIDBODIES_EXPECT(session.load_scenario(scenario.id), "catalogue experiment loads");
+                // A relativity experiment moves its probe, not a World body.
+                if (session.relativity_active())
+                    continue;
                 expect_in_view(session, focus, scenario.id, {}, "at the start in " + layout.name);
                 session.stepper().set_paused(false);
                 for (int frame = 0; frame < 80; ++frame)
@@ -458,6 +466,375 @@ namespace
         session.set_focus_rect(open_focus(true));
         const auto still = session.camera().world_to_screen(session.world().find_body(block)->position_m());
         RIGIDBODIES_EXPECT(!inside(session, block, open_focus(true)) && std::abs((still.y - away.y)) < 1.0e-6, "an off-stage selection is not pulled back");
+    }
+
+    // The text pixel scale the stage was last drawn at, by the renderer's own rule. Every check
+    // below measures the framing with it, so a session that framed with any other scale fails them.
+    double stage_text_pixel_scale(const app::SimulationSession& session)
+    {
+        return render::stage_text_pixel_scale(session.scene_settings());
+    }
+
+    // Draws a frame and returns the tier the relativity stage was handed.
+    render::RelativityStageTier drawn_tier(app::SimulationSession& session)
+    {
+        render::DrawList list;
+        session.render(list);
+        const auto& stage = session.scene_renderer().relativity_stage();
+        RIGIDBODIES_EXPECT(stage.has_value(), "the renderer holds the relativity stage");
+        return stage ? stage->tier : render::RelativityStageTier::full;
+    }
+
+    // Relativity framing leaves the instrument band across the top of the focus area, the
+    // apparatus's stack above and below the rail under it, and the track and its margins across
+    // the width, all worked out from the same free functions the stage draws with. Returns whether
+    // the band and the whole stack fit; when they cannot, everything above the rail still keeps
+    // clear of the band.
+    bool expect_relativity_framing(app::SimulationSession& session, const render::ScreenRect& focus, std::string_view when)
+    {
+        const auto tier = drawn_tier(session);
+        const auto tps = stage_text_pixel_scale(session);
+        const auto units = session.scene_settings().display_units;
+        const auto& camera = session.camera();
+        const auto ppm = camera.pixels_per_metre();
+        const auto band = render::relativity_band_height_px(focus.width, tps, units);
+        const auto stack = render::relativity_stack_px(tier, tps, render::relativity_rail_thickness_m * ppm);
+        const auto start = camera.world_to_screen({ 0.0, 0.0 });
+        const auto finish = camera.world_to_screen({ physics::relativity_track_length_m, 0.0 });
+        const auto context = " " + std::string(when);
+        RIGIDBODIES_EXPECT(tier == render::choose_relativity_tier(focus.width, focus.height, tps, units, tier), "the stage is drawn in the tier its size calls for" + context);
+        RIGIDBODIES_EXPECT_NEAR(ppm, std::min((focus.width - 32.0 * tps) / render::relativity_view_width_m, focus.height), 1.0e-9 * ppm, "the track and its margins fill the width, or a metre the height" + context);
+        RIGIDBODIES_EXPECT_NEAR(0.5 * (start.x + finish.x), focus.left + 0.5 * focus.width, 1.0e-6, "the track is centred across the stage" + context);
+        RIGIDBODIES_EXPECT(start.x >= focus.left + 16.0 * tps - 1.0e-6 && finish.x <= focus.left + focus.width - 16.0 * tps + 1.0e-6, "both ends of the track are inside the stage with room for their labels" + context);
+        const auto slack = focus.height - band - stack.above_px - stack.below_px;
+        const auto fits = slack >= -1.0e-6;
+        RIGIDBODIES_EXPECT_NEAR(start.y, focus.top + band + stack.above_px + std::max(0.0, slack) * 0.5, 1.0e-6, "the rail sits below the band and the apparatus above it, in the middle of the room left" + context);
+        if (fits)
+            RIGIDBODIES_EXPECT(start.y + stack.below_px <= focus.top + focus.height + 1.0e-6, "the lane, marks and caption below the rail end inside the stage" + context);
+        const auto visible_height_m = focus.height / ppm;
+        RIGIDBODIES_EXPECT(visible_height_m >= 1.0 - 1.0e-9 && visible_height_m <= 500.0 + 1.0e-9, "the stage shows between 1 m and 500 m of height" + context);
+        return fits;
+    }
+
+    bool same_camera(const render::Camera2D& a, const render::Camera2D& b)
+    {
+        return a.center_m() == b.center_m() && a.view_height_m() == b.view_height_m();
+    }
+
+    // What the stage last drew lies inside the focus area: the band across its top, the track's
+    // ends and rail, both clock faces (drawn in every tier) and every fixed plate, all of the
+    // apparatus below the band.
+    void expect_drawn_apparatus_inside(const app::SimulationSession& session, const render::ScreenRect& focus, std::string_view when)
+    {
+        const auto& layout = session.scene_renderer().relativity_stage_layout();
+        const auto context = " " + std::string(when);
+        RIGIDBODIES_EXPECT(layout.has_value(), "the stage records what it drew" + context);
+        const auto right = focus.left + focus.width, bottom = focus.top + focus.height;
+        const auto within = [&](double left, double top, double width, double height)
+        {
+            return left >= focus.left - 1.0e-6 && top >= focus.top - 1.0e-6 && left + width <= right + 1.0e-6 && top + height <= bottom + 1.0e-6;
+        };
+        const auto& band = layout->band;
+        const auto band_bottom = band.top + band.height;
+        RIGIDBODIES_EXPECT(band.left == focus.left && band.top == focus.top && band.width == focus.width && band_bottom <= bottom, "the band lies across the top of the stage" + context);
+        RIGIDBODIES_EXPECT(layout->track_left >= focus.left && layout->track_right <= right && layout->track_left < layout->track_right, "both ends of the track are on the stage" + context);
+        RIGIDBODIES_EXPECT(layout->rail_y > band_bottom && layout->rail_y < bottom, "the rail runs below the band" + context);
+        const auto radius = layout->clock_radius;
+        RIGIDBODIES_EXPECT(radius >= 10.0 * layout->text_pixel_scale, "both clock faces are drawn, at least 10 logical pixels across the radius" + context);
+        for (const auto& centre : { layout->lab_clock_center, layout->probe_clock_center })
+        {
+            RIGIDBODIES_EXPECT(within(centre.x - radius, centre.y - radius, 2.0 * radius, 2.0 * radius), "both clock faces are on the stage" + context);
+            RIGIDBODIES_EXPECT(centre.y - radius >= band_bottom, "the band ends above both clocks" + context);
+        }
+        RIGIDBODIES_EXPECT(layout->fixed_plates.size() > 8, "the band's plates and the lab plates are drawn" + context);
+        for (std::size_t index = 0; index < layout->fixed_plates.size(); ++index)
+        {
+            const auto& plate = layout->fixed_plates[index];
+            RIGIDBODIES_EXPECT(within(plate.left, plate.top, plate.width, plate.height), "every fixed plate is on the stage" + context);
+            if (index >= 8)
+                RIGIDBODIES_EXPECT(plate.top >= band_bottom, "every plate of the apparatus lies below the band" + context);
+        }
+        RIGIDBODIES_EXPECT(layout->probe_center.y - layout->probe_radius >= band_bottom && layout->probe_center.y < layout->rail_y, "the probe rides on the rail below the band" + context);
+    }
+
+    RIGIDBODIES_TEST("Chasing light frames the track, both clocks and the band without overlap in every layout")
+    {
+        for (const auto& layout : lesson_layouts())
+            for (const auto units : { core::DisplayUnits::si, core::DisplayUnits::centimetre_gram })
+            {
+                const auto focus = focus_of(layout.input);
+                app::SimulationSession session;
+                session.set_viewport(layout.input.viewport);
+                session.set_focus_rect(focus);
+                session.configure({});
+                session.scene_settings().display_scale = layout.input.scale;
+                session.scene_settings().display_units = units;
+                session.set_presenting(layout.input.present);
+                RIGIDBODIES_EXPECT(session.load_scenario("chasing_light") && session.relativity_active(), "Chasing light loads");
+                session.set_focus_rect(focus);
+                const auto when = "in " + layout.name + (units == core::DisplayUnits::si ? "" : " in centimetre-gram units");
+                // Every layout holds the band and a tier's apparatus, a 720p projector with 150 % text
+                // (a stage 300 px tall under the caption) included.
+                RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "at the start " + when), "the band and the apparatus fit the stage " + when);
+                expect_drawn_apparatus_inside(session, focus, "at the start " + when);
+                const auto framed = session.camera();
+                // The apparatus moves nothing in the World, so the framing holds while it runs.
+                ui::UiCommand speed;
+                speed.kind = ui::UiCommandKind::set_relativity_speed;
+                speed.value = 0.99999;
+                session.apply(speed);
+                session.stepper().set_paused(false);
+                for (int frame = 0; frame < 80; ++frame)
+                {
+                    session.set_focus_rect(focus);
+                    session.advance(1.0 / 60.0);
+                    render::DrawList list;
+                    session.render(list);
+                }
+                RIGIDBODIES_EXPECT(session.relativity_probe()->race().lab_time_s > 0.0 && same_camera(session.camera(), framed), "the framing holds while the probe runs " + when);
+                RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "after 80 frames at 0.99999 c " + when), "the band and the apparatus still fit " + when);
+                expect_drawn_apparatus_inside(session, focus, "after 80 frames at 0.99999 c " + when);
+                const auto tps = stage_text_pixel_scale(session);
+                RIGIDBODIES_EXPECT(drawn_tier(session) == render::fitting_relativity_tier(focus.width, focus.height, tps, units), "a stage that holds still shows the largest tier that fits " + when);
+            }
+    }
+
+    RIGIDBODIES_TEST("relativity framing follows Present, text size and units but never a moved camera")
+    {
+        const auto layout = lesson_layouts().front();
+        const auto focus = focus_of(layout.input);
+        app::SimulationSession session;
+        session.set_viewport(layout.input.viewport);
+        session.set_focus_rect(focus);
+        session.configure({});
+        session.scene_settings().display_scale = layout.input.scale;
+        RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light loads");
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "at the start"), "the band and the apparatus fit the stage at the start");
+        // Each of these changes the band or the stack without changing the stage's rect, which
+        // the application publishes again every frame.
+        auto before = session.camera();
+        session.set_presenting(true);
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(!same_camera(session.camera(), before) && !session.camera_user_moved(), "Present's larger text reframes an unmoved camera");
+        RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "in Present"), "the band and the apparatus fit the stage in Present");
+        before = session.camera();
+        session.set_presenting(false);
+        ui::UiCommand text;
+        text.kind = ui::UiCommandKind::set_ui_scale;
+        text.value = 1.75;
+        session.apply(text);
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(!same_camera(session.camera(), before), "a larger text size reframes it");
+        RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "at a larger text size"), "the band and the apparatus fit the stage at a larger text size");
+        ui::UiCommand units;
+        units.kind = ui::UiCommandKind::set_display_units;
+        units.id = "centimetre_gram";
+        session.apply(units);
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "after switching to centimetre-gram units"), "the band and the apparatus fit the stage after switching to centimetre-gram units");
+        before = session.camera();
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(same_camera(session.camera(), before), "an unchanged stage is not reframed");
+        // A view the learner moved stays theirs until F.
+        session.pan_view({ 120.0, -40.0 });
+        before = session.camera();
+        text.value = 1.0;
+        session.apply(text);
+        session.set_focus_rect(focus);
+        session.set_focus_rect({ focus.left, focus.top, focus.width - 100.0, focus.height });
+        session.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT(session.camera_user_moved() && session.camera().view_height_m() == before.view_height_m(), "a moved camera keeps its zoom through text size and stage changes");
+        ui::UiCommand frame;
+        frame.kind = ui::UiCommandKind::frame_subject;
+        session.apply(frame);
+        RIGIDBODIES_EXPECT(!session.camera_user_moved(), "F restores the framing");
+        RIGIDBODIES_EXPECT(expect_relativity_framing(session, focus, "after F"), "the band and the apparatus fit the stage after F");
+        const auto restored = session.camera();
+        session.pan_view({ 50.0, 0.0 });
+        frame.kind = ui::UiCommandKind::frame_all;
+        session.apply(frame);
+        RIGIDBODIES_EXPECT(!session.camera_user_moved() && same_camera(session.camera(), restored), "framing everything frames the apparatus the same way");
+    }
+
+    RIGIDBODIES_TEST("the relativity stage changes tier with hysteresis as the stage shrinks and grows")
+    {
+        const auto layout = lesson_layouts()[1];
+        const auto full = focus_of(layout.input);
+        app::SimulationSession session;
+        session.set_viewport(layout.input.viewport);
+        session.set_focus_rect(full);
+        session.configure({});
+        RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light loads");
+        session.set_focus_rect(full);
+        RIGIDBODIES_EXPECT(drawn_tier(session) == render::RelativityStageTier::full, "a large stage shows everything");
+        auto previous = render::RelativityStageTier::full;
+        std::vector<render::RelativityStageTier> seen;
+        const auto resize = [&](double width, double height)
+        {
+            const render::ScreenRect focus { full.left, full.top, width, height };
+            session.set_focus_rect(focus);
+            const auto tier = drawn_tier(session);
+            const auto tps = stage_text_pixel_scale(session);
+            RIGIDBODIES_EXPECT(tier == render::choose_relativity_tier(width, height, tps, session.scene_settings().display_units, previous), "the tier follows the stage size from the tier before");
+            expect_relativity_framing(session, focus, "at " + std::to_string(static_cast<int>(width)) + " px across");
+            previous = tier;
+            if (seen.empty() || seen.back() != tier)
+                seen.push_back(tier);
+        };
+        for (double width = full.width; width >= 300.0; width -= 20.0)
+            resize(width, full.height);
+        for (double width = 300.0; width <= full.width; width += 20.0)
+            resize(width, full.height);
+        RIGIDBODIES_EXPECT(seen.size() >= 5 && seen[1] == render::RelativityStageTier::compact && seen[2] == render::RelativityStageTier::minimal && seen.back() == render::RelativityStageTier::full, "a narrowing stage drops to compact and minimal and returns to full");
+        // The full tier is entered at 700 logical px and kept down to 684, so a width between the
+        // two keeps whichever tier the stage already had.
+        const auto at_width = [&](double width)
+        {
+            session.set_focus_rect({ full.left, full.top, width, full.height });
+            return drawn_tier(session);
+        };
+        RIGIDBODIES_EXPECT(at_width(700.0) == render::RelativityStageTier::full && at_width(690.0) == render::RelativityStageTier::full, "a stage narrowing below 700 px keeps the full tier");
+        RIGIDBODIES_EXPECT(at_width(680.0) == render::RelativityStageTier::compact, "below 684 px it gives way");
+        RIGIDBODIES_EXPECT(at_width(695.0) == render::RelativityStageTier::compact, "widening again keeps the compact tier until 700 px");
+        RIGIDBODIES_EXPECT(at_width(700.0) == render::RelativityStageTier::full, "at 700 px the full tier returns");
+        // Hysteresis only steadies a stage that is being resized: one that stops between the two
+        // thresholds settles on the largest tier that fits it on the next frame.
+        RIGIDBODIES_EXPECT(at_width(680.0) == render::RelativityStageTier::compact && at_width(695.0) == render::RelativityStageTier::compact, "a stage widening from 680 px keeps the compact tier at 695 px");
+        RIGIDBODIES_EXPECT(at_width(695.0) == render::RelativityStageTier::full, "once it holds still at 695 px it settles on the full tier, which fits down to 684 px");
+        expect_relativity_framing(session, { full.left, full.top, 695.0, full.height }, "after settling at 695 px");
+        RIGIDBODIES_EXPECT(at_width(695.0) == render::RelativityStageTier::full, "and keeps it");
+    }
+
+    // Present on a 1600 x 900 window at display scale 1.5, as the application drives it: the stage
+    // first frames under the caption's whole box, then under the caption the interface measured.
+    struct PresentFrames
+    {
+        render::ScreenRect ordinary, unmeasured, measured;
+    };
+
+    PresentFrames present_frames(const ui::LayoutInput& ordinary_input, double caption_height)
+    {
+        auto present = ordinary_input;
+        present.present = true;
+        present.present_caption = true;
+        auto measured = present;
+        measured.present_caption_height = caption_height;
+        return { focus_of(ordinary_input), focus_of(present), focus_of(measured) };
+    }
+
+    RIGIDBODIES_TEST("Present settles on the largest tier that fits once its caption is measured")
+    {
+        // The guide's first step measures 160 logical pixels as a two-line caption on this window.
+        // A window's client area is a little smaller than the window: there the compact tier fits
+        // with less than its 16 pixel margin, so hysteresis alone would keep the minimal tier.
+        for (const auto& viewport : { render::ViewportSize { 1600, 900 }, render::ViewportSize { 1578, 889 } })
+        {
+            const auto client_area = viewport.width == 1578;
+            ui::LayoutInput input;
+            input.viewport = viewport;
+            input.scale = 1.5f;
+            input.guide_available = true;
+            const auto frames = present_frames(input, 160.0);
+            const auto when = " on a " + std::to_string(viewport.width) + " x " + std::to_string(viewport.height) + " window";
+            app::SimulationSession session;
+            session.set_viewport(viewport);
+            session.set_focus_rect(frames.ordinary);
+            session.configure({});
+            session.scene_settings().display_scale = input.scale;
+            RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light loads");
+            for (int frame = 0; frame < 3; ++frame)
+                session.set_focus_rect(frames.ordinary);
+            RIGIDBODIES_EXPECT(drawn_tier(session) == render::RelativityStageTier::full, "the ordinary stage shows the full tier" + when);
+            // The application publishes the focus area before it hands the session Present, so the
+            // larger text first meets the ordinary area, then the caption's box, then the caption.
+            session.set_presenting(true);
+            session.set_focus_rect(frames.ordinary);
+            session.set_focus_rect(frames.unmeasured);
+            RIGIDBODIES_EXPECT(drawn_tier(session) == render::RelativityStageTier::minimal, "under the caption's whole box only the minimal tier fits" + when);
+            // Present's text scale, as the frame just drawn used it.
+            const auto tps = stage_text_pixel_scale(session);
+            const auto units = session.scene_settings().display_units;
+            RIGIDBODIES_EXPECT(expect_relativity_framing(session, frames.unmeasured, "under the caption's whole box" + when), "the minimal tier fits under the caption's whole box" + when);
+            expect_drawn_apparatus_inside(session, frames.unmeasured, "under the caption's whole box" + when);
+            session.set_focus_rect(frames.measured);
+            const auto fitting = render::fitting_relativity_tier(frames.measured.width, frames.measured.height, tps, units);
+            RIGIDBODIES_EXPECT(fitting == render::RelativityStageTier::compact, "the measured caption leaves room for the compact tier, with its clocks and race" + when);
+            if (client_area)
+                RIGIDBODIES_EXPECT(render::choose_relativity_tier(frames.measured.width, frames.measured.height, tps, units, render::RelativityStageTier::minimal) == render::RelativityStageTier::minimal, "hysteresis alone would keep the minimal tier" + when);
+            for (int frame = 0; frame < 3; ++frame)
+            {
+                session.set_focus_rect(frames.measured);
+                session.advance(1.0 / 60.0);
+            }
+            RIGIDBODIES_EXPECT(drawn_tier(session) == fitting, "once the layout holds still Present shows the largest tier that fits" + when);
+            RIGIDBODIES_EXPECT(expect_relativity_framing(session, frames.measured, "in Present" + when), "the band and the compact apparatus fit in Present" + when);
+            expect_drawn_apparatus_inside(session, frames.measured, "in Present" + when);
+            // Leaving Present goes back to the full tier the same way.
+            session.set_presenting(false);
+            session.set_focus_rect(frames.measured);
+            for (int frame = 0; frame < 3; ++frame)
+                session.set_focus_rect(frames.ordinary);
+            RIGIDBODIES_EXPECT(drawn_tier(session) == render::RelativityStageTier::full, "after Present the ordinary stage shows the full tier again" + when);
+        }
+    }
+
+    RIGIDBODIES_TEST("a saved relativity setup opens on its saved view, and the document's own view gives way")
+    {
+        const auto layout = lesson_layouts().front();
+        const auto focus = focus_of(layout.input);
+        const auto session_at = [&](app::SimulationSession& session)
+        {
+            session.set_viewport(layout.input.viewport);
+            session.set_focus_rect(focus);
+            session.configure({});
+        };
+        app::SimulationSession saving;
+        session_at(saving);
+        RIGIDBODIES_EXPECT(saving.load_scenario("chasing_light"), "Chasing light loads");
+        saving.set_focus_rect(focus);
+        saving.pan_view({ 80.0, 30.0 });
+        saving.zoom_view(2.0, focus.center());
+        const auto saved_view = saving.camera();
+        std::string text, error;
+        RIGIDBODIES_EXPECT(saving.save_arrangement(text, error, "My probe", false, true), error);
+        app::SimulationSession opening;
+        session_at(opening);
+        RIGIDBODIES_EXPECT(opening.open_arrangement(text, error) && opening.relativity_active(), error);
+        opening.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT_NEAR(opening.camera().view_height_m(), saved_view.view_height_m(), 1.0e-9, "the saved zoom is kept");
+        RIGIDBODIES_EXPECT_NEAR(math::distance(opening.camera().center_m(), saved_view.center_m()), 0.0, 1.0e-9, "the saved centre is kept");
+        opening.set_focus_rect({ focus.left, focus.top, focus.width - 200.0, focus.height });
+        opening.set_focus_rect(focus);
+        expect_relativity_framing(opening, focus, "once the stage changes");
+        // A pan made in another experiment before the file was opened is not the saved view's:
+        // that view still gives way once the stage changes.
+        app::SimulationSession panned;
+        session_at(panned);
+        RIGIDBODIES_EXPECT(panned.load_scenario("free_fall"), "Free fall loads");
+        panned.set_focus_rect(focus);
+        panned.pan_view({ 40.0, 20.0 });
+        panned.zoom_view(1.0, focus.center());
+        RIGIDBODIES_EXPECT(panned.open_arrangement(text, error) && panned.relativity_active(), error);
+        panned.set_focus_rect(focus);
+        RIGIDBODIES_EXPECT_NEAR(panned.camera().view_height_m(), saved_view.view_height_m(), 1.0e-9, "the saved zoom is kept after an earlier pan");
+        panned.set_focus_rect({ focus.left, focus.top, focus.width - 200.0, focus.height });
+        panned.set_focus_rect(focus);
+        expect_relativity_framing(panned, focus, "once the stage changes after a pan made before opening");
+        // The bundled document has a top-level view for headless sessions only.
+        std::string bundled;
+        RIGIDBODIES_EXPECT(physics::write_scenario_document(*physics::scenario_document_for_id("chasing_light"), bundled, error), error);
+        app::SimulationSession authored;
+        session_at(authored);
+        RIGIDBODIES_EXPECT(authored.open_arrangement(bundled, error), error);
+        authored.set_focus_rect(focus);
+        expect_relativity_framing(authored, focus, "when the document has only its own view");
+        // Without a stage the document's view stands in.
+        app::SimulationSession headless;
+        headless.set_viewport(layout.input.viewport);
+        headless.configure({});
+        RIGIDBODIES_EXPECT(headless.load_scenario("chasing_light"), "Chasing light loads");
+        RIGIDBODIES_EXPECT_NEAR(headless.camera().center_m().x, 1.49896229, 1.0e-9, "a session without a stage centres the document's view");
     }
 
     RIGIDBODIES_TEST("F maps to subject framing and empty selection leaves the camera alone")

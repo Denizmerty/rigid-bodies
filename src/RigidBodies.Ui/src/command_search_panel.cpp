@@ -80,14 +80,17 @@ namespace rigidbodies::ui
             const auto recent = builder.view_search_recent();
             std::vector<CommandSearchResult> recent_results;
             for (const auto& key : recent)
-                if (auto result = resolve(key))
+                if (auto result = resolve(key); result && control_available(model, result->key))
                     recent_results.push_back(std::move(*result));
             builder.heading(recent_results.empty() ? "Suggestions" : "Recent");
             builder.begin_group("results");
             // Before anything has been searched, the settings a lesson most often changes show
             // what the palette can reach.
+            // A relativity experiment suggests its own speed and plot instead of gravity and arrows.
+            static constexpr std::string_view newtonian_suggestions[] { "world.gravity.strength", "world.air.resistance", "show.arrows.auto_length", "prefs.units.system", "prefs.appearance.theme", "camera.frame.everything" };
+            static constexpr std::string_view relativity_suggestions[] { "world.relativity.speed", "world.relativity.preset", "measure.relativity.curve", "prefs.units.system", "prefs.appearance.theme", "camera.frame.everything" };
             if (recent_results.empty())
-                for (const auto key : { "world.gravity.strength", "world.air.resistance", "show.arrows.auto_length", "prefs.units.system", "prefs.appearance.theme", "camera.frame.everything" })
+                for (const auto key : model.relativity ? math::Span<const std::string_view> { relativity_suggestions } : math::Span<const std::string_view> { newtonian_suggestions })
                 {
                     if (const auto result = resolve(key))
                         list_result(*result);
@@ -96,10 +99,17 @@ namespace rigidbodies::ui
                 for (const auto& result : recent_results)
                     list_result(result);
             builder.end_group();
-            builder.paragraph("Search for gravity, theme, step or units. Press Enter to run an action or open a setting.");
+            builder.paragraph(model.relativity ? "Search for speed, Lorentz factor, clocks, theme or units. Press Enter to run an action or open a setting."
+                                               : "Search for gravity, theme, step or units. Press Enter to run an action or open a setting.");
             return;
         }
-        const auto results = search_commands(query, model.keyboard_reference);
+        // Results are limited to the controls this experiment offers.
+        auto results = search_commands(query, model.keyboard_reference);
+        results.erase(std::remove_if(results.begin(), results.end(), [&](const CommandSearchResult& result)
+                          {
+                              return !control_available(model, result.key);
+                          }),
+            results.end());
         if (results.empty())
         {
             builder.paragraph("No action or setting matches that search.");

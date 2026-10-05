@@ -206,7 +206,9 @@ namespace rigidbodies::app
                 const auto allowed = *bound_action == AppAction::toggle_present || *bound_action == AppAction::toggle_pause || *bound_action == AppAction::pause_at_next_impact ||
                     *bound_action == AppAction::reset_scenario || *bound_action == AppAction::replay || *bound_action == AppAction::frame_subject ||
                     *bound_action == AppAction::select_mode || *bound_action == AppAction::throw_mode || *bound_action == AppAction::pull_mode ||
-                    *bound_action == AppAction::previous_guide_step || *bound_action == AppAction::next_guide_step;
+                    *bound_action == AppAction::previous_guide_step || *bound_action == AppAction::next_guide_step ||
+                    *bound_action == AppAction::raise_probe_speed || *bound_action == AppAction::lower_probe_speed ||
+                    *bound_action == AppAction::next_speed_preset || *bound_action == AppAction::previous_speed_preset;
                 if (!allowed)
                     return result;
             }

@@ -6,6 +6,9 @@ interface and scene labels use. Output names stay "Inter" with the instance's we
 
 Usage: python scripts/make_inter_fonts.py <path to Inter[opsz,wght].ttf>
 Writes Inter-Regular.ttf, Inter-Medium.ttf and Inter-SemiBold.ttf to the working directory.
+Then, in the same directory, run
+python scripts/add_thin_space.py Inter-Regular.ttf Inter-Medium.ttf Inter-SemiBold.ttf
+and move the three faces into assets/fonts (see assets/fonts/README.md).
 """
 import sys
 from fontTools.ttLib import TTFont
@@ -20,6 +23,8 @@ UNICODES = (
     + list(range(0x2010, 0x2028)) + list(range(0x2030, 0x2045)) + list(range(0x2070, 0x20A0))
     + list(range(0x2100, 0x2150)) + list(range(0x2190, 0x2200)) + list(range(0x2200, 0x2300))
     + list(range(0x25A0, 0x2600)) + list(range(0x2600, 0x2700))
+    # Thin and narrow no-break spaces: Core groups long numbers with U+2009.
+    + [0x2009, 0x202F]
 )
 
 

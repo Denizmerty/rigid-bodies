@@ -59,7 +59,11 @@ namespace rigidbodies::app
         open_command_search,
         open_context_menu,
         previous_guide_step,
-        next_guide_step
+        next_guide_step,
+        raise_probe_speed,
+        lower_probe_speed,
+        next_speed_preset,
+        previous_speed_preset
     };
 
     struct KeyBinding
@@ -73,7 +77,7 @@ namespace rigidbodies::app
 
     // This is the shared source for dispatch and the visible keyboard reference. Matching all
     // modifiers prevents a text-editing chord such as Ctrl+R from silently resetting a world.
-    inline constexpr std::array<KeyBinding, 52> key_bindings { { { ui::UiKey::space, {}, AppAction::toggle_pause, "Space", "Play / pause" },
+    inline constexpr std::array<KeyBinding, 56> key_bindings { { { ui::UiKey::space, {}, AppAction::toggle_pause, "Space", "Play / pause" },
         { ui::UiKey::space, { true, false, false }, AppAction::pause_at_next_impact, "Shift+Space", "Play until next impact" },
         { ui::UiKey::period, {}, AppAction::single_step, ".", "Single step" },
         { ui::UiKey::period, { true, false, false }, AppAction::step_many, "Shift+.", "Step 10 frames" },
@@ -124,7 +128,11 @@ namespace rigidbodies::app
         { ui::UiKey::arrow_up, { true, false, true }, AppAction::nudge_up_large, "Shift+Alt+Up", "Nudge selection up 10 cm" },
         { ui::UiKey::arrow_down, { true, false, true }, AppAction::nudge_down_large, "Shift+Alt+Down", "Nudge selection down 10 cm" },
         { ui::UiKey::arrow_left, {}, AppAction::previous_guide_step, "Left", "Previous guide step (Present)" },
-        { ui::UiKey::arrow_right, {}, AppAction::next_guide_step, "Right", "Next guide step (Present)" } } };
+        { ui::UiKey::arrow_right, {}, AppAction::next_guide_step, "Right", "Next guide step (Present)" },
+        { ui::UiKey::arrow_up, {}, AppAction::raise_probe_speed, "Up", "Raise probe speed a little" },
+        { ui::UiKey::arrow_down, {}, AppAction::lower_probe_speed, "Down", "Lower probe speed a little" },
+        { ui::UiKey::arrow_up, { true, false, false }, AppAction::next_speed_preset, "Shift+Up", "Next speed preset" },
+        { ui::UiKey::arrow_down, { true, false, false }, AppAction::previous_speed_preset, "Shift+Down", "Previous speed preset" } } };
 
     [[nodiscard]] inline AppAction action_for_key(ui::UiKey key, const ui::KeyModifiers& modifiers)
     {
@@ -252,6 +260,20 @@ namespace rigidbodies::app
             command.kind = ui::UiCommandKind::set_interaction_mode;
             command.id = action == AppAction::throw_mode ? "throw" : action == AppAction::pull_mode ? "pull"
                                                                                                     : "select";
+            break;
+        // The probe's speed: one rapidity step, or the next rung of the speed ladder. A Newtonian
+        // experiment consumes the command with no effect.
+        case AppAction::raise_probe_speed:
+        case AppAction::lower_probe_speed:
+            command.kind = ui::UiCommandKind::set_relativity_speed;
+            command.detail = "nudge";
+            command.value = action == AppAction::raise_probe_speed ? 1.0 : -1.0;
+            break;
+        case AppAction::next_speed_preset:
+        case AppAction::previous_speed_preset:
+            command.kind = ui::UiCommandKind::set_relativity_speed;
+            command.detail = "preset";
+            command.value = action == AppAction::next_speed_preset ? 1.0 : -1.0;
             break;
         }
         return command;

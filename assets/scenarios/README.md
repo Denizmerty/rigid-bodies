@@ -5,9 +5,11 @@ Each `*.scenario.json` file is a complete starting arrangement using the version
 editing a document changes the available arrangements without recompiling the application.
 Headless tools and tests use the same description-and-populate interface.
 
-The 24 supplied documents include authored outlines, materials, gravity and air settings, body-specific forces,
+The 25 supplied documents include authored outlines, materials, gravity and air settings, body-specific forces,
 prescribed motion, springs, and joints. Simulation quantities use SI units. Each document describes a
 starting state. Contact caches and rendering effects are rebuilt when the experiment runs.
+`chasing_light.scenario.json` requires the `special_relativity` feature and adds a `relativity`
+object with the probe's rest mass and starting speed; its world holds only the probe's track.
 
 The `metadata` object contains:
 
@@ -24,9 +26,9 @@ limited to 256 documents, 8 MiB per file, and 64 MiB in total; unrelated non-JSO
 
 The envelope declares `format`, `version.major`, and `version.minor`. Compatible minor versions
 may add fields, and the immutable source is retained so those fields can be preserved on save.
-Unsupported major versions and unknown physics component kinds are rejected with an explanation
-before changing the world. See [the document format](../../docs/CONTENT_FORMAT.md) for the complete
-schema and compatibility rules.
+Unsupported major versions, unsupported required features and unknown physics component kinds are
+rejected with an explanation before changing the world. See
+[the document format](../../docs/CONTENT_FORMAT.md) for the complete schema and compatibility rules.
 
 Setups you create and shapes you export default to the per-user data folder. You can choose a
 different location in the file dialog.

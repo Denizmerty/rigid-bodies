@@ -172,6 +172,7 @@ RULES = [
     ('#panel-shortcuts .row-readout .value', 'background-color: sunken; border-color: border; color: text2'),
     ('.sheets button.row-action.group-results', 'background-color: transparent'),
     ('.sheets button.row-action.group-results:hover', 'background-color: hover'),
+    ('.sheets button.row-action.group-results.is-selected', 'background-color: accent_tint; color: accent_tint_text'),
     ('.list-title', 'color: text'),
     ('.list-secondary', 'color: text2'),
     ('.list-badges', 'color: text3'),
@@ -197,6 +198,11 @@ RULES = [
     ('.segment.is-selected, .segment.selected', 'background-color: segment; color: segment_text; border-color: segment_border'),
     ('.segment.is-selected .icon, .segment.selected .icon', 'color: segment_icon'),
     ('.segment.is-selected:focus-visible, .segment.selected:focus-visible', 'border-color: focus'),
+    # An unavailable choice keeps showing its value, greyed like an unavailable button.
+    ('.row-segmented.is-disabled .segment, .row-segmented.is-disabled .segment:hover', 'color: disabled'),
+    ('.row-segmented.is-disabled .segment .icon', 'color: disabled'),
+    ('.row-segmented.is-disabled .segment.is-selected, .row-segmented.is-disabled .segment.selected', 'background-color: secondary; color: disabled; border-color: transparent'),
+    ('.row-segmented.is-disabled .segment.is-selected .icon, .row-segmented.is-disabled .segment.selected .icon', 'color: disabled'),
     ('.radio-list .segment', 'color: text'),
     ('.radio-list .segment:hover', 'background-color: hover'),
     # A chosen radio row is marked by its filled ring and tint; a segment's outline would read as focus.
@@ -252,6 +258,8 @@ RULES = [
     ('.plot-cursor-pinned', 'color: accent'),
     ('.plot-tooltip', 'background-color: raised; border-color: border_strong; color: text'),
     ('.plot-shadow', 'color: scrim'),
+    ('.plot-limit', 'color: text2'),
+    ('.plot-operating', 'color: accent'),
 
     ('.command-bar .row-title, .present-strip .row-title', 'color: text'),
     ('.command-bar .row-readout .value', 'background-color: hover; color: text2'),

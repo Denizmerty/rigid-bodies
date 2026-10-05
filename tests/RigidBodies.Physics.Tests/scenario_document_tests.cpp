@@ -2,9 +2,15 @@
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
 #include <rigidbodies/physics/joint.hpp>
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/physics/shape_document.hpp>
 
 #include "test_framework.hpp"
+
+#include <cmath>
+#include <limits>
+#include <optional>
+#include <stdexcept>
 
 namespace
 {
@@ -410,6 +416,203 @@ namespace
         RIGIDBODIES_EXPECT(!restored_spring.enabled && restored_spring.rest_angle_rad == 7, "Disabled unwrapped torsional spring survives");
         const auto recaptured = capture(copy);
         RIGIDBODIES_EXPECT(recaptured.root.at("world").at("joints").as_array()[0].at("broken").as_bool(), "Broken state survives repeated saves");
+    }
+
+    const std::string missing_relativity_error = "A document that requires special_relativity must contain a relativity object.";
+    const std::string rest_mass_error = "relativity.rest_mass_kg must be a finite number from 0.000001 to 1000000.";
+    const std::string speed_fraction_error = "relativity.speed_fraction_c must be 0 or a finite number from 0.000000000001 to 0.9999999.";
+
+    // An ordinary captured arrangement that declares special relativity, with or without its object.
+    ScenarioDocument relativity_document(const std::optional<RelativitySetup>& setup = RelativitySetup { 1.0, 0.5 })
+    {
+        World world;
+        world.create_body(ball("Rail"));
+        auto document = capture(world);
+        document.root["required_features"] = Json::Array { std::string(special_relativity_feature) };
+        if (setup)
+            write_relativity_setup(document.root, *setup);
+        return document;
+    }
+
+    // Rejected on every path with the given explanation, without touching a live world. A DOM holding
+    // a non-finite number cannot be written as text, so only the populate and codec paths see it.
+    void expect_rejected(const ScenarioDocument& invalid, const std::string& expected_error, bool writable = true)
+    {
+        World target;
+        const auto old = target.create_body(ball("Sentinel"));
+        std::string error;
+        RIGIDBODIES_EXPECT(!populate_world(invalid, target, error) && error == expected_error, "populating fails with the field named: " + error);
+        RIGIDBODIES_EXPECT(target.is_valid(old) && target.find_body(old)->name() == "Sentinel", "the live world is unchanged");
+        if (writable)
+        {
+            ScenarioDocument parsed;
+            parsed.metadata.title = "Retained";
+            RIGIDBODIES_EXPECT(!parse_scenario_document(content::write_json(invalid.root), parsed, error) && error == expected_error, "parsing fails with the field named: " + error);
+            RIGIDBODIES_EXPECT(parsed.metadata.title == "Retained", "a failed parse publishes nothing");
+        }
+        bool thrown = false;
+        try
+        {
+            (void)read_relativity_setup(invalid.root);
+        }
+        catch (const std::invalid_argument& exception)
+        {
+            thrown = exception.what() == expected_error;
+        }
+        RIGIDBODIES_EXPECT(thrown, "the codec throws invalid_argument naming the field");
+    }
+
+    RIGIDBODIES_TEST("special_relativity is accepted only with a valid relativity object")
+    {
+        auto document = relativity_document(std::nullopt);
+        RIGIDBODIES_EXPECT(declares_special_relativity(document.root), "the document declares the feature");
+        expect_rejected(document, missing_relativity_error);
+        document.root["relativity"] = nullptr;
+        expect_rejected(document, missing_relativity_error);
+        document.root["relativity"] = Json::Array { 1.0, 0.5 };
+        expect_rejected(document, missing_relativity_error);
+        document = relativity_document(RelativitySetup { 2.0, 0.9 });
+        std::string error;
+        World target;
+        RIGIDBODIES_EXPECT(populate_world(document, target, error) && target.body_ids().size() == 1, error);
+        ScenarioDocument parsed;
+        RIGIDBODIES_EXPECT(parse_scenario_document(content::write_json(document.root), parsed, error), error);
+        RIGIDBODIES_EXPECT(read_relativity_setup(parsed.root) == RelativitySetup { 2.0, 0.9 }, "the parsed document carries its setup");
+        std::string text;
+        RIGIDBODIES_EXPECT(write_scenario_document(parsed, text, error), error);
+        for (const auto& features : { Json::Array { "special_relativity", "special_relativity" }, Json::Array { "special_relativity", "future_solver" }, Json::Array { "future_solver" } })
+        {
+            auto invalid = document;
+            invalid.root["required_features"] = features;
+            RIGIDBODIES_EXPECT(!populate_world(invalid, target, error) && error == "Document requires unsupported features.", "only special_relativity, once, is supported");
+        }
+        auto legacy = document;
+        legacy.root["requires"] = Json::Array { "special_relativity" };
+        RIGIDBODIES_EXPECT(!populate_world(legacy, target, error), "the early spelling of required features still supports nothing");
+    }
+
+    RIGIDBODIES_TEST("a relativity object without the feature is retained and ignored")
+    {
+        World world;
+        world.create_body(ball());
+        auto document = capture(world);
+        document.root["relativity"] = Json::Object { { "rest_mass_kg", 0.0 }, { "speed_fraction_c", 1.0 }, { "note", "kept" } };
+        std::string error;
+        ScenarioDocument parsed;
+        RIGIDBODIES_EXPECT(parse_scenario_document(content::write_json(document.root), parsed, error), error);
+        RIGIDBODIES_EXPECT(!declares_special_relativity(parsed.root) && !read_relativity_setup(parsed.root), "without the feature the object is not a setup");
+        RIGIDBODIES_EXPECT(parsed.root.at("relativity").at("note").as_string() == "kept", "the object is retained like any extension");
+        ScenarioDocument saved;
+        RIGIDBODIES_EXPECT(capture_scenario_document(world, metadata(), saved, error, &parsed), error);
+        RIGIDBODIES_EXPECT(saved.root.at("relativity").at("speed_fraction_c").as_number() == 1.0, "an ignored object survives saving unchanged");
+        document.root["required_features"] = Json::Array {};
+        RIGIDBODIES_EXPECT(parse_scenario_document(content::write_json(document.root), parsed, error) && !read_relativity_setup(parsed.root), "an empty feature list declares nothing");
+    }
+
+    RIGIDBODIES_TEST("malformed relativity objects fail closed")
+    {
+        const auto with_member = [](const char* key, const Json& value)
+        {
+            auto document = relativity_document();
+            document.root["relativity"][key] = value;
+            return document;
+        };
+        const auto without_member = [](const char* key)
+        {
+            auto document = relativity_document();
+            document.root["relativity"].as_object().erase(key);
+            return document;
+        };
+        expect_rejected(with_member("speed_fraction_c", 1.0), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", -0.1), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", "0.5"), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", nullptr), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", maximum_speed_fraction + 1.0e-9), speed_fraction_error);
+        // Slower than the slowest moving speed a learner can set: its text and its energy would
+        // lose their digits.
+        expect_rejected(with_member("speed_fraction_c", 1.0e-13), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", 1.0e-300), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", std::numeric_limits<double>::denorm_min()), speed_fraction_error);
+        expect_rejected(with_member("speed_fraction_c", std::numeric_limits<double>::quiet_NaN()), speed_fraction_error, false);
+        expect_rejected(without_member("speed_fraction_c"), speed_fraction_error);
+        expect_rejected(with_member("rest_mass_kg", 0.0), rest_mass_error);
+        expect_rejected(with_member("rest_mass_kg", 1.0e9), rest_mass_error);
+        expect_rejected(with_member("rest_mass_kg", -1.0), rest_mass_error);
+        expect_rejected(with_member("rest_mass_kg", true), rest_mass_error);
+        expect_rejected(without_member("rest_mass_kg"), rest_mass_error);
+        std::string error;
+        World target;
+        for (const auto& setup : { RelativitySetup { minimum_relativity_mass_kg, 0.0 }, RelativitySetup { maximum_relativity_mass_kg, maximum_speed_fraction }, RelativitySetup { 1.0, minimum_moving_speed_fraction } })
+            RIGIDBODIES_EXPECT(populate_world(relativity_document(setup), target, error), "the bounds themselves are accepted: " + error);
+    }
+
+    RIGIDBODIES_TEST("capture with a source keeps the feature and the object")
+    {
+        auto source = relativity_document(RelativitySetup { 1.5, 0.99999 });
+        source.root["relativity"]["future_member"] = "kept";
+        World world;
+        std::string error;
+        RIGIDBODIES_EXPECT(populate_world(source, world, error), error);
+        world.create_body(ball("Added"));
+        ScenarioDocument saved;
+        RIGIDBODIES_EXPECT(capture_scenario_document(world, metadata(), saved, error, &source), error);
+        RIGIDBODIES_EXPECT(declares_special_relativity(saved.root) && saved.root.at("required_features").as_array().size() == 1, "the feature is inherited once");
+        RIGIDBODIES_EXPECT(read_relativity_setup(saved.root) == RelativitySetup { 1.5, 0.99999 }, "the setup is inherited");
+        RIGIDBODIES_EXPECT(saved.root.at("relativity").at("future_member").as_string() == "kept", "unknown members of the object survive");
+        write_relativity_setup(saved.root, RelativitySetup { 1.5, 0.5 });
+        RIGIDBODIES_EXPECT(saved.root.at("relativity").at("future_member").as_string() == "kept", "writing a setup keeps unknown members");
+        std::string text;
+        ScenarioDocument reread;
+        RIGIDBODIES_EXPECT(write_scenario_document(saved, text, error) && parse_scenario_document(text, reread, error), error);
+        RIGIDBODIES_EXPECT(read_relativity_setup(reread.root) == RelativitySetup { 1.5, 0.5 }, "the written setup is read back");
+        ScenarioDocument fresh;
+        RIGIDBODIES_EXPECT(capture_scenario_document(world, metadata(), fresh, error), error);
+        RIGIDBODIES_EXPECT(!declares_special_relativity(fresh.root) && fresh.root.find("relativity") == nullptr, "a capture without a source carries no extension");
+        auto broken = source;
+        broken.root.as_object().erase("relativity");
+        auto unchanged = saved;
+        RIGIDBODIES_EXPECT(!capture_scenario_document(world, metadata(), unchanged, error, &broken) && error == missing_relativity_error, "an invalid source cannot be inherited");
+        RIGIDBODIES_EXPECT(unchanged.root.at("relativity").at("speed_fraction_c").as_number() == 0.5, "a failed capture leaves the previous result");
+    }
+
+    RIGIDBODIES_TEST("the relativity setup round-trips exactly")
+    {
+        for (const auto& setup : { RelativitySetup { 1.0, 0.99999 }, RelativitySetup { 1.0, 0.9999999 }, RelativitySetup { 0.123456789, 1.0e-9 }, RelativitySetup { minimum_relativity_mass_kg, 0.0 }, RelativitySetup { 3.0, std::nextafter(0.99999, 1.0) } })
+        {
+            const auto document = relativity_document(setup);
+            std::string text, error;
+            ScenarioDocument parsed;
+            RIGIDBODIES_EXPECT(write_scenario_document(document, text, error) && parse_scenario_document(text, parsed, error), error);
+            const auto read = read_relativity_setup(parsed.root);
+            RIGIDBODIES_EXPECT(read && read->rest_mass_kg == setup.rest_mass_kg && read->speed_fraction == setup.speed_fraction, "mass and speed are restored bit for bit");
+            RIGIDBODIES_EXPECT(relativity_setup_fingerprint(*read) == relativity_setup_fingerprint(setup), "the fingerprint survives a round trip");
+            const auto encoded = encode_relativity_setup(setup);
+            RIGIDBODIES_EXPECT(encoded.as_object().size() == 2 && encoded.at("rest_mass_kg").as_number() == setup.rest_mass_kg && encoded.at("speed_fraction_c").as_number() == setup.speed_fraction, "the object holds exactly the two values");
+        }
+        RIGIDBODIES_EXPECT(relativity_setup_fingerprint({ 1.0, 0.99999 }) != relativity_setup_fingerprint({ 1.0, std::nextafter(0.99999, 1.0) }), "the fingerprint tells neighbouring speeds apart");
+        RIGIDBODIES_EXPECT(relativity_setup_fingerprint({ 1.0, 0.5 }) != relativity_setup_fingerprint({ 2.0, 0.5 }), "the fingerprint includes the mass");
+        auto document = relativity_document();
+        document.root["relativity"]["speed_fraction_c"] = -0.0;
+        const auto rest = read_relativity_setup(document.root);
+        RIGIDBODIES_EXPECT(rest && !std::signbit(rest->speed_fraction) && relativity_setup_fingerprint(*rest) == relativity_setup_fingerprint({ 1.0, 0.0 }), "a written negative zero reads and fingerprints as rest");
+        RIGIDBODIES_EXPECT(relativity_setup_fingerprint({ 1.0, -0.0 }) == relativity_setup_fingerprint({ 1.0, 0.0 }) && !std::signbit(encode_relativity_setup({ 1.0, -0.0 }).at("speed_fraction_c").as_number()), "a negative zero speed is written as rest");
+        RelativisticProbe stopped { { 2.0, 0.5 } };
+        stopped.set_speed_fraction(-0.0);
+        RIGIDBODIES_EXPECT(!std::signbit(stopped.setup().speed_fraction) && relativity_setup_fingerprint(stopped.setup()) == relativity_setup_fingerprint({ 2.0, 0.0 }), "a probe stopped with a negative zero fingerprints as rest");
+        const auto before = content::write_json(document.root);
+        for (const auto& setup : { RelativitySetup { 1.0, 1.0 }, RelativitySetup { 0.0, 0.5 }, RelativitySetup { 1.0, std::numeric_limits<double>::quiet_NaN() } })
+        {
+            bool thrown = false;
+            try
+            {
+                write_relativity_setup(document.root, setup);
+            }
+            catch (const std::invalid_argument&)
+            {
+                thrown = true;
+            }
+            RIGIDBODIES_EXPECT(thrown && content::write_json(document.root) == before, "an invalid setup is never written");
+        }
     }
 
     class CustomForce final : public ForceGenerator

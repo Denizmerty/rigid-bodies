@@ -87,6 +87,55 @@ namespace
             }
     }
 
+    RIGIDBODIES_TEST("locked Present allows the speed keys")
+    {
+        app::InputContext context;
+        context.present = true;
+        context.present_locked = true;
+        struct SpeedKey
+        {
+            ui::UiKey key;
+            ui::KeyModifiers modifiers;
+            app::AppAction action;
+        };
+        const SpeedKey speed_keys[] { { ui::UiKey::arrow_up, {}, app::AppAction::raise_probe_speed }, { ui::UiKey::arrow_down, {}, app::AppAction::lower_probe_speed }, { ui::UiKey::arrow_up, { true, false, false }, app::AppAction::next_speed_preset }, { ui::UiKey::arrow_down, { true, false, false }, app::AppAction::previous_speed_preset } };
+        for (const auto& speed_key : speed_keys)
+        {
+            const auto action = app::action_for_key(speed_key.key, speed_key.modifiers);
+            RIGIDBODIES_EXPECT(action == speed_key.action, "plain arrows nudge the probe speed and Shift arrows step its presets");
+            const auto decision = app::route_event(key(speed_key.key, speed_key.modifiers), action, context);
+            RIGIDBODIES_EXPECT(decision.action == speed_key.action && !decision.to_interface, "a teacher can change the speed under the Present lock");
+        }
+        const auto draw = app::route_event(key(ui::UiKey::d), app::AppAction::draw_shape, context);
+        const auto nudge = app::route_event(key(ui::UiKey::arrow_up, { false, false, true }), app::AppAction::nudge_up, context);
+        RIGIDBODIES_EXPECT(!draw.action && !nudge.action, "other editing keys stay locked");
+        context.present_locked = false;
+        RIGIDBODIES_EXPECT(app::route_event(key(ui::UiKey::arrow_up), app::AppAction::raise_probe_speed, context).action == app::AppAction::raise_probe_speed, "an unlocked Present keeps them too");
+        context.interface_modal = true;
+        RIGIDBODIES_EXPECT(!app::route_event(key(ui::UiKey::arrow_up, { true, false, false }), app::AppAction::next_speed_preset, context).action, "a modal surface still protects the experiment beneath it");
+    }
+
+    RIGIDBODIES_TEST("a focused field or control keeps its own plain and Shift arrows")
+    {
+        app::InputContext context;
+        for (const auto focus : { ui::FocusOwner::text_field, ui::FocusOwner::keyboard_control })
+            for (const auto value : { ui::UiKey::arrow_up, ui::UiKey::arrow_down })
+                for (const auto shift : { false, true })
+                {
+                    context.focus = focus;
+                    const auto event = key(value, { shift, false, false });
+                    const auto decision = app::route_event(event, app::action_for_key(value, event.modifiers), context);
+                    RIGIDBODIES_EXPECT(decision.to_interface && !decision.action, "a focused field or control steps itself rather than the global speed");
+                }
+        // Holding an arrow on the stage never repeats a speed step.
+        context.focus = ui::FocusOwner::scene;
+        auto held = key(ui::UiKey::arrow_up, { true, false, false });
+        held.repeat = true;
+        const auto repeated = app::route_event(held, app::AppAction::next_speed_preset, context);
+        RIGIDBODIES_EXPECT(!repeated.action && !repeated.to_interface, "one press is one step");
+        RIGIDBODIES_EXPECT(app::route_event(key(ui::UiKey::arrow_up, { true, false, false }), app::AppAction::next_speed_preset, context).action == app::AppAction::next_speed_preset, "the stage hands a single press to the speed");
+    }
+
     RIGIDBODIES_TEST("focused buttons own Space and modal surfaces block background scene edits")
     {
         app::InputContext context;

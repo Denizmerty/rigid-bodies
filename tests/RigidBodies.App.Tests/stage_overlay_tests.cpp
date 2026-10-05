@@ -414,6 +414,63 @@ namespace
         RIGIDBODIES_EXPECT(session.scene_settings().text_scale == ordinary_text, "leaving Present restores the ordinary size");
     }
 
+    RIGIDBODIES_TEST("no gravity dial in relativity experiments")
+    {
+        app::SimulationSession session;
+        session.set_viewport({ 1600, 900 });
+        session.set_focus_rect({ 100.0, 60.0, 1100.0, 760.0 });
+        session.configure({});
+        RIGIDBODIES_EXPECT(session.load_scenario("chasing_light") && session.relativity_active(), "Chasing light loads");
+        session.stepper().set_paused(true);
+        render::DrawList list;
+        session.render(list);
+        const auto dial = app::gravity_compass_centre(session.camera(), 1.0);
+        const auto reach = app::overlay::compass_radius + 4.0;
+        for (const auto& command : list.commands())
+        {
+            if (command.layer != app::overlay::overlay_layer)
+                continue;
+            RIGIDBODIES_EXPECT(command.kind != render::DrawCommandKind::text || std::string_view(list.text_buffer()).substr(command.text_offset, command.text_length) != "g", "the dial's g is not drawn");
+            if (command.kind == render::DrawCommandKind::circle_fill || command.kind == render::DrawCommandKind::circle_outline)
+                RIGIDBODIES_EXPECT(math::length(list.vertices()[command.vertex_offset] - dial) > reach, "nothing is drawn as a dial in the stage corner");
+        }
+        for (const auto& [minimum, maximum] : session.scene_renderer().overlay_areas())
+            RIGIDBODIES_EXPECT(!(dial.x >= minimum.x && dial.x <= maximum.x && dial.y >= minimum.y && dial.y <= maximum.y), "no plate keeps clear of a dial that is not there");
+        const auto model = session.build_model();
+        RIGIDBODIES_EXPECT(std::none_of(model.handles.begin(), model.handles.end(), [](const ui::StageHandle& handle)
+                               {
+                                   return handle.id == "gravity";
+                               }),
+            "no gravity handle is published");
+        RIGIDBODIES_EXPECT(session.scene_renderer().relativity_stage_layout().has_value(), "the apparatus is drawn instead");
+    }
+
+    RIGIDBODIES_TEST("Present enlarges the stage clocks by 1.4")
+    {
+        app::SimulationSession session;
+        session.set_viewport({ 1600, 900 });
+        const render::ScreenRect focus { 100.0, 60.0, 1300.0, 780.0 };
+        session.set_focus_rect(focus);
+        session.configure({});
+        RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light loads");
+        session.set_focus_rect(focus);
+        render::DrawList list;
+        session.render(list);
+        const auto ordinary = *session.scene_renderer().relativity_stage_layout();
+        session.set_presenting(true);
+        session.set_focus_rect(focus);
+        session.render(list);
+        const auto presented = *session.scene_renderer().relativity_stage_layout();
+        RIGIDBODIES_EXPECT(ordinary.tier == render::RelativityStageTier::full && presented.tier == render::RelativityStageTier::full, "a large stage keeps the full tier in Present");
+        RIGIDBODIES_EXPECT_NEAR(presented.clock_radius, ordinary.clock_radius * app::overlay::present_scale, 1.0e-6, "both clock faces grow by the Present factor");
+        RIGIDBODIES_EXPECT_NEAR(presented.probe_radius, ordinary.probe_radius * app::overlay::present_scale, 1.0e-6, "and so does the probe");
+        RIGIDBODIES_EXPECT(presented.band.height > ordinary.band.height && presented.fixed_plates.front().height > ordinary.fixed_plates.front().height, "the band and its plates grow with the text");
+        session.set_presenting(false);
+        session.set_focus_rect(focus);
+        session.render(list);
+        RIGIDBODIES_EXPECT(session.scene_renderer().relativity_stage_layout()->clock_radius == ordinary.clock_radius, "leaving Present restores the ordinary size");
+    }
+
     RIGIDBODIES_TEST("stage labels are placed clear of the gravity dial")
     {
         app::SimulationSession session;

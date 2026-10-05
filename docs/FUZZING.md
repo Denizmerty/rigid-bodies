@@ -16,10 +16,10 @@ load must preserve an existing world's handles and complete serialized arrangeme
 Exceptions, allocation failures and sanitizer errors propagate out of the harness so failures
 remain visible.
 
-The corpus includes primitive, mechanism, authored, and prescribed-motion
-scenarios; convex, concave, and curved outlines; malformed Unicode, duplicate
-keys, numeric overflow, excessive nesting, unsupported versions, missing body
-references, and self intersections. The deterministic smoke test also mutates numeric
+The corpus includes primitive, mechanism, authored, prescribed-motion, and
+special-relativity scenarios; convex, concave, and curved outlines; malformed
+Unicode, duplicate keys, numeric overflow, excessive nesting, unsupported
+versions, missing body references, and self intersections. The deterministic smoke test also mutates numeric
 extremes and feeds raw invalid UTF-8 and embedded NUL bytes. Mutation ordering uses
 a fixed integer generator rather than implementation-dependent random distributions.
 

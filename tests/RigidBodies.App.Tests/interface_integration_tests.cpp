@@ -2,6 +2,7 @@
 
 #include <rigidbodies/physics/shape.hpp>
 #include <rigidbodies/ui/control_spec.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 
 #include <algorithm>
 #include <array>
@@ -2059,7 +2060,7 @@ namespace
         harness.frames_for(2);
         RIGIDBODIES_EXPECT(harness.click_element(control("measure.runs.inspect_graph")), "one saved run already offers Show this run in graph");
         harness.frames_for(2);
-        constexpr std::string_view tabs[] { "energy", "graph", "collisions", "runs", "theory" };
+        constexpr std::string_view tabs[] { "energy", "graph", "collisions", "runs", "theory", "relativity" };
         RIGIDBODIES_EXPECT(harness.interface.view_state().active_tab("measure.header.tabs", tabs, "energy") == "graph" &&
                 harness.interface.view_state().value("measure.graph.review_run") == std::to_string(saved_number),
             "the real action opens the selected saved run rather than merely overlaying it on the live window");
@@ -2088,6 +2089,344 @@ namespace
         harness.dispatch(leave);
         harness.frames_for(2);
         RIGIDBODIES_EXPECT(!harness.visible_bounds("tooltip").has_value(), "the tooltip goes when the pointer leaves for the title bar");
+    }
+
+    double probe_speed(const LearnerInterface& harness)
+    {
+        const auto model = harness.session.build_model();
+        return model.relativity ? model.relativity->speed_fraction : -1.0;
+    }
+
+    void open_chasing_light(LearnerInterface& harness)
+    {
+        RIGIDBODIES_EXPECT(harness.session.load_scenario("chasing_light"), "Chasing light loads");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.session.relativity_active(), "the relativity experiment is open");
+    }
+
+    RIGIDBODIES_TEST("Shift+Up raises the probe speed in Present under the lock")
+    {
+        LearnerInterface harness;
+        open_chasing_light(harness);
+        harness.key(ui::UiKey::f5);
+        harness.frame();
+        RIGIDBODIES_EXPECT(harness.interface.view_state().present().mode && harness.interface.view_state().present().lock, "Present opens locked");
+        const auto& spec = ui::find_control_spec("world.relativity.speed")->number;
+        harness.key(ui::UiKey::arrow_up, { true, false, false });
+        harness.frame();
+        RIGIDBODIES_EXPECT(probe_speed(harness) == 0.5, "Shift+Up goes from rest to the next preset, 0.5 c, under the lock");
+        harness.key(ui::UiKey::arrow_up, { true, false, false });
+        harness.frame();
+        RIGIDBODIES_EXPECT(probe_speed(harness) == 0.9, "Shift+Up again goes to 0.9 c");
+        harness.key(ui::UiKey::arrow_up);
+        harness.frame();
+        RIGIDBODIES_EXPECT(probe_speed(harness) == ui::keyboard_step(spec, 0.9, 1, ui::StepSize::normal) && probe_speed(harness) > 0.9 && probe_speed(harness) < 0.99, "Up raises the speed a little");
+        harness.key(ui::UiKey::arrow_down, { true, false, false });
+        harness.frame();
+        RIGIDBODIES_EXPECT(probe_speed(harness) == 0.9, "Shift+Down returns to the previous preset");
+        RIGIDBODIES_EXPECT_NEAR(harness.interface.view_state().number("present.guide_step", 0.0), 0.0, 0.0, "the speed keys leave the lesson step where it was");
+        RIGIDBODIES_EXPECT(harness.interface.view_state().present().mode && harness.interface.view_state().present().lock, "the presenter stays in locked Present");
+        const auto strip_time = harness.document().element_text(control("present.time") + "--value");
+        RIGIDBODIES_EXPECT(strip_time.find("Lab time") == 0 && strip_time.find("ns") != std::string::npos, "the strip's clock reads lab time in nanoseconds: " + strip_time);
+    }
+
+    RIGIDBODIES_TEST("Present on a 1600 x 900 window at 150 % settles with both clocks and the race on the stage")
+    {
+        // The client area of that window. Present first frames the stage under the caption's whole
+        // box and measures the caption a frame later; the stage must then show the largest tier
+        // that fits, not the one the first frame forced on it.
+        LearnerInterface harness({}, { 1578, 889 }, 1.5f);
+        open_chasing_light(harness);
+        harness.key(ui::UiKey::f5);
+        harness.frames_for(6);
+        RIGIDBODIES_EXPECT(harness.interface.view_state().present().mode, "Present is on");
+        const auto& stage = harness.session.scene_renderer().relativity_stage_layout();
+        RIGIDBODIES_EXPECT(stage.has_value(), "the stage has been drawn");
+        if (!stage)
+            return;
+        const auto focus = harness.interface.layout().focus;
+        RIGIDBODIES_EXPECT(std::abs(stage->text_pixel_scale - 1.5 * 1.4) <= 1.0e-6, "Present draws stage text 1.4 times larger");
+        RIGIDBODIES_EXPECT(stage->tier == render::fitting_relativity_tier(focus.width(), focus.height(), stage->text_pixel_scale, harness.session.scene_settings().display_units), "the stage settles on the largest tier that fits");
+        RIGIDBODIES_EXPECT(stage->tier == render::RelativityStageTier::compact && stage->clock_radius >= 16.0 * stage->text_pixel_scale, "that is the compact tier, with both clock faces");
+        bool race = false;
+        for (const auto& command : harness.scene_list.commands())
+            race = race || (command.kind == render::DrawCommandKind::text && std::string_view { harness.scene_list.text_buffer() }.substr(command.text_offset, command.text_length).rfind("Light ", 0) == 0);
+        RIGIDBODIES_EXPECT(race, "and the race plate");
+        harness.key(ui::UiKey::f5);
+        harness.frames_for(3);
+        RIGIDBODIES_EXPECT(!harness.interface.view_state().present().mode && stage && stage->tier == render::RelativityStageTier::full, "leaving Present returns to the full tier");
+    }
+
+    RIGIDBODIES_TEST("the Present caption carries the speed presets")
+    {
+        LearnerInterface harness;
+        open_chasing_light(harness);
+        harness.key(ui::UiKey::f5);
+        harness.frame();
+        harness.key(ui::UiKey::arrow_right);
+        harness.frames_for(2);
+        const auto chips = control("world.relativity.preset", "present");
+        RIGIDBODIES_EXPECT(harness.visible_bounds(chips).has_value(), "step 2 offers the speed presets on the lesson card");
+        RIGIDBODIES_EXPECT(harness.click_element(chips + "--option_row_0_9"), "the 0.9 c chip can be pressed");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(probe_speed(harness) == 0.9 && harness.interface.view_state().present().mode, "the chip sets 0.9 c without leaving Present");
+        harness.key(ui::UiKey::arrow_right);
+        harness.key(ui::UiKey::arrow_right);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.visible_bounds(control("world.relativity.speed", "present") + "--field").has_value(), "step 4 offers the speed field");
+        harness.key(ui::UiKey::arrow_right);
+        harness.key(ui::UiKey::arrow_right);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.click_element(control("present.strip.show_me")), "the last step offers to show the comparison");
+        harness.frames_for(2);
+        constexpr std::string_view tabs[] { "relativity", "graph", "runs" };
+        RIGIDBODIES_EXPECT(!harness.interface.view_state().present().mode && harness.interface.view_state().surface_open("measure.open", false) && harness.interface.view_state().active_tab("measure.header.tabs", tabs, "graph") == "relativity", "Exit and show me leaves Present on the Relativity tab");
+        RIGIDBODIES_EXPECT(harness.visible_bounds(control("measure.relativity.curve")).has_value(), "the curve chooser is shown");
+    }
+
+    RIGIDBODIES_TEST("Show me for the curve opens the Relativity tab")
+    {
+        LearnerInterface harness({}, { 1600, 1200 });
+        open_chasing_light(harness);
+        // Fold the Guide's earlier sections so its steps are in view.
+        for (const auto* section : { "guide.about", "guide.watch", "guide.predict", "guide.change" })
+            harness.interface.view_state().set_section_open(section, false);
+        harness.interface.view_state().set_surface_open("measure.open", false);
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "graph");
+        harness.frames_for(2);
+        // Steps 2 to 6 each have Show me; the last one opens the comparison of the curves.
+        RIGIDBODIES_EXPECT(harness.click_element(control("guide.steps.show_me", "5")), "the last step's Show me is displayed");
+        harness.frames_for(2);
+        constexpr std::string_view tabs[] { "relativity", "graph", "runs" };
+        RIGIDBODIES_EXPECT(harness.interface.view_state().surface_open("measure.open", false) && harness.interface.view_state().active_tab("measure.header.tabs", tabs, "graph") == "relativity", "Show me opens Measure on the Relativity tab");
+        RIGIDBODIES_EXPECT(harness.document().focused_element().rfind(control("measure.relativity.curve"), 0) == 0, "the curve chooser takes the focus");
+    }
+
+    RIGIDBODIES_TEST("W opens Probe speed and a probe click does not open Measure")
+    {
+        LearnerInterface harness;
+        open_chasing_light(harness);
+        harness.interface.view_state().set_surface_open("measure.open", true);
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "relativity");
+        harness.frames_for(2);
+        harness.key(ui::UiKey::w);
+        harness.frames_for(2);
+        const auto speed = control("world.relativity.speed");
+        RIGIDBODIES_EXPECT(harness.document().focused_element().rfind(speed + "-", 0) == 0, "W focuses the World page's Probe speed, not the Relativity tab's copy: " + harness.document().focused_element());
+
+        harness.interface.view_state().set_surface_open("measure.open", false);
+        harness.interface.view_state().set_surface_open("inspector.open", false);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(!harness.interface.layout().find(ui::RegionId::inspector), "the Inspector is closed before the click");
+        const auto& stage = harness.session.scene_renderer().relativity_stage_layout();
+        RIGIDBODIES_EXPECT(stage.has_value(), "the stage has been drawn");
+        if (!stage)
+            return;
+        harness.click(stage->probe_center);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.interface.layout().find(ui::RegionId::inspector) && harness.document().focused_element().rfind(speed + "-", 0) == 0, "a click on the probe opens Probe speed");
+        RIGIDBODIES_EXPECT(!harness.interface.view_state().surface_open("measure.open", false), "the probe click leaves Measure closed");
+    }
+
+    RIGIDBODIES_TEST("dragging the speed slider keeps the clocks running")
+    {
+        LearnerInterface harness;
+        open_chasing_light(harness);
+        harness.session.stepper().set_paused(false);
+        harness.frames_for(10);
+        const auto slider = harness.visible_bounds(control("world.relativity.speed") + "--slider");
+        RIGIDBODIES_EXPECT(slider.has_value(), "the World page shows the speed slider");
+        if (!slider)
+            return;
+        auto point = ui::Vec2 { slider->minimum.x + slider->width() * 0.1, (slider->minimum.y + slider->maximum.y) * 0.5 };
+        harness.pointer(ui::UiEventKind::pointer_down, point);
+        point.x = slider->minimum.x + slider->width() * 0.45;
+        harness.pointer(ui::UiEventKind::pointer_move, point);
+        harness.frame();
+        const auto during = harness.session.build_model();
+        RIGIDBODIES_EXPECT(harness.interface.pointer_captured() && during.held_reason.empty() && during.run_state == ui::RunState::running, "a speed drag holds nothing: the run goes on under the hand");
+        RIGIDBODIES_EXPECT(during.relativity && during.relativity->speed_fraction > 0.0, "the drag previews a speed");
+        harness.frames_for(20);
+        const auto later = harness.session.build_model();
+        RIGIDBODIES_EXPECT(later.relativity && later.relativity->lab_time_s > during.relativity->lab_time_s && later.relativity->proper_time_s > during.relativity->proper_time_s, "both clocks keep running while the slider is held");
+        harness.pointer(ui::UiEventKind::pointer_up, point);
+        harness.frame();
+        const auto after = harness.session.build_model();
+        RIGIDBODIES_EXPECT(!harness.interface.pointer_captured() && after.held_reason.empty() && after.run_state == ui::RunState::running, "release commits and the run goes on");
+        RIGIDBODIES_EXPECT(after.can_undo && after.undo_label == "Change probe speed" && after.relativity && after.relativity->speed_fraction == during.relativity->speed_fraction, "the drag is one undo entry keeping the previewed speed");
+    }
+
+    RIGIDBODIES_TEST("a focused speed field keeps its arrows")
+    {
+        LearnerInterface harness;
+        open_chasing_light(harness);
+        const auto field = control("world.relativity.speed") + "--field";
+        RIGIDBODIES_EXPECT(harness.click_element(field), "the speed field is displayed");
+        harness.frame();
+        RIGIDBODIES_EXPECT(harness.document().focused_element() == field, "the press focuses the field");
+        const auto& spec = ui::find_control_spec("world.relativity.speed")->number;
+        harness.key(ui::UiKey::arrow_up);
+        harness.frames_for(2);
+        const auto nudged = ui::keyboard_step(spec, 0.0, 1, ui::StepSize::normal);
+        RIGIDBODIES_EXPECT(probe_speed(harness) == nudged, "Up in the field takes one rapidity step, once");
+        harness.key(ui::UiKey::arrow_up, { true, false, false });
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(probe_speed(harness) == 0.5, "Shift+Up in the field climbs to the next preset, once");
+        harness.key(ui::UiKey::arrow_down);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(probe_speed(harness) == ui::keyboard_step(spec, 0.5, -1, ui::StepSize::normal), "Down in the field takes one step down");
+        RIGIDBODIES_EXPECT(harness.document().focused_element() == field, "the field keeps the focus");
+    }
+
+    RIGIDBODIES_TEST("a relativity run is pinned, kept and reviewed in lab nanoseconds")
+    {
+        LearnerInterface harness({}, { 1600, 1200 });
+        open_chasing_light(harness);
+        ui::UiCommand speed;
+        speed.kind = ui::UiCommandKind::set_relativity_speed;
+        speed.value = 0.6;
+        harness.apply_command(speed);
+        harness.interface.view_state().set_surface_open("measure.open", true);
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "runs");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.click_element(control("measure.runs.add_value")), "the Runs tab offers Add value");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.visible_bounds(control("measure.runs.add_quantity") + "--field").has_value() && !harness.visible_bounds(control("measure.runs.add_object") + "--field").has_value(), "a clock is chosen without an object");
+        RIGIDBODIES_EXPECT(harness.click_element(control("measure.runs.add", "probe_clock")), "Add is pressed with the default, the probe clock at the end");
+        harness.frames_for(2);
+        const auto pinned = harness.session.build_model().pinned_values;
+        RIGIDBODIES_EXPECT(pinned.size() == 1 && pinned.front().quantity == "probe_clock" && pinned.front().aggregator == ui::RunAggregator::at_end, "the probe clock is pinned for every run");
+
+        harness.session.stepper().set_paused(false);
+        harness.frames_for(200, 0.025);
+        harness.session.reset_scenario();
+        harness.frames_for(2);
+        const auto runs = harness.session.build_model().runs;
+        RIGIDBODIES_EXPECT(runs.size() == 1 && runs.front().pinned_results.size() == 1 && runs.front().pinned_results.front(), "Back to start keeps the run with its probe clock");
+        if (runs.size() != 1 || runs.front().pinned_results.empty() || !runs.front().pinned_results.front())
+            return;
+        const auto lab_ns = runs.front().duration_s;
+        RIGIDBODIES_EXPECT_NEAR(*runs.front().pinned_results.front(), 0.8 * lab_ns * 1.0e-9, 1.0e-15, "the probe clock ran at 0.8 of the lab rate");
+        const auto run_row = harness.document().element_text(control("measure.runs.row", "1"));
+        RIGIDBODIES_EXPECT(run_row.find(core::format_quantity(lab_ns * 1.0e-9, core::DisplayQuantity::fine_time, core::DisplayUnits::si)) != std::string::npos, "the kept run's length reads in lab nanoseconds: " + run_row);
+        const auto value = core::format_quantity(*runs.front().pinned_results.front(), core::DisplayQuantity::fine_time, core::DisplayUnits::si);
+        RIGIDBODIES_EXPECT(harness.visible_bounds(control("measure.runs.remove_value." + pinned.front().key, pinned.front().key)).has_value(), "the pinned value is listed with its Remove action");
+        const auto text = harness.document().document_text();
+        RIGIDBODIES_EXPECT(text.find("At end") != std::string::npos && text.find(value) != std::string::npos, "the pinned probe clock reads in nanoseconds: " + value);
+
+        RIGIDBODIES_EXPECT(harness.click_element(control("measure.runs.inspect_graph")), "the kept run offers Show this run in graph");
+        harness.frames_for(2);
+        constexpr std::string_view tabs[] { "relativity", "graph", "runs" };
+        RIGIDBODIES_EXPECT(harness.interface.view_state().active_tab("measure.header.tabs", tabs, "relativity") == "graph" && harness.interface.view_state().value("measure.graph.review_run") == "1", "the run opens on the Graph tab for review");
+        RIGIDBODIES_EXPECT(harness.visible_bounds(control("measure.graph.clocks") + "--field").has_value() && !harness.visible_bounds(control("measure.graph.scope") + "--field").has_value(), "the review offers the clocks and no object scope");
+        const auto summary = harness.document().element_attribute(control("measure.graph.plot") + "--plot", "aria-label").value_or("");
+        RIGIDBODIES_EXPECT(summary.find("against Lab time (ns) for Probe and lab clocks") != std::string::npos && summary.find("Probe clock \xCF\x84 (Run 1)") != std::string::npos, "the reviewed graph plots the run's clocks against lab time: " + summary);
+        RIGIDBODIES_EXPECT(harness.click_element(control("measure.graph.live")), "Back to live graph is offered");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.interface.view_state().value("measure.graph.review_run").empty(), "the graph returns to the live run");
+
+        // A clock reading's context menu, in a session whose stage was never right-clicked: Add to
+        // runs table refuses the probe clock pinned above, and Plot over time lands on the clocks
+        // the Graph offers. The readings sit below the speed controls, so the drawer is scrolled
+        // to them as a learner would.
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "relativity");
+        harness.frames_for(2);
+        const auto drawer = region_bounds(harness, ui::RegionId::measure_drawer);
+        auto reading = harness.visible_bounds(control("measure.relativity.probe_clock"));
+        for (int attempt = 0; attempt < 20 && reading && reading->maximum.y > drawer.maximum.y; ++attempt)
+        {
+            harness.wheel((drawer.minimum + drawer.maximum) * 0.5, -3.0);
+            harness.frame();
+            reading = harness.visible_bounds(control("measure.relativity.probe_clock"));
+        }
+        RIGIDBODIES_EXPECT(reading && reading->minimum.y >= drawer.minimum.y && reading->maximum.y <= drawer.maximum.y, "the probe clock is scrolled into view");
+        if (!reading)
+            return;
+        const auto pointer = (reading->minimum + reading->maximum) * 0.5;
+        // The drawer's content can move after a menu action, so each right-click finds the reading
+        // where it is now.
+        const auto open_menu = [&]
+        {
+            const auto now = harness.visible_bounds(control("measure.relativity.probe_clock"));
+            if (!now)
+                return false;
+            harness.click((now->minimum + now->maximum) * 0.5, ui::PointerButton::secondary);
+            harness.frames_for(2);
+            return harness.interface.view_state().transient_open("context_menu") && harness.interface.view_state().value("context.kind") == "readout" && harness.interface.view_state().value("context.key") == "measure.relativity.probe_clock";
+        };
+        RIGIDBODIES_EXPECT(open_menu(), "a right-click on the probe clock opens its value actions");
+        const auto pin_row = harness.visible_bounds(control("context.readout.pin", "probe_clock"));
+        RIGIDBODIES_EXPECT(pin_row && std::abs(pin_row->minimum.x - pointer.x) < 260.0 && std::abs(pin_row->minimum.y - pointer.y) < 300.0, "the menu opens at the pointer");
+        RIGIDBODIES_EXPECT(harness.click_element(control("context.readout.pin", "probe_clock")), "the menu offers Add to runs table");
+        harness.frames_for(2);
+        const auto repeated = harness.session.build_model();
+        RIGIDBODIES_EXPECT(repeated.pinned_values.size() == 1 && std::any_of(repeated.notifications.begin(), repeated.notifications.end(), [](const auto& notification)
+                                                                     {
+                                                                         return notification.text == "This value is already pinned.";
+                                                                     }),
+            "the probe clock already pinned through Add value is not pinned again");
+        RIGIDBODIES_EXPECT(open_menu(), "the value actions open again");
+        RIGIDBODIES_EXPECT(harness.click_element(control("context.readout.plot")), "the menu offers Plot over time");
+        harness.frames_for(3);
+        RIGIDBODIES_EXPECT(harness.interface.view_state().active_tab("measure.header.tabs", tabs, "relativity") == "graph" && harness.document().focused_element().rfind(control("measure.graph.clocks"), 0) == 0, "Plot over time opens the Graph tab on its clocks: " + harness.document().focused_element());
+
+        // Plot over time on a reading the Graph does not show yet adds it to the clocks it plots.
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "relativity");
+        harness.frames_for(2);
+        auto gamma = harness.visible_bounds(control("measure.relativity.gamma"));
+        for (int attempt = 0; attempt < 20 && gamma && (gamma->maximum.y > drawer.maximum.y || gamma->minimum.y < drawer.minimum.y); ++attempt)
+        {
+            harness.wheel((drawer.minimum + drawer.maximum) * 0.5, gamma->maximum.y > drawer.maximum.y ? -3.0 : 3.0);
+            harness.frame();
+            gamma = harness.visible_bounds(control("measure.relativity.gamma"));
+        }
+        RIGIDBODIES_EXPECT(gamma.has_value(), "the Lorentz factor reading is shown");
+        if (!gamma)
+            return;
+        harness.click((gamma->minimum + gamma->maximum) * 0.5, ui::PointerButton::secondary);
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.interface.view_state().value("context.key") == "measure.relativity.gamma" && harness.click_element(control("context.readout.plot")), "the Lorentz factor offers Plot over time");
+        harness.frames_for(3);
+        const auto plotted = harness.interface.view_state().checklist("measure.graph.clocks", ui::default_graph_clocks());
+        RIGIDBODIES_EXPECT(harness.interface.view_state().active_tab("measure.header.tabs", tabs, "relativity") == "graph" && std::find(plotted.begin(), plotted.end(), "lorentz") != plotted.end() && std::find(plotted.begin(), plotted.end(), "probe_clock") != plotted.end(), "the Graph plots the Lorentz factor beside the clocks it already showed");
+    }
+
+    RIGIDBODIES_TEST("a reading found by Command search is scrolled into view on its tab")
+    {
+        LearnerInterface harness({}, { 1280, 800 });
+        open_chasing_light(harness);
+        harness.interface.view_state().set_surface_open("measure.open", false);
+        harness.interface.view_state().set_active_tab("measure.header.tabs", "graph");
+        harness.frames_for(2);
+        harness.interface.request(ui::ViewRequest::open_command_search);
+        harness.frames_for(2);
+        harness.text("proper time");
+        harness.frames_for(2);
+        harness.key(ui::UiKey::enter);
+        harness.frames_for(3);
+        constexpr std::string_view tabs[] { "relativity", "graph", "runs" };
+        RIGIDBODIES_EXPECT(harness.interface.view_state().surface_open("measure.open", false) && harness.interface.view_state().active_tab("measure.header.tabs", tabs, "graph") == "relativity", "the reading's tab opens");
+        const auto drawer = region_bounds(harness, ui::RegionId::measure_drawer);
+        const auto reading = harness.visible_bounds(control("measure.relativity.probe_clock"));
+        RIGIDBODIES_EXPECT(reading && reading->minimum.y >= drawer.minimum.y - 1.0e-6 && reading->maximum.y <= drawer.maximum.y + 1.0e-6, "the probe clock is scrolled into the drawer");
+    }
+
+    RIGIDBODIES_TEST("the Tools chips say why they are disabled in a relativity experiment")
+    {
+        LearnerInterface harness;
+        harness.frames_for(2);
+        const auto chip = [](std::string_view option)
+        {
+            return control("tools.mode") + "--option_" + std::string(option);
+        };
+        RIGIDBODIES_EXPECT(harness.document().element_attribute(chip("throw"), "data-tooltip") == std::optional<std::string> { "Fling objects with the pointer (T)" }, "a Newtonian chip describes its tool");
+        open_chasing_light(harness);
+        const std::string reason = "Throw and Pull act on Newtonian objects. Change the probe's speed instead.";
+        for (const auto* option : { "select", "throw", "pull" })
+            RIGIDBODIES_EXPECT(harness.document().element_attribute(chip(option), "data-tooltip") == std::optional<std::string> { reason }, std::string("a disabled chip gives the row's reason, not its tool: ") + option);
+        RIGIDBODIES_EXPECT(harness.session.load_scenario("free_fall"), "Free fall loads");
+        harness.frames_for(2);
+        RIGIDBODIES_EXPECT(harness.document().element_attribute(chip("throw"), "data-tooltip") == std::optional<std::string> { "Fling objects with the pointer (T)" }, "back in a Newtonian experiment the chip describes its tool again");
     }
 }
 

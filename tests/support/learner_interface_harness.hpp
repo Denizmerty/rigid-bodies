@@ -196,6 +196,7 @@ namespace rigidbodies::testing
                     stage_bottom = std::min(stage_bottom, region.bounds.minimum.y);
             session.set_visible_stage_rect({ stage.minimum.x, stage.minimum.y, stage.width(), std::max(0.0, stage_bottom - stage.minimum.y) });
             session.set_present_spotlight(interface.view_state().present().mode && interface.view_state().present().spotlight);
+            session.set_presenting(interface.view_state().present().mode);
             if (const auto card = interface.hover_card_bounds())
                 session.set_hover_card_area(render::ScreenRect { card->minimum.x, card->minimum.y, card->width(), card->height() });
             else
@@ -312,7 +313,9 @@ namespace rigidbodies::testing
                     session.notify(ui::Severity::error, error, "content");
                 return;
             case K::import_shape:
-                if (saved_shape.empty())
+                if (session.relativity_active())
+                    session.apply(command);
+                else if (saved_shape.empty())
                     session.notify(ui::Severity::info, "File operation cancelled.", "content");
                 else if (!session.import_shape(saved_shape, error))
                     session.notify(ui::Severity::error, error, "content");

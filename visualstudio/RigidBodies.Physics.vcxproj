@@ -64,6 +64,7 @@
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\material.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\narrow_phase.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\parallel_executor.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\relativity_document.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\restitution_comparison.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\rigid_body.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\scenario.hpp" />
@@ -72,6 +73,7 @@
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_authoring.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\shape_document.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\simulation_island.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\special_relativity.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\spring.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\time_stepper.hpp" />
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\units.hpp" />
@@ -120,6 +122,8 @@
     <ClCompile Include="..\src\RigidBodies.Physics\src\world_collision.cpp" />
     <ClCompile Include="..\src\RigidBodies.Physics\src\world_ccd.cpp" />
     <ClCompile Include="..\src\RigidBodies.Physics\src\world_dynamics.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\special_relativity.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Physics\src\relativity_document.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="RigidBodies.Math.vcxproj">

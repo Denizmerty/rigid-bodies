@@ -95,5 +95,8 @@
     <ClCompile Include="..\src\RigidBodies.App\src\stage_overlay_drawing.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.App\src\relativity_session.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

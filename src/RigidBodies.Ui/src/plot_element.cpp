@@ -1,5 +1,7 @@
 #include <rigidbodies/ui/plot.hpp>
 
+#include <rigidbodies/core/display_units.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/ui/icons.hpp>
 
 #include <RmlUi/Core.h>
@@ -53,11 +55,15 @@ namespace rigidbodies::ui
             empty,
             empty_detail,
             icon,
+            limit,
+            operating,
             count
         };
+        // One class per part, in enum order; a part without a class would crash SetClass.
         constexpr std::array<const char*, static_cast<std::size_t>(Part::count)> part_classes {
-            "plot-caption", "plot-key", "plot-tick", "plot-grid", "plot-baseline", "plot-series-1", "plot-series-2", "plot-series-3", "plot-neutral", "plot-marker", "plot-impact", "plot-cursor", "plot-cursor-pinned", "plot-tooltip", "plot-tooltip-muted", "plot-shadow", "plot-empty", "plot-empty-detail", "plot-icon"
+            "plot-caption", "plot-key", "plot-tick", "plot-grid", "plot-baseline", "plot-series-1", "plot-series-2", "plot-series-3", "plot-neutral", "plot-marker", "plot-impact", "plot-cursor", "plot-cursor-pinned", "plot-tooltip", "plot-tooltip-muted", "plot-shadow", "plot-empty", "plot-empty-detail", "plot-icon", "plot-limit", "plot-operating"
         };
+        static_assert(part_classes.back() != nullptr, "every plot part needs its class");
         constexpr std::size_t palette_size = 3;
         constexpr float feather = 1.0f;
         constexpr const char* ellipsis = "\xE2\x80\xA6";
@@ -353,6 +359,8 @@ namespace rigidbodies::ui
             {
                 Rml::FontFaceHandle face {};
                 Rml::TexturedMeshList meshes;
+                // The face's glyph texture version when this run's first string was laid out.
+                int version {};
             };
             std::vector<Run> runs;
         };
@@ -373,13 +381,16 @@ namespace rigidbodies::ui
                 {
                     return value.face == font.face;
                 });
-            if (run == layer.runs.end())
+            const auto first = run == layer.runs.end();
+            if (first)
             {
-                layer.runs.push_back({ font.face, {} });
+                layer.runs.push_back({ font.face, {}, 0 });
                 run = std::prev(layer.runs.end());
             }
             const Rml::TextShapingContext context { *font.language, font.direction, font.letter_spacing };
             Rml::GetFontEngineInterface()->GenerateString(render_manager, font.face, {}, text, { std::round(baseline.x), std::round(baseline.y) }, colour, 1.0f, context, run->meshes);
+            if (first)
+                run->version = Rml::GetFontEngineInterface()->GetVersion(font.face);
         }
 
         std::string truncate(const Font& font, std::string text, float maximum_width)
@@ -435,9 +446,14 @@ namespace rigidbodies::ui
             {
                 hash = mix_text(mix_text(hash, axis->label), axis->unit);
                 hash = mix_double(mix_double(hash, axis->minimum), axis->maximum);
+                hash = mix(mix(hash, static_cast<std::uint64_t>(axis->scale)), axis->ticks.size());
+                for (const auto& tick : axis->ticks)
+                    hash = mix_text(mix_double(hash, tick.value), tick.label);
+                hash = mix(mix_text(hash, axis->symbol), static_cast<std::uint64_t>(axis->readout));
             }
             hash = mix_text(mix_text(mix_text(mix_text(hash, data.empty_title), data.empty_detail), data.note), data.subject);
             hash = mix_double(mix(hash, data.cursor_t.has_value()), data.cursor_t.value_or(0.0));
+            hash = mix_double(mix(hash, data.operating_x.has_value()), data.operating_x.value_or(0.0));
             for (const auto& series : data.series)
             {
                 hash = mix_text(mix_text(mix_text(hash, series.label), series.source), series.unit);
@@ -480,6 +496,36 @@ namespace rigidbodies::ui
             return format_plot_number(value, ticks.decimals);
         }
 
+        // The named ticks inside [low, high] in increasing order; a log axis drops any at or
+        // below zero.
+        std::vector<const AxisTick*> ticks_within(const std::vector<AxisTick>& ticks, double low, double high, bool positive_only)
+        {
+            const auto tolerance = 1.0e-9 * std::abs(high - low);
+            std::vector<const AxisTick*> inside;
+            for (const auto& tick : ticks)
+                if (std::isfinite(tick.value) && tick.value >= low - tolerance && tick.value <= high + tolerance && (!positive_only || tick.value > 0.0))
+                    inside.push_back(&tick);
+            std::stable_sort(inside.begin(), inside.end(), [](const AxisTick* a, const AxisTick* b)
+                {
+                    return a->value < b->value;
+                });
+            return inside;
+        }
+
+        // The read-out's x value. Time keeps millisecond precision, which matches the recorder's
+        // 25 ms cadence and keeps the read-out width steady while the cursor moves; a speed
+        // fraction is cut towards rest with all its nines, so it never reads as c.
+        double readout_speed_fraction(const AxisSpec& axis, double x)
+        {
+            return axis.readout == AxisReadout::rapidity_speed_fraction ? physics::speed_fraction_from_rapidity(x) : x;
+        }
+        std::string readout_text(const AxisSpec& axis, double x)
+        {
+            if (axis.readout == AxisReadout::number)
+                return format_plot_number(x, 3) + (axis.unit.empty() ? std::string {} : "\xC2\xA0" + axis.unit);
+            return core::format_value(readout_speed_fraction(axis, x), core::DisplayQuantity::speed_fraction, core::DisplayUnits::si);
+        }
+
         bool finite_sample(const PlotSeries& series, std::size_t index)
         {
             return std::isfinite(series.times[index]) && std::isfinite(series.values[index]);
@@ -520,12 +566,15 @@ namespace rigidbodies::ui
             return axis.label.empty() ? axis.unit : axis.label + " (" + axis.unit + ")";
         }
 
-        std::optional<double> value_at(const PlotSeries& series, double time_s)
+        // A time within `reach` beyond either end of the record reads that end's sample, so a
+        // point a fraction of a pixel past the last sample still lands on its curve.
+        std::optional<double> value_at(const PlotSeries& series, double time_s, double reach = 0.0)
         {
             if (!series.times || !series.values || series.count == 0)
                 return {};
             const auto* end = series.times + series.count;
-            if (time_s < series.times[0] - 1.0e-9 || time_s > static_cast<double>(*(end - 1)) + 1.0e-9)
+            const auto tolerance = std::max(1.0e-9, reach);
+            if (time_s < series.times[0] - tolerance || time_s > static_cast<double>(*(end - 1)) + tolerance)
                 return {};
             const auto* found = std::lower_bound(series.times, end, time_s, [](float sample, double value)
                 {
@@ -740,7 +789,14 @@ namespace rigidbodies::ui
             {
                 float left {}, right {}, top {}, bottom {};
                 double x0 {}, x1 {};
+                float dp { 1.0f };
                 bool valid {};
+
+                // The x span of one pixel of the data area.
+                [[nodiscard]] double pixel_x() const
+                {
+                    return (x1 - x0) / static_cast<double>(std::max(1.0f, right - left));
+                }
             };
 
             // With a max-height in RCSS the canvas grows to fill the visible height of its
@@ -830,15 +886,20 @@ namespace rigidbodies::ui
             }
 
             // Hovering snaps to recorded samples so the read-out shows measured values, preferring
-            // the current run over comparisons.
+            // the current run over comparisons. Within a few dp of the operating point it snaps to
+            // that point, so the read-out names the current speed exactly; a time within a pixel
+            // beyond either end of a record snaps to that end's sample.
             [[nodiscard]] double snap_time(double time_s) const
             {
                 if (!data_)
                     return time_s;
+                const auto pixel = frame_.pixel_x();
+                if (const auto operating = data_->operating_x; operating && *operating >= frame_.x0 - 1.0e-9 && *operating <= frame_.x1 + 1.0e-9 && std::abs(*operating - time_s) <= 4.0 * frame_.dp * pixel)
+                    return *operating;
                 const PlotSeries* reference = nullptr;
                 for (const auto pass : { true, false })
                     for (const auto& series : data_->series)
-                        if (!reference && (series.style == SeriesStyle::solid) == pass && drawable(series) && time_s >= series.times[0] && time_s <= series.times[series.count - 1])
+                        if (!reference && (series.style == SeriesStyle::solid) == pass && drawable(series) && time_s >= series.times[0] - pixel && time_s <= series.times[series.count - 1] + pixel)
                             reference = &series;
                 if (!reference)
                     return time_s;
@@ -848,10 +909,12 @@ namespace rigidbodies::ui
                         return static_cast<double>(sample) < value;
                     });
                 if (found == end)
-                    return static_cast<double>(*(end - 1));
-                if (found != reference->times && std::abs(static_cast<double>(*(found - 1)) - time_s) < std::abs(static_cast<double>(*found) - time_s))
                     --found;
-                return static_cast<double>(*found);
+                else if (found != reference->times && std::abs(static_cast<double>(*(found - 1)) - time_s) < std::abs(static_cast<double>(*found) - time_s))
+                    --found;
+                // A float sample can lie a hair outside the range, as the last rapidity sample lies
+                // past the fastest speed, so it reads at the edge rather than hiding the cursor.
+                return std::min(std::max(static_cast<double>(*found), frame_.x0), frame_.x1);
             }
 
             [[nodiscard]] Rml::Element* part(Part value) const
@@ -909,7 +972,23 @@ namespace rigidbodies::ui
                 return false;
             }
 
+            // Measuring text can add glyphs to a face, and the next string laid out in that face
+            // then rebuilds the face's glyph texture, which leaves text laid out earlier in the
+            // pass pointing at the old texture. Another pass finds every glyph in place.
             void rebuild(Rml::RenderManager& render_manager)
+            {
+                for (std::size_t pass = 1; pass <= 3; ++pass)
+                {
+                    const auto stale = compose(render_manager);
+                    diagnostics_.layout_passes = pass;
+                    if (!stale)
+                        break;
+                }
+            }
+
+            // Lays out the whole plot; true when a face's glyph texture changed after text in it
+            // was laid out.
+            bool compose(Rml::RenderManager& render_manager)
             {
                 dirty_ = false;
                 compiled_.clear();
@@ -922,6 +1001,7 @@ namespace rigidbodies::ui
                 const auto dp = std::max(0.5f, Rml::ElementUtilities::GetDensityIndependentPixelRatio(this));
                 const auto hair = std::max(1.0f, std::floor(dp));
                 const auto width = size_.x, height = size_.y;
+                frame_.dp = dp;
                 diagnostics_.canvas_height = height;
 
                 const auto caption_font = font_of(Part::caption), key_font = font_of(Part::key), tick_font = font_of(Part::tick);
@@ -954,7 +1034,9 @@ namespace rigidbodies::ui
                     return (style == SeriesStyle::dashed ? 1.75f : 2.0f) * dp;
                 };
 
-                Rml::Mesh chrome, guides, lines, overlay, tooltip_mesh;
+                // `knockouts` lies between the series and the labels: a plate in the canvas colour
+                // behind a label that sits over the data keeps it legible where a curve passes.
+                Rml::Mesh chrome, guides, lines, knockouts, overlay, tooltip_mesh;
                 TextLayer labels, tooltip_text;
                 const auto swatch = [&](Rml::Mesh& mesh, float x, float y, float length_px, Colour stroke_colour, SeriesStyle style)
                 {
@@ -994,19 +1076,41 @@ namespace rigidbodies::ui
                     visible.end());
                 const auto has_data = !visible.empty();
 
+                // A log axis shows only positive values; anything else is a gap there.
+                const auto log_y = data.y.scale == AxisScale::log10;
+                const auto on_scale = [&](double value)
+                {
+                    return std::isfinite(value) && (!log_y || value > 0.0);
+                };
                 auto y_low = data.y.minimum, y_high = data.y.maximum;
-                if (!(y_high > y_low) || !std::isfinite(y_low) || !std::isfinite(y_high))
+                if (!(y_high > y_low) || !std::isfinite(y_low) || !std::isfinite(y_high) || (log_y && !(y_low > 0.0)))
                 {
                     y_low = std::numeric_limits<double>::infinity();
                     y_high = -y_low;
                     for (const auto* series : visible)
                         for (std::size_t index = 0; index < series->count; ++index)
-                            if (finite_sample(*series, index) && series->times[index] >= x0 && series->times[index] <= x1)
+                            if (finite_sample(*series, index) && on_scale(series->values[index]) && series->times[index] >= x0 && series->times[index] <= x1)
                             {
                                 y_low = std::min(y_low, static_cast<double>(series->values[index]));
                                 y_high = std::max(y_high, static_cast<double>(series->values[index]));
                             }
-                    if (!(y_high >= y_low))
+                    if (log_y)
+                    {
+                        // Whole decades around the positive data, or the decade above 1 without any.
+                        if (y_high >= y_low)
+                        {
+                            y_low = std::pow(10.0, std::floor(std::log10(y_low)));
+                            y_high = std::pow(10.0, std::ceil(std::log10(y_high)));
+                            if (!(y_high > y_low))
+                                y_high = y_low * 10.0;
+                        }
+                        if (!(y_low > 0.0) || !(y_high > y_low) || !std::isfinite(y_high))
+                        {
+                            y_low = 1.0;
+                            y_high = 10.0;
+                        }
+                    }
+                    else if (!(y_high >= y_low))
                         y_low = y_high = 0.0;
                 }
 
@@ -1164,57 +1268,109 @@ namespace rigidbodies::ui
                     // Value axis: whole 1-2-5 steps at most about 30 dp apart, and at least three
                     // intervals once the labels have room, so a short plot still resolves its data.
                     const auto y_target = std::clamp(static_cast<int>(std::ceil(plot_height / (30.0f * dp))), plot_height >= 45.0f * dp ? 3 : 2, 8);
-                    const auto y_ticks = plot_ticks(y_low, y_high, y_target, true);
-                    const auto y_values = tick_values(y_ticks);
-                    std::vector<std::string> y_labels;
-                    auto gutter = 0.0f;
-                    for (const auto value : y_values)
+                    // Named ticks and log decades keep the range as given; 1-2-5 steps widen it.
+                    const auto explicit_y = !data.y.ticks.empty();
+                    const auto kept_range = log_y || (explicit_y && y_high > y_low);
+                    PlotTicks y_ticks;
+                    if (kept_range)
                     {
-                        y_labels.push_back(tick_label(value, y_ticks));
-                        gutter = std::max(gutter, text_width(tick_font, y_labels.back()));
+                        y_ticks.minimum = y_low;
+                        y_ticks.maximum = y_high;
                     }
+                    else
+                        y_ticks = plot_ticks(y_low, y_high, y_target, true);
+                    std::vector<double> y_values;
+                    std::vector<std::string> y_labels;
+                    if (explicit_y)
+                        for (const auto* tick : ticks_within(data.y.ticks, y_ticks.minimum, y_ticks.maximum, log_y))
+                        {
+                            y_values.push_back(tick->value);
+                            y_labels.push_back(tick->label);
+                        }
+                    else if (log_y)
+                    {
+                        const auto first = static_cast<int>(std::ceil(std::log10(y_ticks.minimum) - 1.0e-9));
+                        const auto last = static_cast<int>(std::floor(std::log10(y_ticks.maximum) + 1.0e-9));
+                        for (auto exponent = first; exponent <= last && exponent - first < 64; ++exponent)
+                        {
+                            y_values.push_back(std::pow(10.0, exponent));
+                            y_labels.push_back(format_plot_decade(exponent));
+                        }
+                    }
+                    else
+                    {
+                        y_values = tick_values(y_ticks);
+                        for (const auto value : y_values)
+                            y_labels.push_back(tick_label(value, y_ticks));
+                    }
+                    auto gutter = 0.0f;
+                    for (const auto& label : y_labels)
+                        gutter = std::max(gutter, text_width(tick_font, label));
                     frame_.left = std::ceil(gutter + 8.0f * dp);
                     frame_.right = std::floor(width - 2.0f * dp);
                     frame_.valid = true;
                     const auto plot_width = std::max(1.0f, frame_.right - frame_.left);
                     const auto y_span = y_ticks.maximum - y_ticks.minimum;
                     // Data that would lie on the outermost line of a non-zero edge gets a few dp
-                    // of room beyond it, so neither the line nor the axis hides under the data.
+                    // of room beyond it, so neither the line nor the axis hides under the data. A
+                    // range kept as given is drawn exactly.
                     const auto touches = [&](double gap)
                     {
                         return gap / y_span * plot_height < 3.0f * dp;
                     };
-                    const auto pad_top = y_ticks.maximum != 0.0 && touches(y_ticks.maximum - y_high) ? 6.0f * dp : 0.0f;
-                    const auto pad_bottom = y_ticks.minimum != 0.0 && touches(y_low - y_ticks.minimum) ? 6.0f * dp : 0.0f;
+                    const auto pad_top = !kept_range && y_ticks.maximum != 0.0 && touches(y_ticks.maximum - y_high) ? 6.0f * dp : 0.0f;
+                    const auto pad_bottom = !kept_range && y_ticks.minimum != 0.0 && touches(y_low - y_ticks.minimum) ? 6.0f * dp : 0.0f;
                     const auto value_height = std::max(1.0f, plot_height - pad_top - pad_bottom);
+                    const auto log_low = log_y ? std::log10(y_ticks.minimum) : 0.0;
+                    const auto log_span = log_y ? std::log10(y_ticks.maximum) - log_low : 1.0;
                     const auto to_x = [&](double time_s)
                     {
                         return frame_.left + static_cast<float>((time_s - x0) / (x1 - x0)) * plot_width;
                     };
                     const auto to_y = [&](double value)
                     {
-                        return frame_.bottom - pad_bottom - static_cast<float>((value - y_ticks.minimum) / y_span) * value_height;
+                        const auto fraction = log_y ? (std::log10(value) - log_low) / log_span : (value - y_ticks.minimum) / y_span;
+                        return frame_.bottom - pad_bottom - static_cast<float>(fraction) * value_height;
                     };
                     diagnostics_.y_ticks = y_ticks;
+                    diagnostics_.log_y = log_y;
 
+                    const auto zero_step = y_ticks.step > 0.0 ? y_ticks.step : y_span;
+                    auto label_floor = std::numeric_limits<float>::infinity();
                     for (std::size_t index = 0; index < y_values.size(); ++index)
                     {
                         const auto y = to_y(y_values[index]);
                         if (y < frame_.bottom - 0.5f)
-                            horizontal_hairline(chrome, frame_.left, frame_.right, y, hair, colour(std::abs(y_values[index]) < y_ticks.step * 1.0e-6 ? Part::baseline : Part::grid));
+                            horizontal_hairline(chrome, frame_.left, frame_.right, y, hair, colour(!log_y && std::abs(y_values[index]) < zero_step * 1.0e-6 ? Part::baseline : Part::grid));
+                        // Named ticks and decades can crowd a short axis, so a label that would
+                        // touch the one below it is left out; its grid line stays.
+                        if (kept_range && label_floor - y < tick_height + 2.0f * dp)
+                            continue;
                         const auto label_width = text_width(tick_font, y_labels[index]);
                         draw_text(render_manager, labels, tick_font, y_labels[index], { frame_.left - 8.0f * dp - label_width, y + tick_font.cap() * 0.5f }, tick_font.colour.ToPremultiplied());
+                        label_floor = y;
                     }
                     horizontal_hairline(chrome, frame_.left, frame_.right, frame_.bottom, hair, colour(Part::baseline));
                     vertical_hairline(chrome, frame_.left, frame_.top, frame_.bottom + hair, hair, colour(Part::baseline));
 
                     // Time axis: keep labels at least 16 dp apart, widening the step if needed.
+                    // Named ticks replace the steps; the spacing rule below still drops any label
+                    // that would collide with the one before it.
                     auto x_target = std::max(1, static_cast<int>(plot_width / (84.0f * dp)));
                     PlotTicks x_ticks;
                     std::vector<double> x_values;
                     std::vector<std::string> x_labels;
-                    const auto x_suffix = data.x.unit.empty() ? std::string {} : " " + data.x.unit;
-                    for (int attempt = 0; attempt < 8; ++attempt)
+                    const auto x_suffix = data.x.unit.empty() ? std::string {} : "\xC2\xA0" + data.x.unit;
+                    if (!data.x.ticks.empty())
+                    {
+                        for (const auto* tick : ticks_within(data.x.ticks, x0, x1, false))
+                        {
+                            x_values.push_back(tick->value);
+                            x_labels.push_back(tick->label);
+                        }
+                        diagnostics_.explicit_x_ticks = x_values.size();
+                    }
+                    for (int attempt = 0; attempt < 8 && data.x.ticks.empty(); ++attempt)
                     {
                         x_ticks = plot_ticks(x0, x1, x_target, false);
                         x_values = tick_values(x_ticks);
@@ -1267,6 +1423,32 @@ namespace rigidbodies::ui
                         vertical_hairline(guides, x, in_lane ? lane_middle + flag_radius : frame_.top, frame_.bottom, hair, colour(Part::marker, 0.8f), 3.0f * dp, 3.0f * dp);
                         if (in_lane)
                             fill_convex(guides, circle({ std::floor(x - hair * 0.5f + 0.5f) + hair * 0.5f, lane_middle }, flag_radius), colour(Part::marker));
+                    }
+                    // A limit the curves approach is a dashed line across the whole plot, with its
+                    // label at the top inside the frame on the side the curves come from.
+                    for (const auto& marker : data.markers)
+                    {
+                        if (marker.kind != PlotMarkerKind::limit || marker.time_s < x0 || marker.time_s > x1)
+                            continue;
+                        const auto x = to_x(marker.time_s);
+                        if (!diagnostics_.limit_px)
+                            diagnostics_.limit_px = x;
+                        const auto line_width = std::max(hair, std::round(1.5f * dp));
+                        vertical_hairline(guides, x, frame_.top, frame_.bottom, line_width, colour(Part::limit), 6.0f * dp, 4.0f * dp);
+                        if (marker.label.empty())
+                            continue;
+                        const auto label_width = text_width(marker_font, marker.label);
+                        const auto gap = line_width * 0.5f + 6.0f * dp;
+                        auto left = x - gap - label_width;
+                        if (left < frame_.left + 2.0f * dp)
+                            left = x + gap;
+                        if (left + label_width > width)
+                            continue;
+                        // The curves rise steeply towards a limit, so they would cross its label.
+                        const auto baseline = frame_.top + 4.0f * dp + marker_font.cap();
+                        const auto pad = 2.0f * dp;
+                        fill_convex(knockouts, rounded_rect(left - pad, frame_.top + 2.0f * dp, left + label_width + pad, baseline + marker_font.descent + pad * 0.5f, 3.0f * dp), GetComputedValues().background_color().ToPremultiplied());
+                        draw_text(render_manager, labels, marker_font, marker.label, { left, baseline }, colour(Part::limit));
                     }
                     // A label sits right of its flag, or left when that side has room for all of
                     // it; when neither does it is shortened to the wider side rather than dropped.
@@ -1340,7 +1522,7 @@ namespace rigidbodies::ui
                                 series->times);
                             for (std::size_t index = first > 0 ? first - 1 : 0; index < series->count; ++index)
                             {
-                                if (!finite_sample(*series, index))
+                                if (!finite_sample(*series, index) || !on_scale(series->values[index]))
                                 {
                                     flush();
                                     continue;
@@ -1357,6 +1539,45 @@ namespace rigidbodies::ui
                                 diagnostics_.primary_colour = { value.red, value.green, value.blue, value.alpha };
                             }
                         }
+
+                    // The operating point marks where the model is now on every series. It is
+                    // drawn over the data and stays while the learner hovers or pins; a value off
+                    // the chart becomes a chevron at that edge in the series colour.
+                    if (data.operating_x && *data.operating_x >= x0 - 1.0e-9 && *data.operating_x <= x1 + 1.0e-9)
+                    {
+                        const auto x = to_x(*data.operating_x);
+                        diagnostics_.operating_px = x;
+                        const auto accent = colour(Part::operating);
+                        vertical_hairline(overlay, x, frame_.top, frame_.bottom, hair, accent);
+                        const auto chevron_half = 4.5f * dp, chevron_height = 5.5f * dp, chevron_pitch = chevron_height + 2.0f * dp;
+                        std::size_t above = 0, below = 0;
+                        for (const auto* series : visible)
+                        {
+                            const auto value = value_at(*series, *data.operating_x, frame_.pixel_x());
+                            if (!value)
+                                continue;
+                            const auto series_colour = colour(slot_part(series->slot));
+                            const auto y = on_scale(*value) ? to_y(*value) : std::numeric_limits<float>::infinity();
+                            if (y < frame_.top - 0.5f)
+                            {
+                                const auto tip = frame_.top + 1.0f * dp + chevron_pitch * static_cast<float>(above++);
+                                fill_convex(overlay, { { x, tip }, { x + chevron_half, tip + chevron_height }, { x - chevron_half, tip + chevron_height } }, series_colour);
+                                ++diagnostics_.off_scale_points;
+                            }
+                            else if (y > frame_.bottom + 0.5f)
+                            {
+                                const auto tip = frame_.bottom - 1.0f * dp - chevron_pitch * static_cast<float>(below++);
+                                fill_convex(overlay, { { x, tip }, { x - chevron_half, tip - chevron_height }, { x + chevron_half, tip - chevron_height } }, series_colour);
+                                ++diagnostics_.off_scale_points;
+                            }
+                            else
+                            {
+                                fill_convex(overlay, circle({ x, y }, 4.5f * dp), accent);
+                                fill_convex(overlay, circle({ x, y }, 3.0f * dp), series_colour);
+                                ++diagnostics_.operating_points;
+                            }
+                        }
+                    }
 
                     // Cursor: a pinned time wins over hover, which wins over a time supplied by
                     // the panel. A pin the window has moved past is released.
@@ -1412,11 +1633,11 @@ namespace rigidbodies::ui
                         std::vector<float> point_ys;
                         for (const auto* series : visible)
                         {
-                            const auto value = value_at(*series, *cursor_t);
+                            const auto value = value_at(*series, *cursor_t, frame_.pixel_x());
                             if (!value)
                                 continue;
                             const auto stroke_colour = colour(slot_part(series->slot));
-                            const Vector2f point { x, to_y(*value) };
+                            const Vector2f point { x, on_scale(*value) ? to_y(*value) : std::numeric_limits<float>::infinity() };
                             if (point.y >= frame_.top - 4.0f * dp && point.y <= frame_.bottom + 4.0f * dp)
                             {
                                 fill_convex(overlay, circle(point, 4.5f * dp), ring);
@@ -1424,7 +1645,7 @@ namespace rigidbodies::ui
                                 point_ys.push_back(point.y);
                             }
                             const auto& unit = series->unit.empty() ? data.y.unit : series->unit;
-                            auto text = format_plot_value(*value) + (unit.empty() ? std::string {} : " " + unit);
+                            auto text = format_plot_value(*value) + (unit.empty() ? std::string {} : "\xC2\xA0" + unit);
                             const auto slot = static_cast<std::uint8_t>(series->slot % palette_size);
                             if (table)
                             {
@@ -1455,17 +1676,18 @@ namespace rigidbodies::ui
                                 {
                                     return std::find(slots.begin(), slots.end(), a.slot) < std::find(slots.begin(), slots.end(), b.slot);
                                 });
+                        // A limit already carries its label at the top of the plot.
                         std::size_t marker_rows = 0;
                         for (const auto& marker : data.markers)
-                            if (marker_rows < 2 && !marker.label.empty() && std::abs(to_x(marker.time_s) - x) <= 4.0f * dp)
+                            if (marker_rows < 2 && marker.kind != PlotMarkerKind::limit && !marker.label.empty() && std::abs(to_x(marker.time_s) - x) <= 4.0f * dp)
                             {
                                 rows.push_back({ marker.label, {}, colour(marker.kind == PlotMarkerKind::impact ? Part::impact : Part::marker), SeriesStyle::solid, true, 0 });
                                 ++marker_rows;
                             }
 
-                        // Millisecond precision matches the recorder's 25 ms cadence and keeps the
-                        // read-out width steady while the cursor moves.
-                        const auto header = "t = " + format_plot_number(*cursor_t, 3) + x_suffix;
+                        const auto header = (data.x.symbol.empty() ? std::string("t") : data.x.symbol) + " = " + readout_text(data.x, *cursor_t);
+                        diagnostics_.cursor_header = header;
+                        diagnostics_.cursor_rows = rows.size();
                         const auto pinned_text = std::string(pinned_t_ ? "Pinned" : "");
                         const auto natural_row = std::ceil(std::max(tooltip_font.size, muted_font.size) * 1.5f);
                         // A read-out taller than most of the plot packs its rows more tightly.
@@ -1565,6 +1787,7 @@ namespace rigidbodies::ui
                     }
                 }
                 diagnostics_.frame = { frame_.left, frame_.top, frame_.right, frame_.bottom };
+                diagnostics_.origin = { origin_.x, origin_.y };
                 const auto add_mesh = [&](Rml::Mesh& mesh, bool clip)
                 {
                     if (mesh)
@@ -1581,6 +1804,7 @@ namespace rigidbodies::ui
                 add_mesh(guides, false);
                 diagnostics_.series_draw_index = compiled_.size();
                 add_mesh(lines, true);
+                add_mesh(knockouts, false);
                 add_text(labels);
                 add_mesh(overlay, false);
                 add_mesh(tooltip_mesh, false);
@@ -1588,13 +1812,19 @@ namespace rigidbodies::ui
                 diagnostics_.draw_calls = compiled_.size();
 
                 font_versions_.clear();
+                auto stale = false;
                 for (const auto* layer : { &labels, &tooltip_text })
                     for (const auto& run : layer->runs)
+                    {
+                        const auto version = Rml::GetFontEngineInterface()->GetVersion(run.face);
+                        stale = stale || version != run.version;
                         if (std::none_of(font_versions_.begin(), font_versions_.end(), [&](const auto& entry)
                                 {
                                     return entry.first == run.face;
                                 }))
-                            font_versions_.emplace_back(run.face, Rml::GetFontEngineInterface()->GetVersion(run.face));
+                            font_versions_.emplace_back(run.face, version);
+                    }
+                return stale;
             }
 
             static float pad_rows_height(float row_height, std::size_t rows, float pad_y)
@@ -1735,6 +1965,24 @@ namespace rigidbodies::ui
         return format_plot_number(value, decimals);
     }
 
+    std::string format_plot_decade(int exponent)
+    {
+        if (exponent >= 0 && exponent <= 3)
+            return "1" + std::string(static_cast<std::size_t>(exponent), '0');
+        if (exponent < 0 && exponent >= -4)
+            return "0." + std::string(static_cast<std::size_t>(-exponent - 1), '0') + "1";
+        static constexpr std::array<const char*, 10> digits { "\xE2\x81\xB0", "\xC2\xB9", "\xC2\xB2", "\xC2\xB3", "\xE2\x81\xB4", "\xE2\x81\xB5", "\xE2\x81\xB6", "\xE2\x81\xB7", "\xE2\x81\xB8", "\xE2\x81\xB9" };
+        std::string text = exponent < 0 ? "10\xE2\x81\xBB" : "10";
+        for (const auto digit : std::to_string(std::abs(static_cast<long long>(exponent))))
+            text += digits[static_cast<std::size_t>(digit - '0')];
+        return text;
+    }
+
+    std::uint64_t plot_data_signature(const PlotData& data)
+    {
+        return data_signature(data);
+    }
+
     std::string plot_summary(const PlotData& data)
     {
         std::vector<std::string> names;
@@ -1760,13 +2008,25 @@ namespace rigidbodies::ui
                                                                  : ", ") +
                 names[index];
         std::size_t impacts = 0, interventions = 0;
+        std::vector<const std::string*> limits;
         for (const auto& marker : data.markers)
-            (marker.kind == PlotMarkerKind::impact ? impacts : interventions) += 1;
+        {
+            if (marker.kind == PlotMarkerKind::impact)
+                ++impacts;
+            else if (marker.kind == PlotMarkerKind::intervention)
+                ++interventions;
+            else if (!marker.label.empty())
+                limits.push_back(&marker.label);
+        }
         text += ".";
         if (interventions > 0)
             text += " " + std::to_string(interventions) + (interventions == 1 ? " change" : " changes") + " marked.";
         if (impacts > 0)
             text += " " + std::to_string(impacts) + (impacts == 1 ? " impact" : " impacts") + " marked.";
+        for (const auto* label : limits)
+            text += " " + *label + " is marked as a limit the curves approach but never reach.";
+        if (data.operating_x && data.x.readout != AxisReadout::number)
+            text += " The current speed is " + core::format_quantity(readout_speed_fraction(data.x, *data.operating_x), core::DisplayQuantity::speed_fraction, core::DisplayUnits::si) + ".";
         if (!data.note.empty())
             text += " " + data.note;
         return text;

@@ -43,7 +43,7 @@ kind=10	key=library.top.collection	instance=	label=Collection	value=	unit=	tone=
 kind=10	key=library.top.sort	instance=	label=Sort	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=library.top.sort	command=0,,0,0,0,0:0,bodies=,detail=state-id:library.sort,phase=0
 kind=6	key=library.top.visited	instance=	label=Unopened only	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.visited=unvisited,phase=0
 kind=17	key=library.setups	instance=	label=My setups and files	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
-kind=19	key=library.results.count	instance=	label=Experiments	value=24 of 24	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=library.results.count	instance=	label=Experiments	value=25 of 25	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=1	key=	instance=	label=Motion and gravity	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=20	key=library.cards.card	instance=free_fall	label=Free fall	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=free_fall,phase=0	action=Back to experiment,0,,detail=view:close,primary=1
 kind=20	key=library.cards.card	instance=gravity_scales	label=Gravity scales	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=gravity_scales,phase=0
@@ -72,6 +72,8 @@ kind=20	key=library.cards.card	instance=revolute_drive	label=A driven hinge	valu
 kind=20	key=library.cards.card	instance=prismatic_drive	label=A driven slider	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=prismatic_drive,phase=0
 kind=20	key=library.cards.card	instance=welded_assembly	label=A welded assembly	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=welded_assembly,phase=0
 kind=20	key=library.cards.card	instance=breakable_joint	label=When a joint breaks	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=breakable_joint,phase=0
+kind=1	key=	instance=	label=Special relativity	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=20	key=library.cards.card	instance=chasing_light	label=Chasing light	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=chasing_light,phase=0
 kind=1	key=	instance=	label=Make your own	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=20	key=library.cards.card	instance=shape_workshop	label=Shape workshop	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=shape_workshop,phase=0
 kind=20	key=library.cards.card	instance=empty_lab	label=Empty lab	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=state:library.selected=empty_lab,phase=0
@@ -161,7 +163,7 @@ surface=about model=runs
 kind=0	key=	instance=	label=Rigid Bodies	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=6	key=about.close	instance=	label=Close	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=view:close,phase=0
 kind=3	key=	instance=	label=An interactive 2D playground for exploring how rigid bodies move.	value=	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
-kind=19	key=	instance=	label=Version	value=1.0.1	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
+kind=19	key=	instance=	label=Version	value=1.2.0	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=19	key=	instance=	label=Author	value=Deniz Mert Yayla	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=19	key=	instance=	label=Contact	value=denizmerty@gmail.com	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0
 kind=19	key=	instance=	label=License	value=MIT License	unit=	tone=0	enabled=1	reason=	live=0	spec=	command=0,,0,0,0,0:0,bodies=,detail=,phase=0

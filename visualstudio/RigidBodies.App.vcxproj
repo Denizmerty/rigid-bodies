@@ -92,6 +92,7 @@
     <None Include="..\assets\scenarios\aerodynamic_profiles.scenario.json" />
     <None Include="..\assets\scenarios\asymmetric_aerodynamics.scenario.json" />
     <None Include="..\assets\scenarios\breakable_joint.scenario.json" />
+    <None Include="..\assets\scenarios\chasing_light.scenario.json" />
     <None Include="..\assets\scenarios\collision_comparison.scenario.json" />
     <None Include="..\assets\scenarios\compound_object.scenario.json" />
     <None Include="..\assets\scenarios\distance_chain.scenario.json" />

@@ -26,11 +26,19 @@ namespace
     void configure_session(app::SimulationSession& session, const ui::ControlSpec& spec)
     {
         session.configure({});
+        const auto relativity = spec.key.rfind("world.relativity.", 0) == 0;
         const auto scenario = spec.key == "joint.motor.angular_speed" ? "revolute_drive"
             : spec.key == "joint.motor.linear_speed"                  ? "prismatic_drive"
             : spec.key.rfind("spring.", 0) == 0                       ? "spring_damping"
+            : relativity                                              ? "chasing_light"
                                                                       : "free_fall";
         RIGIDBODIES_EXPECT(session.load_scenario(scenario), "household validation scenario loads");
+        // The probe's controls need no selection: it is not a World body.
+        if (relativity)
+        {
+            RIGIDBODIES_EXPECT(session.relativity_active(), "the relativity fixture installs its probe");
+            return;
+        }
         (void)select_free_body(session);
         if (spec.key.rfind("draw.", 0) == 0)
         {
@@ -61,6 +69,8 @@ namespace
             return model.shape_node_world_m.y;
         if (spec.key == "camera.scale.height")
             return model.view_height_m;
+        if (spec.key == "world.relativity.speed" && model.relativity)
+            return model.relativity->speed_fraction;
         if (spec.key == "draw.precision.collision")
             return model.shape_collision_tolerance_m;
         if (spec.key == "draw.precision.drawing")

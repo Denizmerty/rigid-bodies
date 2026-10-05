@@ -8,6 +8,7 @@
 #include <rigidbodies/physics/joint.hpp>
 #include <rigidbodies/physics/aerodynamic.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/ui/panels.hpp>
 
 #include <algorithm>
@@ -122,6 +123,45 @@ namespace rigidbodies::app
             const auto second = math::cross(triangle[2] - triangle[1], point - triangle[1]);
             const auto third = math::cross(triangle[0] - triangle[2], point - triangle[2]);
             return (first >= 0.0 && second >= 0.0 && third >= 0.0) || (first <= 0.0 && second <= 0.0 && third <= 0.0);
+        }
+
+        // Keys a relativity experiment refuses or has no use for: it has no objects to draw, pick,
+        // throw, pull, combine, nudge, delete or add, and nothing collides.
+        bool newtonian_only_action(AppAction action)
+        {
+            switch (action)
+            {
+            case AppAction::draw_shape:
+            case AppAction::select_all:
+            case AppAction::combine_selection:
+            case AppAction::separate_selection:
+            case AppAction::previous_object:
+            case AppAction::next_object:
+            case AppAction::throw_mode:
+            case AppAction::pull_mode:
+            case AppAction::pause_at_next_impact:
+            case AppAction::delete_selection:
+            case AppAction::frame_selection:
+            case AppAction::import_shape:
+            case AppAction::open_add_menu:
+            case AppAction::nudge_left:
+            case AppAction::nudge_right:
+            case AppAction::nudge_up:
+            case AppAction::nudge_down:
+            case AppAction::nudge_left_large:
+            case AppAction::nudge_right_large:
+            case AppAction::nudge_up_large:
+            case AppAction::nudge_down_large:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        // The probe's speed keys, which only a relativity experiment answers.
+        bool relativity_only_action(AppAction action)
+        {
+            return action == AppAction::raise_probe_speed || action == AppAction::lower_probe_speed || action == AppAction::next_speed_preset || action == AppAction::previous_speed_preset;
         }
 
     } // namespace
@@ -328,6 +368,28 @@ namespace rigidbodies::app
         rebuild_snapshot_views();
     }
 
+    // Lab settings change how the starting world runs, never where it starts. During a run they are
+    // written into the starting world, which keeps its t = 0 state, so Back to start still returns
+    // to the start and a relativity probe's lab clock stays the world clock times a billionth.
+    void SimulationSession::store_lab_settings_in_setup()
+    {
+        if (world_.statistics().elapsed_time_s <= 0.0 || !setup_.world.is_valid())
+        {
+            setup_.world = world_.snapshot();
+            setup_.gravity_direction_degrees = gravity_direction_degrees_;
+        }
+        else
+        {
+            const auto live = world_.snapshot();
+            world_.restore(setup_.world);
+            apply_lab_settings(lab_);
+            setup_.world = world_.snapshot();
+            world_.restore(live);
+            refresh_force_generators();
+        }
+        rebuild_snapshot_views();
+    }
+
     void SimulationSession::sync_setup_after_command(const ui::UiCommand& command)
     {
         if (updating_setup_ || !setup_.world.is_valid())
@@ -341,9 +403,13 @@ namespace rigidbodies::app
         if (!parameter && !state && !lab && !structure_add_remove && !structure_pose_dependent)
             return;
         if (lab)
+        {
             lab_ = capture_lab_settings();
+            store_lab_settings_in_setup();
+            return;
+        }
         const auto ready = world_.statistics().elapsed_time_s <= 0.0;
-        if (ready || lab)
+        if (ready)
         {
             setup_.world = world_.snapshot();
             setup_.gravity_direction_degrees = gravity_direction_degrees_;
@@ -463,6 +529,8 @@ namespace rigidbodies::app
             scenario_document_.reset();
             experiment_content_.reset();
         }
+        // The catalogue validated the document, so a declared relativity object is valid here.
+        const auto relativity = scenario_document_ ? physics::read_relativity_setup(scenario_document_->root) : std::nullopt;
         run_recorder_.set_experiment(id);
         pending_prediction_.reset();
         next_impact_armed_ = false;
@@ -501,6 +569,9 @@ namespace rigidbodies::app
         apply_lab_settings(!opening_first && keep_lab_settings_ ? carried_lab : loaded_lab);
         setup_.world = world_.snapshot();
         setup_.gravity_direction_degrees = original_.gravity_direction_degrees;
+        // The member-wise writes above would otherwise keep the previous experiment's probe.
+        original_.relativity = setup_.relativity = relativity;
+        install_relativity(relativity);
         rebuild_snapshot_views();
         setup_file_->saved_setup_fingerprint = setup_fingerprint();
         gravity_direction_degrees_ = setup_.gravity_direction_degrees;
@@ -536,6 +607,9 @@ namespace rigidbodies::app
             apply_lab_settings(lab_);
             refresh_force_generators();
             synchronize_render_history();
+            // Clocks, lap and pulse back to zero at the starting speed, which is the live speed.
+            if (relativity_ && setup_.relativity)
+                relativity_.emplace(*setup_.relativity);
             selected_bodies_.clear();
             for (const auto id : previous_selection)
                 if (world_.is_valid(id))
@@ -563,7 +637,7 @@ namespace rigidbodies::app
     {
         if (run_recorder_.current() || !setup_.world.is_valid() || !original_.world.is_valid())
             return;
-        auto original_changes = compute_setup_changes(setup_view_, original_view_);
+        auto original_changes = setup_changes();
         std::vector<ui::SetupChange> previous_changes;
         if (const auto* previous = run_recorder_.previous())
         {
@@ -583,9 +657,9 @@ namespace rigidbodies::app
                         }))
                     previous_changes.push_back(old);
         }
-        run_recorder_.begin_run(world_, std::move(original_changes), std::move(previous_changes), pending_prediction_);
+        run_recorder_.begin_run(world_, std::move(original_changes), std::move(previous_changes), pending_prediction_, relativity_.has_value());
         pending_prediction_.reset();
-        run_recorder_.record_sample(world_, world_.statistics().elapsed_time_s);
+        run_recorder_.record_sample(world_, world_.statistics().elapsed_time_s, relativity_probe());
     }
 
     void SimulationSession::refresh_force_generators()
@@ -611,6 +685,8 @@ namespace rigidbodies::app
             {
                 body.capture_previous_transform();
             });
+        if (relativity_)
+            relativity_->capture_previous();
     }
 
     void SimulationSession::advance(double frame_time_s)
@@ -626,8 +702,9 @@ namespace rigidbodies::app
             {
                 apply_interaction_forces();
                 world_.step(stepper_.substep_s(), substep == 0);
+                advance_relativity(stepper_.substep_s(), substep == 0);
                 scene_renderer_.record_visual_sample(world_, stepper_.substep_s(), scene_settings_);
-                run_recorder_.record_sample(world_, world_.statistics().elapsed_time_s);
+                run_recorder_.record_sample(world_, world_.statistics().elapsed_time_s, relativity_probe());
                 if (collect_impacts())
                 {
                     const auto unrun = (steps - index - 1) * stepper_.substep_count() + stepper_.substep_count() - substep - 1;
@@ -821,7 +898,9 @@ namespace rigidbodies::app
                     }
                 }
             }
-            square(gravity_compass_centre(camera_, scale), (overlay::compass_radius + 4.0) * scale);
+            // A relativity experiment's track has no gravity to turn, so it has no dial.
+            if (!relativity_)
+                square(gravity_compass_centre(camera_, scale), (overlay::compass_radius + 4.0) * scale);
         }
         // A plate the hover card would cover moves aside or is left out whole rather than
         // showing a fragment past the card's edge. The card's own outline is reported: plates keep
@@ -905,15 +984,15 @@ namespace rigidbodies::app
 
     void SimulationSession::render(render::DrawList& list)
     {
-        scene_settings_.interpolation_alpha = stepper_.is_paused() || stepper_.time_scale() == 0.0
-            ? 1.0
-            : stepper_.interpolation_fraction();
+        scene_settings_.interpolation_alpha = render_alpha();
         scene_settings_.text_scale = static_cast<float>(stage_text_scale());
         scene_settings_.label_replaced = hover_card_body();
         if (scene_settings_.layers.is_enabled(render::VisualizationLayer::labels))
             scene_renderer_.set_body_names(object_names());
         reserve_overlay_areas();
         scene_renderer_.set_selected_bodies(selected_bodies_);
+        // Every Newtonian experiment hands over nothing, so no apparatus survives a switch.
+        scene_renderer_.set_relativity_stage(relativity_stage());
         scene_renderer_.render(world_, camera_, scene_settings_, list);
         const auto scene_layer = list.layer();
         shape_editor_.set_view_scale(overlay_scale());
@@ -944,9 +1023,19 @@ namespace rigidbodies::app
 
     void SimulationSession::set_focus_rect(const render::ScreenRect& rect)
     {
+        // The relativity apparatus follows the stage's size before anything is framed for it: with
+        // hysteresis while the size changes, and the largest tier that fits once it holds still.
+        if (relativity_ && !rect.empty())
+            follow_relativity_stage_size(rect);
         const auto previous = camera_.focus_rect();
         if (previous.left == rect.left && previous.top == rect.top && previous.width == rect.width && previous.height == rect.height)
+        {
+            // Present, the text size and the units change the instrument band without changing the
+            // rect, so an unmoved camera reframes the apparatus when what it was framed for changed.
+            if (relativity_ && !camera_user_moved_ && !rect.empty() && relativity_framing_stale(rect))
+                frame_subject();
             return;
+        }
         const auto preserved = camera_.screen_to_world(previous.empty() ? math::Vec2 { camera_.viewport().width * 0.5, camera_.viewport().height * 0.5 } : previous.center());
         // The selection's screen box, if the reader could see any of it before the change.
         std::optional<math::Aabb> selection_m;
@@ -1016,6 +1105,12 @@ namespace rigidbodies::app
 
     void SimulationSession::frame_everything()
     {
+        // The probe's apparatus is everything there is to see, and its framing makes room for the band.
+        if (relativity_)
+        {
+            frame_subject();
+            return;
+        }
         const auto bounds = world_.compute_bounds();
         if (!bounds.is_empty())
         {
@@ -1403,6 +1498,11 @@ namespace rigidbodies::app
     void SimulationSession::frame_subject()
     {
         camera_user_moved_ = false;
+        if (relativity_)
+        {
+            frame_relativity_stage();
+            return;
+        }
         if (const auto authored = authored_view_bounds())
         {
             camera_.frame_bounds(*authored, 0.0);
@@ -1660,6 +1760,13 @@ namespace rigidbodies::app
                     reveal_request_ = ui::RevealRequest { ++reveal_request_serial_, "measure.collisions.list", std::to_string(index) };
                     return true;
                 }
+            }
+            // The probe stands for its speed: a click on it, or on the clock it carries, brings the
+            // speed control forward.
+            if (hit_relativity_probe(event.pointer_px, event.logical_pixel_scale))
+            {
+                reveal_request_ = ui::RevealRequest { ++reveal_request_serial_, "world.relativity.speed", {} };
+                return true;
             }
         }
         if (handle_stage_handle_event(event, interface_consumed))
@@ -2082,6 +2189,9 @@ namespace rigidbodies::app
 
     void SimulationSession::apply_untracked(const ui::UiCommand& command)
     {
+        // The probe's speed keeps its own setup in step, so it never reaches the World's sync below.
+        if (apply_relativity_command(command))
+            return;
         if (starting_motion_edit(command))
         {
             apply_starting_motion_edit(command);
@@ -2690,8 +2800,21 @@ namespace rigidbodies::app
                 aggregator = ui::RunAggregator::at_first_impact;
             else if (command.detail == "at_time")
                 aggregator = ui::RunAggregator::at_time;
+            // Add value refuses a value that is already in the table; a reading's context menu
+            // cannot see the table, so the same rule is applied here.
+            const auto pinned = run_recorder_.pinned(run_recorder_.experiment_id());
+            if (std::any_of(pinned.begin(), pinned.end(), [&](const auto& existing)
+                    {
+                        return existing.quantity == command.id && existing.body == command.body && existing.aggregator == aggregator && (aggregator != ui::RunAggregator::at_time || existing.time_s == command.value);
+                    }))
+            {
+                notify(ui::Severity::info, "This value is already pinned.", "runs");
+                break;
+            }
+            // A full table is not the only reason a value is refused: the runs may not record it.
+            const auto full = pinned.size() >= RunRecorder::maximum_pinned_values;
             if (!run_recorder_.pin({ {}, command.id, command.body, aggregator, command.value }))
-                notify(ui::Severity::warning, "At most 12 values can be pinned. Remove one first.", "runs");
+                notify(ui::Severity::warning, full ? "At most 12 values can be pinned. Remove one first." : "This value cannot be added to the runs table.", "runs");
             break;
         }
         case ui::UiCommandKind::unpin_run_value:
@@ -2853,6 +2976,11 @@ namespace rigidbodies::app
                 refresh_force_generators();
                 setup_.world = world_.snapshot();
                 setup_.gravity_direction_degrees = gravity_direction_degrees_;
+                if (original_.relativity)
+                {
+                    setup_.relativity = original_.relativity;
+                    relativity_.emplace(*original_.relativity);
+                }
                 rebuild_snapshot_views();
                 stepper_.reset();
                 stepper_.set_paused(true);
@@ -2869,6 +2997,12 @@ namespace rigidbodies::app
             world_.restart_timeline();
             setup_.world = world_.snapshot();
             setup_.gravity_direction_degrees = gravity_direction_degrees_;
+            // The speed already is the starting speed; the clocks start again from zero with it.
+            if (relativity_)
+            {
+                setup_.relativity = relativity_->setup();
+                relativity_->restart();
+            }
             rebuild_snapshot_views();
             stepper_.reset();
             stepper_.set_paused(true);
@@ -2878,9 +3012,7 @@ namespace rigidbodies::app
 
         case ui::UiCommandKind::revert_lab_settings:
             apply_lab_settings(default_lab_);
-            setup_.world = world_.snapshot();
-            setup_.gravity_direction_degrees = gravity_direction_degrees_;
-            rebuild_snapshot_views();
+            store_lab_settings_in_setup();
             synchronize_render_history();
             mark_edit_changed();
             break;
@@ -2888,6 +3020,10 @@ namespace rigidbodies::app
         case ui::UiCommandKind::revert_change:
             if (command.id == "setup" || command.id.rfind("setup:", 0) == 0)
                 reset_scenario_untracked();
+            // The probe's speed returns to the authored one; its clocks keep running.
+            else if (relativity_ && original_.relativity && (command.id == "relativity:speed" || command.id == "world.relativity.speed") &&
+                relativity_->setup().speed_fraction != original_.relativity->speed_fraction)
+                change_relativity_speed(original_.relativity->speed_fraction);
             break;
 
         case ui::UiCommandKind::quit:
@@ -2968,7 +3104,7 @@ namespace rigidbodies::app
     {
         if (!setup_file_->saved_setup_fingerprint.empty())
             return setup_fingerprint() != setup_file_->saved_setup_fingerprint;
-        return user_object_count() > 0 || !compute_setup_changes(setup_view_, original_view_).empty();
+        return user_object_count() > 0 || !setup_changes().empty();
     }
 
     void SimulationSession::populate_run_model(ui::UiModel& model) const
@@ -2980,7 +3116,7 @@ namespace rigidbodies::app
         model.starred_run_count = run_recorder_.starred_count();
         if (model.current_run)
             model.graph_markers = model.current_run->markers;
-        model.changes = compute_setup_changes(setup_view_, original_view_);
+        model.changes = setup_changes();
         model.scenario_content = experiment_content_;
         model.selected_connection = selected_connection_;
         if (pending_setup_open_)
@@ -3104,7 +3240,7 @@ namespace rigidbodies::app
         model.ui_scale = ui_scale_;
         model.camera_zoom_sensitivity = camera_zoom_sensitivity_;
         for (const auto& binding : key_bindings)
-            if (binding.action != AppAction::toggle_developer_overlay)
+            if (binding.action != AppAction::toggle_developer_overlay && (relativity_ ? !newtonian_only_action(binding.action) : !relativity_only_action(binding.action)))
             {
                 // A command with two keys is one entry naming both, as the menus show it once.
                 const auto same_command = std::find_if(model.keyboard_reference.begin(), model.keyboard_reference.end(), [&](const ui::KeyReference& entry)
@@ -3127,6 +3263,7 @@ namespace rigidbodies::app
             }
         populate_shape_model(model);
         populate_education_model(model);
+        populate_relativity_model(model);
         populate_run_model(model);
         const auto gravity = world_.settings().gravity_m_s2;
         model.gravity_direction_degrees = std::hypot(gravity.x, gravity.y) > 0.0
@@ -3341,9 +3478,12 @@ namespace rigidbodies::app
             const auto knob = rotation_knob_position(centre, handle_ring_radius(*selected), selected->orientation_rad());
             model.handles.push_back({ "rotation", ui::StageTargetKind::handle, { knob.x - 12.0 * hs, knob.y - 12.0 * hs, 24.0 * hs, 24.0 * hs }, selection(), selected->type() != physics::BodyType::static_body, "Fixed objects cannot rotate." });
         }
-        const auto compass = gravity_compass_centre(camera_, hs);
-        const auto compass_extent = std::max(overlay::handle_hit_radius, overlay::compass_radius + 2.0) * hs;
-        model.handles.push_back({ "gravity", ui::StageTargetKind::handle, { compass.x - compass_extent, compass.y - compass_extent, 2.0 * compass_extent, 2.0 * compass_extent }, {}, true, {} });
+        if (!relativity_)
+        {
+            const auto compass = gravity_compass_centre(camera_, hs);
+            const auto compass_extent = std::max(overlay::handle_hit_radius, overlay::compass_radius + 2.0) * hs;
+            model.handles.push_back({ "gravity", ui::StageTargetKind::handle, { compass.x - compass_extent, compass.y - compass_extent, 2.0 * compass_extent, 2.0 * compass_extent }, {}, true, {} });
+        }
         if (scene_settings_.layers.is_enabled(render::VisualizationLayer::constraints))
         {
             for (const auto& constraint : world_.constraints())
@@ -3394,6 +3534,7 @@ namespace rigidbodies::app
                 card.concepts = metadata.concepts;
                 card.builds_on = metadata.prerequisites;
                 card.tags = metadata.tags;
+                card.special_relativity = content.special_relativity;
             }
             model.catalogue.push_back(std::move(card));
         }

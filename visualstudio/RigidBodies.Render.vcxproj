@@ -44,10 +44,12 @@
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\draw_list.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\font_atlas.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\gl_render_device.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\relativity_stage.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\render_device.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\scene_renderer.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\sdl_render_device.hpp" />
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\visualization_layers.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Render\src\scene_style.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\RigidBodies.Render\src\camera2d.cpp" />
@@ -60,6 +62,7 @@
     <ClCompile Include="..\src\RigidBodies.Render\src\sdl_render_device.cpp" />
     <ClCompile Include="..\src\RigidBodies.Render\src\theme.cpp" />
     <ClCompile Include="..\src\RigidBodies.Render\src\visualization_layers.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Render\src\relativity_stage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="RigidBodies.Core.vcxproj">

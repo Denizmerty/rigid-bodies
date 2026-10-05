@@ -115,6 +115,9 @@ namespace rigidbodies::ui
         std::string arranged_experiment_;
         double caption_height_logical_ {};
         bool context_menu_requested_ { false };
+        // Whether the last model built was a special-relativity experiment, whose World page leads
+        // with the probe's speed and which has no objects to add.
+        bool relativity_active_ { false };
         std::uint64_t reveal_request_serial_ {};
         // A reveal or field focus waits for the build that creates its row: the Inspector builds
         // only its current page, and a sheet's field exists only once the sheet is shown.

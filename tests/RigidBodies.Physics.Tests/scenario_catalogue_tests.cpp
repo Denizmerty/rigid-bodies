@@ -1,3 +1,4 @@
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/physics/scenario_document.hpp>
 
@@ -89,6 +90,31 @@ namespace
             RIGIDBODIES_EXPECT(load_scenario(world, scenario.id), "every disk document populates through the public interface");
             RIGIDBODIES_EXPECT(!world.body_ids().empty(), "each teaching arrangement has objects");
         }
+    }
+
+    RIGIDBODIES_TEST("Chasing light joins the catalogue with a valid relativity setup")
+    {
+        const auto* description = find_scenario("chasing_light");
+        RIGIDBODIES_EXPECT(description != nullptr, scenario_catalogue_error());
+        RIGIDBODIES_EXPECT(description->title == "Chasing light" && description->collection == "special_relativity" && description->level == "further", "it is the special relativity collection's experiment");
+        RIGIDBODIES_EXPECT(description->suggested_order == 250 && description->collection_order == 1, "it is ordered after its prerequisite and before Make your own");
+        RIGIDBODIES_EXPECT(description->prerequisites.size() == 1 && description->prerequisites.front() == "collision_comparison", "it builds on Three kinds of collision");
+        RIGIDBODIES_EXPECT(find_scenario("shape_workshop")->suggested_order == 260 && find_scenario("empty_lab")->suggested_order == 270, "Make your own follows it");
+        const auto* document = scenario_document_for_id("chasing_light");
+        RIGIDBODIES_EXPECT(document && declares_special_relativity(document->root), "the document requires special_relativity");
+        RIGIDBODIES_EXPECT(document && read_relativity_setup(document->root) == RelativitySetup { 1.0, 0.0 }, "the probe is 1 kg at rest");
+        World world;
+        RIGIDBODIES_EXPECT(load_scenario(world, "chasing_light"), "its world loads");
+        const auto ids = world.body_ids();
+        RIGIDBODIES_EXPECT(ids.size() == 1 && world.find_body(ids.front())->type() == BodyType::static_body && world.force_generators().empty(), "the world is the fixed rail alone, with no gravity");
+        const auto bounds = world.find_body(ids.front())->compute_bounds();
+        RIGIDBODIES_EXPECT_NEAR(bounds.maximum.y, 0.0, 1.0e-12, "the rail's top surface is the track line y = 0");
+        RIGIDBODIES_EXPECT(bounds.minimum.x < 0.0 && bounds.maximum.x > relativity_track_length_m, "the rail spans the whole track");
+        // Capturing the loaded document with itself as the source keeps every field.
+        ScenarioDocument captured;
+        std::string error;
+        RIGIDBODIES_EXPECT(capture_scenario_document(world, document->metadata, captured, error, document), error);
+        RIGIDBODIES_EXPECT(content::write_json(captured.root) == content::write_json(document->root), "a capture of the bundled document changes nothing");
     }
 
     RIGIDBODIES_TEST("catalogue reads edited descriptions and sorts by suggested order then identifier")
@@ -193,6 +219,46 @@ namespace
         RIGIDBODIES_EXPECT(source && source->root.at("future_lesson_extension").at("caption").as_string() == "Retain this for newer applications", "unrecognized additive fields survive discovery");
         World world;
         RIGIDBODIES_EXPECT(load_scenario(world, "future"), "compatible minor versions remain usable");
+    }
+
+    RIGIDBODIES_TEST("a relativity document with a valid setup joins the catalogue")
+    {
+        CatalogueFixture fixture;
+        auto document = fixture.document("relativity_fixture");
+        document["required_features"] = Json::Array { "special_relativity" };
+        document["relativity"] = Json::Object { { "rest_mass_kg", 1.0 }, { "speed_fraction_c", 0.0 } };
+        fixture.write("relativity.json", document);
+        std::string error;
+        RIGIDBODIES_EXPECT(initialize_scenario_catalogue(fixture.directory, error), error);
+        const auto* source = scenario_document_for_id("relativity_fixture");
+        RIGIDBODIES_EXPECT(source && read_relativity_setup(source->root) == RelativitySetup { 1.0, 0.0 }, "the catalogued document keeps its setup");
+        World world;
+        RIGIDBODIES_EXPECT(load_scenario(world, "relativity_fixture") && !world.body_ids().empty(), "its ordinary world still loads");
+    }
+
+    RIGIDBODIES_TEST("a malformed relativity document rejects the whole catalogue")
+    {
+        CatalogueFixture fixture;
+        const auto* before = find_scenario("free_fall");
+        fixture.write("good.json", fixture.document("good"));
+        const Json malformed[] = {
+            Json::Object { { "rest_mass_kg", 1.0 }, { "speed_fraction_c", 1.0 } },
+            Json::Object { { "rest_mass_kg", 1.0 }, { "speed_fraction_c", "0.5" } },
+            Json::Object { { "rest_mass_kg", 0.0 }, { "speed_fraction_c", 0.5 } },
+            Json::Object { { "rest_mass_kg", 1.0 } },
+            Json(nullptr),
+        };
+        for (const auto& relativity : malformed)
+        {
+            auto document = fixture.document("relativity_fixture", 20);
+            document["required_features"] = Json::Array { "special_relativity" };
+            document["relativity"] = relativity;
+            fixture.write("relativity.json", document);
+            std::string error;
+            RIGIDBODIES_EXPECT(!initialize_scenario_catalogue(fixture.directory, error), "one malformed relativity document rejects the replacement");
+            RIGIDBODIES_EXPECT(error.find("relativity.json: relativity") == 0 || error.find("relativity.json: A document that requires special_relativity") == 0, "the diagnostic names the file and the relativity field: " + error);
+            RIGIDBODIES_EXPECT(find_scenario("free_fall") == before && find_scenario("good") == nullptr && find_scenario("relativity_fixture") == nullptr, "the live catalogue is unchanged");
+        }
     }
 
     RIGIDBODIES_TEST("unsupported major versions cannot replace the live catalogue")

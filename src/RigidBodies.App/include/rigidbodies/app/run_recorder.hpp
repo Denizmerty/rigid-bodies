@@ -1,6 +1,7 @@
 #pragma once
 
 #include <rigidbodies/math/span.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/physics/world.hpp>
 #include <rigidbodies/ui/run_types.hpp>
 
@@ -14,12 +15,16 @@ namespace rigidbodies::app
     class RunRecorder
     {
     public:
+        static constexpr std::size_t maximum_pinned_values = 12;
+
         RunRecorder();
 
         void set_experiment(std::string_view experiment_id);
+        // A relativity run also records the probe's clocks and Lorentz factor with every sample
+        // (RunSeries::relativity); a Newtonian run reserves nothing for them.
         void begin_run(const physics::World& world, std::vector<ui::SetupChange> changes_from_original,
-            std::vector<ui::SetupChange> changes_from_previous, std::optional<ui::Prediction> prediction = {});
-        void record_sample(const physics::World& world, double time_s);
+            std::vector<ui::SetupChange> changes_from_previous, std::optional<ui::Prediction> prediction = {}, bool relativity = false);
+        void record_sample(const physics::World& world, double time_s, const physics::RelativisticProbe* probe = nullptr);
         void add_marker(double time_s, std::string label);
         void note_impact(double time_s);
         void mark_changed_during_run();
@@ -54,6 +59,8 @@ namespace rigidbodies::app
         {
             std::map<std::string, ExperimentRuns, std::less<>> experiments;
             std::optional<ui::RunRecord> current;
+            // Whether the current run records the relativity block.
+            bool current_relativity {};
             std::string experiment_id;
             std::uint64_t next_retention_order { 1 };
         };

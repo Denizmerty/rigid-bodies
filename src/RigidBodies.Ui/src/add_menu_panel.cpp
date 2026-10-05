@@ -21,7 +21,9 @@ namespace rigidbodies::ui
             return;
         builder.heading("Add object");
         const auto locked = builder.view_present() && builder.view_present_locked();
-        const auto reason = locked ? "Locked in Present mode. Use the lock button to unlock." : "";
+        // The menu stays open across a switch to a relativity experiment, whose probe is its only object.
+        const auto reason = model.relativity ? "Objects cannot be added to a relativity experiment." : locked ? "Locked in Present mode. Use the lock button to unlock."
+                                                                                                              : "";
         struct Item
         {
             const char* id;
@@ -38,7 +40,7 @@ namespace rigidbodies::ui
         }
         UiCommand draw;
         draw.kind = UiCommandKind::start_new_shape;
-        builder.action_row("Draw shape", draw, model.shape_editor_active ? "A shape is already being drawn." : reason);
+        builder.action_row("Draw shape", draw, model.shape_editor_active && !model.relativity ? "A shape is already being drawn." : reason);
         builder.present_last(presentation(icons::draw, "D"));
     }
 }

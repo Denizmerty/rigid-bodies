@@ -1,7 +1,9 @@
 #include <rigidbodies/app/experiment_content.hpp>
 
 #include <rigidbodies/core/log.hpp>
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/ui/control_spec.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 
 #include <cmath>
 #include <set>
@@ -52,6 +54,8 @@ namespace rigidbodies::app
                 return "Moving through air";
             if (key == "springs_joints_and_machines")
                 return "Springs, joints and machines";
+            if (key == "special_relativity")
+                return "Special relativity";
             if (key == "make_your_own")
                 return "Make your own";
             return std::string(key);
@@ -92,6 +96,8 @@ namespace rigidbodies::app
         result.concepts = document.metadata.concepts;
         result.prerequisites = document.metadata.prerequisites;
         result.tags = document.metadata.tags;
+        // The feature, never the id or collection: a titled save rewrites both.
+        result.special_relativity = physics::declares_special_relativity(document.root);
 
         if (const auto* metadata = document.root.find("metadata"); metadata && metadata->is_object())
         {
@@ -192,8 +198,7 @@ namespace rigidbodies::app
                 report_reference_once(result.id, "instance", instance);
                 instance.clear();
             }
-            if (open && !open->empty() && *open != "measure.graph" && *open != "measure.collisions.list" &&
-                *open != "measure.theory.collisions_run" && !ui::find_control_spec(*open))
+            if (open && !open->empty() && !ui::valid_guide_open_target(*open))
             {
                 report_reference_once(result.id, "open target", *open);
                 open->clear();

@@ -4,11 +4,13 @@
 
 #include <SDL3/SDL.h>
 
+#include "relativity_stage_fixture.hpp"
 #include "test_framework.hpp"
 
 #include <array>
 #include <filesystem>
 #include <set>
+#include <string>
 
 namespace
 {
@@ -169,6 +171,72 @@ namespace
         Gallery gallery;
         gallery.draw(false, true, "stage8-presentation-dark.png");
         gallery.draw(true, true, "stage8-presentation-light.png");
+    }
+
+    RIGIDBODIES_TEST("the chasing light stage renders richly in every theme")
+    {
+        auto* surface = SDL_CreateSurface(1600, 900, SDL_PIXELFORMAT_RGBA32);
+        RIGIDBODIES_EXPECT(surface, "gallery surface created without a desktop window");
+        auto device = render::SdlRenderDevice::adopt_software_renderer(SDL_CreateSoftwareRenderer(surface));
+        RIGIDBODIES_EXPECT(device != nullptr && device->load_font(std::filesystem::path(RIGIDBODIES_SOURCE_ASSETS) / "fonts/Inter-Medium.ttf"), "software device with the bundled scene font");
+        // The bundled document's world: a still 3 m rail under the track, without gravity.
+        physics::World world;
+        physics::WorldSettings environment;
+        environment.gravity_m_s2 = {};
+        world.set_settings(environment);
+        physics::BodyDefinition rail;
+        rail.name = "Track";
+        rail.type = physics::BodyType::static_body;
+        rail.position_m = { 0.5 * physics::relativity_track_length_m, -0.5 * render::relativity_rail_thickness_m };
+        physics::Collider rail_shape;
+        rail_shape.shape = physics::make_box(3.12, render::relativity_rail_thickness_m);
+        rail_shape.material = physics::materials::steel();
+        rail.colliders.push_back(rail_shape);
+        world.create_body(rail);
+        render::SceneRenderSettings settings;
+        settings.layers = render::LayerMask::none();
+        for (const auto layer : { render::VisualizationLayer::grid, render::VisualizationLayer::bodies, render::VisualizationLayer::labels })
+            settings.layers.set(layer, true);
+        settings.transitions = false;
+        const render::ScreenRect focus { 60.0, 60.0, 1480.0, 780.0 };
+        // The probe a learner sets to 0.99999 c and runs for 5.25 ns: neck and neck with the light.
+        auto stage = testing::relativity_stage_at(0.99999, 5.25e-9);
+        stage.tier = render::choose_relativity_tier(focus.width, focus.height, 1.0, stage.units, render::RelativityStageTier::full);
+        const auto camera = testing::relativity_camera({ 1600, 900 }, focus, 1.0, stage.tier);
+        render::SceneRenderer scene;
+        for (const auto* name : { "workbench_dark", "workbench_light", "workbench_projector" })
+        {
+            settings.theme = render::theme_by_name(name);
+            scene.set_relativity_stage(stage);
+            const auto checkpoint = world.snapshot();
+            render::DrawList list;
+            scene.render(world, camera, settings, list);
+            RIGIDBODIES_EXPECT(scene.relativity_stage_layout().has_value(), "the apparatus is drawn");
+            device->begin_frame(settings.theme.background);
+            device->submit(list);
+            device->end_frame();
+            RIGIDBODIES_EXPECT(SDL_SavePNG(surface, (std::string("stage9-chasing-light-") + name + ".png").c_str()), "rendered stage PNG saved for visual inspection");
+            std::set<std::uint32_t> colors;
+            for (auto y = static_cast<int>(focus.top); y < static_cast<int>(focus.top + focus.height); y += 3)
+                for (auto x = static_cast<int>(focus.left); x < static_cast<int>(focus.left + focus.width); x += 3)
+                {
+                    Uint8 red, green, blue, alpha;
+                    RIGIDBODIES_EXPECT(SDL_ReadSurfacePixel(surface, x, y, &red, &green, &blue, &alpha), "stage pixels readable");
+                    colors.insert((static_cast<std::uint32_t>(red) << 16u) | (static_cast<std::uint32_t>(green) << 8u) | blue);
+                }
+            RIGIDBODIES_EXPECT(colors.size() > 500, std::string("the stage has shaded, antialiased instruments and text in ") + name);
+            physics::World expected;
+            expected.restore(checkpoint);
+            RIGIDBODIES_EXPECT(world.statistics().step_index == expected.statistics().step_index && world.body_ids().size() == 1, "drawing advances nothing");
+            for (const auto id : world.body_ids())
+                RIGIDBODIES_EXPECT(world.find_body(id)->position_m() == expected.find_body(id)->position_m(), "the rail stays put");
+            // The renderer is handed a copy of the probe's state; drawing keeps that copy as given.
+            // (That a session's render leaves its probe alone is a RelativitySession test.)
+            const auto& held = scene.relativity_stage();
+            RIGIDBODIES_EXPECT(held && held->lab_time_s == stage.lab_time_s && held->proper_time_s == stage.proper_time_s && held->clock_lag_s == stage.clock_lag_s && held->probe_position_m == stage.probe_position_m && held->light_lead_m == stage.light_lead_m && held->light_finished == stage.light_finished && held->speed_fraction == stage.speed_fraction, "drawing keeps the stage it was handed");
+        }
+        device.reset();
+        SDL_DestroySurface(surface);
     }
 
     RIGIDBODIES_TEST("scene closeup retains material form trails and impact cues without the interface")

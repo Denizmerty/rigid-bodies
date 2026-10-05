@@ -672,8 +672,15 @@ namespace
     {
         install_crash_report();
         LearnerInterface harness({}, { 1600, 900 }, 1.5f);
-        for (const auto* tab : { "energy", "graph", "collisions", "runs", "theory" })
+        // Every tab of a Newtonian experiment, then every tab of the relativity experiment, whose
+        // tools refuse Newtonian edits.
+        for (const auto* tab : { "energy", "graph", "collisions", "runs", "theory", "relativity", "graph", "runs" })
         {
+            if (std::string_view(tab) == "relativity")
+            {
+                RIGIDBODIES_EXPECT(harness.session.load_scenario("chasing_light"), "the relativity experiment loads");
+                harness.frame();
+            }
             harness.interface.view_state().set_surface_open("measure.open", true);
             harness.interface.view_state().set_active_tab("measure.header.tabs", tab);
             harness.frame();

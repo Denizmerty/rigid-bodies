@@ -4,9 +4,9 @@
 // script, the CMake build and the Visual Studio projects all read them from here.
 
 #define RIGIDBODIES_VERSION_MAJOR 1
-#define RIGIDBODIES_VERSION_MINOR 0
-#define RIGIDBODIES_VERSION_PATCH 1
-#define RIGIDBODIES_VERSION_STRING "1.0.1"
+#define RIGIDBODIES_VERSION_MINOR 2
+#define RIGIDBODIES_VERSION_PATCH 0
+#define RIGIDBODIES_VERSION_STRING "1.2.0"
 #define RIGIDBODIES_AUTHOR "Deniz Mert Yayla"
 #define RIGIDBODIES_CONTACT "denizmerty@gmail.com"
 #define RIGIDBODIES_COPYRIGHT "Copyright © 2026 Deniz Mert Yayla"

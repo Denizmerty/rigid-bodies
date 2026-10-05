@@ -348,7 +348,9 @@ Panels read a `UiModel` assembled each frame and emit `UiCommand` values to requ
 have no direct access to modify the world or camera.
 
 The command enumeration lists the actions available to the interface. Adding an action requires
-an explicit handler in the session, keeping simulation changes and validation in one place.
+an explicit handler in the session, keeping simulation changes and validation in one place. The
+relativity experiment adds one, `set_relativity_speed`: the Probe speed field, its slider, the
+preset chips and the speed keys all send it, with `nudge` or `preset` in its detail for the keys.
 
 Tabs, disclosures, checklist choices, search text, selected cards and open surface stacks are
 view-only state owned by `ViewState`. They never enter `UiModel`, physics snapshots or undo. The
@@ -360,7 +362,9 @@ time without restarting histories or posting completion feedback. `commit` appli
 side effects once and records one undo entry; `cancel` restores the transaction's original state
 exactly. Commits for the same control can coalesce only when their wall-clock timestamps are no
 more than one second apart. Wall time is supplied by the application and never enters the physics
-world, so coalescing cannot affect deterministic stepping.
+world, so coalescing cannot affect deterministic stepping. The probe speed is the one exception to
+holding time: its preview leaves the clocks running so their rates visibly change, and cancel
+restores the speed without rewinding them.
 
 ## Two backends behind the interface
 
@@ -491,3 +495,69 @@ only the commands they emit. Command search consumes the same key and control re
 action uses its existing handler and a setting result opens the control that already edits it. Present is a non-persistent chrome state layered on those same
 mechanisms; its demonstration lock is enforced both while controls are built and while keys are
 dispatched.
+
+## Special relativity beside the world
+
+The Chasing light experiment models a point probe at a constant, learner-set speed close to c. It
+runs beside the World rather than inside it: rigid-body dynamics stay Newtonian, and the World
+holds only the probe's static track.
+
+`physics/special_relativity.hpp` is dependency-free like the rest of Physics. `lorentz_factors`
+derives γ, γ − 1, βγ, 1/γ and the rapidity from β without cancellation at either end of [0, 1). It
+carries 1 − β, which is exact for β ≥ ½, and forms γ − 1 as (βγ)²/(γ + 1), so both 0.9999999 and
+10⁻⁹ keep their digits. `maximum_speed_fraction` caps the speed at 0.9999999, where c − v is still
+about 30 m/s, and the session, the probe and the document codec each enforce it. Below it, a moving
+speed is never slower than `minimum_moving_speed_fraction` (10⁻¹², about 0.3 mm/s): the speed field,
+the session and the document reader refuse anything between rest and that floor.
+`speed_fraction_on_ladder` treats a speed a rounding error from a rung of the speed ladder as that
+rung, so a typed 99.999 % is 0.99999 c, with its preset chip, its limit notice and its next step.
+`RelativisticProbe` holds the probe, the clock it carries and the light pulse that leaves the start
+line with it on every lap of a track ten light-nanoseconds long. Each constant-speed segment is
+exact, so step size and step count change a result only by rounding, and a large step runs whole
+laps in constant time. The probe is copyable, so undo snapshots hold it by value.
+`physics/relativity_document.hpp` reads and writes the document's `relativity` object, and
+`validate_document_header` accepts the `special_relativity` feature only for scenarios
+([CONTENT_FORMAT.md](CONTENT_FORMAT.md#special-relativity)).
+
+`SimulationSession` keeps the probe in an optional member that opening an experiment, undo and
+redo, and Back to start replace. The probe advances in the World's own fixed steps, by each
+substep times `relativity_lab_seconds_per_world_second` (10⁻⁹): a world second, which is a screen
+second at 1×, is a lab nanosecond. It interpolates between the same two steps as the bodies. Its
+speed belongs to the starting setup and the live probe at once: a speed edit is one "Change probe
+speed" parameter entry that never rewinds or pauses the clocks, and undo restores the speed alone.
+Because the clocks keep running, the run's graph is marked "Speed 0.5 c → 0.9 c" wherever their rate
+changed: where a drag first moved the speed, at both ends of a cancelled drag, at an undo or redo
+and at a per-item revert.
+Commands that act on Newtonian objects, such as adding, drawing, importing, deleting, throwing,
+pulling and playing until the next impact, are refused at one gate with one notice per opened
+experiment. Saving writes the speed into the document and the setup fingerprint includes it, so a
+speed edit marks a saved setup as changed while running never does.
+
+Each frame the session hands `SceneRenderer::set_relativity_stage` a `RelativityStage` POD built
+from the interpolated sample; Newtonian experiments pass `std::nullopt`. The track itself is the
+World's static marker body, drawn by the body pass on the static-body layer (−8).
+`relativity_stage.cpp` draws the start and finish lines, the light-nanosecond marks and their
+numbers, and the light lane on layer −6, above the track body; the pulse and the probe on layer 0;
+the clock faces and fixed plates on layer 20; and the instrument band across the top of the
+framing area on the instrument layer. It then records the drawn layout for the probe click and the
+tests. The scale key keeps clear of the band, faces, track and plates, and is left out of a stage
+too short for the apparatus, where every corner holds one of them; the
+shared label pass places the probe's clock plate clear of the pulse and the mark numbers.
+`scene_style.hpp` holds the typography, stroke and mesh helpers it shares with the scene
+renderer, so stage text is measured the same way wherever it is drawn. Three tiers (full, compact
+and minimal) follow the framing size, and every tier draws both clock faces: smaller faces and
+fewer plates as the stage shrinks, down to the minimal tier, where the probe's face is its marker
+and the lab face stands beside its plate under the track. While the framing size keeps changing,
+hysteresis keeps the tier near a threshold; once it holds still for a frame, the session settles
+on the largest tier that fits, so a passing size, such as Present's caption before it is
+measured, never leaves the stage in a smaller tier. The band's height depends only on the
+framing width, the text scale and the units, never on the values shown, so the session's framing
+reserves exactly that height above the track instead of shrinking the camera's focus rectangle.
+
+The interface reads the experiment from `UiModel::relativity`, which the session fills from the
+same physics helpers and the same interpolated sample the stage draws. `measure_tabs.hpp` gives
+the Measure tab set for a model: Relativity, Graph and Runs here, and Energy, Graph, Collisions,
+Runs and Theory checks otherwise. `RunRecorder` adds a relativity block of proper time τ, t − τ
+and γ − 1 to each sample of a relativity run, so Graph and Runs plot the clocks over lab time.
+Core's `speed_fraction` format truncates towards rest so a speed below c never reads as c, and
+Core groups long numbers with a thin space, which the bundled Inter faces draw as a blank glyph.

@@ -1,0 +1,139 @@
+{
+  "format": "rigid-bodies.scenario",
+  "version": {
+    "major": 1,
+    "minor": 1
+  },
+  "required_features": ["special_relativity"],
+  "metadata": {
+    "collection": "special_relativity",
+    "collection_order": 1,
+    "concepts": ["speed of light", "time dilation", "Lorentz factor", "relativistic energy and momentum"],
+    "hook": "A probe races light: its clock slows and its energy soars, but it never reaches c.",
+    "id": "chasing_light",
+    "lab": false,
+    "level": "further",
+    "prerequisites": ["collision_comparison"],
+    "suggested_order": 250,
+    "summary": "A 1 kg probe carrying its own clock races a pulse of light along a track. Set its speed anywhere from rest to 0.9999999 c. As the speed approaches c, the Lorentz factor γ grows without limit: the probe's clock falls further and further behind the lab clock, and its kinetic energy and momentum climb without bound, while its speed only gains more nines and never reaches c. One second on screen is one nanosecond in the lab.",
+    "tags": ["special relativity", "speed of light", "time dilation", "Lorentz factor", "relativistic momentum", "relativistic kinetic energy", "rest mass"],
+    "title": "Chasing light"
+  },
+  "relativity": {"rest_mass_kg":1,"speed_fraction_c":0},
+  "guide": {"focus":"Compare the probe's clock with the lab clock, and watch γ, kinetic energy and momentum as the speed creeps closer to c.","predict":{"prompt":"Going from 0.9 c to 0.99999 c makes the probe only about 11 % faster. How much more kinetic energy does it need?","options":["About 11 % more","About 10 times as much","More than 100 times as much"]},"variables":[{"control":"world.relativity.speed","label":"Probe speed"},{"control":"world.relativity.preset","label":"Speed preset"}],"steps":[{"text":"Press Play with the probe at rest. Its clock keeps time with the lab clock while the light pulse runs to the finish."},{"text":"Choose 0.5 c, then 0.9 c. The probe now chases the light, and its clock runs at only a fraction of the lab clock's rate.","control":"world.relativity.preset"},{"text":"Keep adding nines up to 0.99999 c, or press Shift+Up. The probe hardly gets faster, but γ, its energy and its momentum shoot up.","control":"world.relativity.preset"},{"text":"Type 1 c into Probe speed. It is refused: reaching c would take infinite energy.","control":"world.relativity.speed"},{"text":"Press R, set 0.6 c and run until the lab clock reads 10 ns. The probe's clock reads 8 ns, because γ is 1.25.","control":"world.relativity.speed"},{"text":"Compare energy, momentum and γ with Newton's predictions as the speed approaches c.","open":"measure.relativity.curve"}],"expect":"Near c, almost all the extra energy buys almost no extra speed. From 0.9 c to 0.99999 c the speed rises by about 11 %, but the kinetic energy (γ − 1)mc² grows about 170 times and the momentum γmv about 110 times. The probe's clock runs slow by the factor γ, so the lab clock keeps pulling ahead. Each extra 9 multiplies γ by about 3, and there is always another 9: the probe never reaches c, and the light always wins.","limits":"The probe moves in a straight line at the steady speed you set; a speed change happens at once, and the push that would cause it is not modelled. Everything plays a billion times slower than real time: one second on screen is one nanosecond in the lab. The track repeats every 10 light-nanoseconds (about 3 m), and a new light pulse starts with the probe on each lap. The probe is drawn as a marker, so length contraction is not shown. Times are read from clocks at rest in the lab, all synchronised, and the stage shows where everything is at each lab time, not what a camera would photograph."},
+  "presentation": {"layers":["bodies","labels","grid"]},
+  "view": {"center_x_m":1.49896229,"center_y_m":0.35,"width_m":3.5,"height_m":1.2},
+  "world": {
+    "algorithms": {
+      "broad_phase": {
+        "base_margin_m": 0.02,
+        "displacement_multiplier": 2,
+        "type": "dynamic_tree"
+      },
+      "contact_solver": "sequential_impulse",
+      "integrator": "semi_implicit_euler",
+      "narrow_phase": "collision"
+    },
+    "bodies": [{
+        "angular_damping": 0,
+        "angular_velocity_rad_s": 0,
+        "awake": false,
+        "caption": "The probe's straight track: 10 light-nanoseconds, about 3 m.",
+        "fixed_rotation": false,
+        "forces": [],
+        "gravity_scale": 1,
+        "id": "body-0-1",
+        "label": "Track",
+        "linear_damping": 0,
+        "linear_velocity_m_s": [0, 0],
+        "mass_override_kg": null,
+        "motion": null,
+        "name": "track",
+        "orientation_rad": 0,
+        "parts": [{
+            "density_override_kg_m3": null,
+            "depth_m": 0.05,
+            "drag_coefficient_override": null,
+            "filter": {
+              "category": 1,
+              "group": 0,
+              "mask": 65535
+            },
+            "is_sensor": false,
+            "local_transform": {
+              "rotation_rad": 0,
+              "translation_m": [0, 0]
+            },
+            "material": {
+              "density_kg_m3": 7850,
+              "drag_coefficient": 1,
+              "friction_anisotropy_ratio": 1,
+              "friction_axis_local": [1, 0],
+              "kinetic_friction": 0.55,
+              "name": "steel",
+              "restitution": 0.55,
+              "rolling_friction_m": 0,
+              "spinning_friction_m": 0,
+              "static_friction": 0.7
+            },
+            "shape": {
+              "type": "convex_polygon",
+              "vertices_m": [[-1.56, -0.006], [1.56, -0.006], [1.56, 0.006], [-1.56, 0.006]]
+            },
+            "shell_thickness_m": null,
+            "type": "primitive"
+          }],
+        "pending_force_n": [0, 0],
+        "pending_torque_n_m": 0,
+        "position_m": [1.49896229, -0.006],
+        "role": "marker",
+        "sleep_enabled": true,
+        "stable_key": "track",
+        "type": "static"
+      }],
+    "forces": [],
+    "joints": [],
+    "potential_energy_reference_height_m": 0,
+    "settings": {
+      "air_density_kg_m3": 1.225,
+      "air_dynamic_viscosity_pa_s": 1.81e-05,
+      "air_velocity_m_s": [0, 0],
+      "broad_phase_margin_m": 0.01,
+      "collision": {
+        "contact_margin_m": 0.002,
+        "continuous": true,
+        "friction_mixing": "geometric_mean",
+        "matching_tolerance_m": 0.02,
+        "maximum_sweep_iterations": 64,
+        "restitution_mixing": "maximum",
+        "sweep_tolerance_m": 1e-06
+      },
+      "constraint_graph_enabled": true,
+      "gravity_m_s2": [0, 0],
+      "limits": {
+        "maximum_angular_speed_rad_s": 100,
+        "maximum_linear_speed_m_s": 100,
+        "maximum_orientation_rad": 1000000,
+        "maximum_position_m": 100
+      },
+      "sleep": {
+        "angular_acceleration_rad_s2": 0.02,
+        "angular_speed_rad_s": 0.02,
+        "enabled": true,
+        "linear_acceleration_m_s2": 0.02,
+        "linear_speed_m_s": 0.02,
+        "quiet_duration_s": 0.5
+      },
+      "solver": {
+        "linear_slop_m": 0.005,
+        "maximum_position_correction_m": 0.2,
+        "position_correction_fraction": 0.2,
+        "position_iterations": 3,
+        "restitution_threshold_m_s": 1,
+        "velocity_iterations": 8,
+        "warm_starting": true
+      }
+    },
+    "springs": []
+  }
+}

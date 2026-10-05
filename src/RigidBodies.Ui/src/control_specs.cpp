@@ -1,8 +1,12 @@
 #include <rigidbodies/ui/control_spec.hpp>
 
+#include <rigidbodies/physics/special_relativity.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
 
 namespace rigidbodies::ui
@@ -54,7 +58,48 @@ namespace rigidbodies::ui
         constexpr OptionSpec speeds[] = { { "0.1", "0.1×", {}, {} }, { "0.25", "0.25×", {}, {} }, { "0.5", "0.5×", {}, {} }, { "1", "1×", {}, {} }, { "2", "2×", {}, {} }, { "4", "4×", {}, {} }, { "custom", "Custom…", "Enter an exact playback speed", {} } };
         constexpr OptionSpec time_steps[] = { { "0.0166666667", "1/60 s", {}, {} }, { "0.0083333333", "1/120 s", {}, {} }, { "0.0041666667", "1/240 s", {}, {} }, { "0.0020833333", "1/480 s", {}, {} }, { "custom", "Custom", {}, {} } };
 
+        // The speeds the probe's preset chips choose. Each label puts U+00A0 before the unit, as
+        // format_quantity does; "c" is a hex digit, so the literal is split after the escape.
+        constexpr OptionSpec relativity_presets[] {
+            { "0", "Rest", "At rest in the lab", {} },
+            { "0.5", "0.5\xC2\xA0"
+                     "c",
+                {},
+                {} },
+            { "0.9", "0.9\xC2\xA0"
+                     "c",
+                {},
+                {} },
+            { "0.99", "0.99\xC2\xA0"
+                      "c",
+                {},
+                {} },
+            { "0.999", "0.999\xC2\xA0"
+                       "c",
+                {},
+                {} },
+            { "0.9999", "0.9999\xC2\xA0"
+                        "c",
+                {},
+                {} },
+            { "0.99999", "0.99999\xC2\xA0"
+                         "c",
+                {},
+                {} },
+        };
+        constexpr OptionSpec relativity_curves[] { { "energy", "Energy", "Kinetic energy against speed", {} }, { "momentum", "Momentum", "Momentum against speed", {} }, { "gamma", "Lorentz factor", "γ against speed", {} }, { "clock_rate", "Clock rate", "How fast the probe's clock runs", {} } };
+        constexpr OptionSpec relativity_ranges[] { { "full", "Up to c", "Speeds from rest to c on an even scale", {} }, { "near", "Near c", "Each step right adds a 9", {} } };
+        constexpr std::string_view relativity_speed_words[] { "speed of light", "light speed", "velocity", "v/c", "beta", "relativistic speed", "fraction of c", "near c", "accelerate", "faster", "nines" };
+        constexpr std::string_view relativity_gamma_words[] { "gamma", "lorentz", "time dilation factor" };
+        constexpr std::string_view relativity_energy_words[] { "relativistic energy", "relativistic kinetic energy", "mc2", "mc²", "e=mc2", "rest energy" };
+        constexpr std::string_view relativity_momentum_words[] { "relativistic momentum", "gamma m v" };
+        constexpr std::string_view relativity_clock_words[] { "proper time", "moving clock", "time dilation", "twin paradox" };
+        constexpr std::string_view relativity_gap_words[] { "clock difference", "lab time minus proper time", "time dilation" };
+        constexpr std::string_view relativity_mass_words[] { "rest mass", "invariant mass" };
+
         constexpr double gravity_detents[] = { 1.62, 3.73, 9.80665 };
+        // The speed slider's soft range ends at 0.99999 c, so each preset below it is a detent.
+        constexpr double relativity_detents[] { 0.5, 0.9, 0.99, 0.999, 0.9999, 0.99999 };
         constexpr double one_detent[] = { 1.0 };
         constexpr double text_detents[] = { 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 };
 
@@ -72,6 +117,14 @@ namespace rigidbodies::ui
             return result;
         }
 
+        // A value the panels show and the search can find, owned by no command.
+        ControlSpec readout(std::string_view key, std::string_view label, std::string_view location, math::Span<const std::string_view> synonyms)
+        {
+            auto result = plain(key, label, location, ControlKind::readout, K::none);
+            result.synonyms = synonyms;
+            return result;
+        }
+
         ControlSpec number(std::string_view key, std::string_view label, std::string_view location, K command, double minimum, double maximum, double step, Q quantity, EditCategory category, bool slider = false, NumberScale scale = NumberScale::linear, double soft_minimum = 0.0, double soft_maximum = 0.0, math::Span<const double> detents = {}, bool session_minimum = false, bool session_maximum = false, bool dial = false, std::string_view command_id = {})
         {
             auto result = plain(key, label, location, ControlKind::number, command, category, {}, command_id);
@@ -85,6 +138,8 @@ namespace rigidbodies::ui
             result.number.detents = detents;
             result.number.slider = slider;
             result.number.dial = dial;
+            // A rapidity scale keeps the linear values, which it never uses: its coarse step is the
+            // speed ladder and its fine step the last digit of the value's text.
             result.number.coarse = scale == NumberScale::logarithmic ? 2.0 : 10.0;
             result.number.fine = scale == NumberScale::logarithmic ? 1.01 : 0.1;
             result.number.session_minimum = session_minimum;
@@ -149,11 +204,19 @@ namespace rigidbodies::ui
                     plain("measure.collisions.filter", "Show", "Measure › Collisions", ControlKind::segmented, K::none),
                     plain("measure.energy.scope", "Scope", "Measure › Energy", ControlKind::segmented, K::none),
                     plain("measure.graph.clear", "Clear graph", "Measure › Graph", ControlKind::action, K::clear_energy_history),
+                    plain("measure.graph.clocks", "Clocks", "Measure › Graph", ControlKind::checklist, K::none),
                     plain("measure.graph.quantities", "Quantities", "Measure › Graph", ControlKind::checklist, K::none),
                     plain("measure.graph.previous_run", "Previous run", "Measure › Graph", ControlKind::checkbox, K::none),
                     plain("measure.graph.compare_with", "Compare with", "Measure › Graph", ControlKind::select, K::none),
                     plain("measure.graph.scope", "Scope", "Measure › Graph", ControlKind::select, K::none),
                     plain("measure.graph.window", "Window", "Measure › Graph", ControlKind::segmented, K::none),
+                    plain("measure.relativity.curve", "Curve", "Measure › Relativity", ControlKind::segmented, K::none, EditCategory::not_an_edit, relativity_curves),
+                    plain("measure.relativity.range", "Speeds shown", "Measure › Relativity", ControlKind::segmented, K::none, EditCategory::not_an_edit, relativity_ranges),
+                    readout("measure.relativity.gamma", "Lorentz factor γ", "Measure › Relativity", relativity_gamma_words),
+                    readout("measure.relativity.energy", "Kinetic energy (γ − 1)mc²", "Measure › Relativity", relativity_energy_words),
+                    readout("measure.relativity.momentum", "Momentum γmv", "Measure › Relativity", relativity_momentum_words),
+                    readout("measure.relativity.probe_clock", "Probe clock τ", "Measure › Relativity", relativity_clock_words),
+                    readout("measure.relativity.clock_gap", "Lab − probe t − τ", "Measure › Relativity", relativity_gap_words),
                     plain("measure.runs.row", "Run", "Measure › Runs", ControlKind::list, K::star_run),
                     plain("measure.runs.clear", "Clear runs", "Measure › Runs", ControlKind::action, K::clear_runs),
                     plain("measure.runs.add_value", "Add value", "Measure › Runs", ControlKind::action, K::pin_run_value),
@@ -318,6 +381,18 @@ namespace rigidbodies::ui
                     number("world.gravity.strength", "Strength", "World › Gravity", K::set_gravity_magnitude, 0, 100, 0.01, Q::acceleration, EditCategory::parameter, true, NumberScale::linear, 0, 30, gravity_detents),
                     number("world.gravity.tilt", "Tilt from straight down", "World › Gravity", K::set_gravity_angle_degrees, -180, 180, 0.1, Q::angle, EditCategory::parameter, false, NumberScale::linear, 0, 0, {}, false, false, true),
                     number("world.gravity.zero_height", "Zero height", "World › Gravity", K::set_energy_reference_height, -100, 100, 0.01, Q::length, EditCategory::parameter, false, NumberScale::linear, 0, 0, {}, true, true),
+                    []
+                    {
+                        // Equal slider moves are equal boosts; typing and Shift+Up reach the maximum,
+                        // beyond the slider's end at 0.99999 c.
+                        auto speed = number("world.relativity.speed", "Probe speed", "World › Relativity", K::set_relativity_speed, 0.0, physics::maximum_speed_fraction, physics::speed_rapidity_step, Q::speed_fraction, EditCategory::parameter, true, NumberScale::rapidity, 0.0, 0.99999, relativity_detents, true, true);
+                        speed.number.smallest_nonzero = physics::minimum_moving_speed_fraction;
+                        speed.expert_term = "β = v/c";
+                        speed.synonyms = relativity_speed_words;
+                        return speed;
+                    }(),
+                    plain("world.relativity.preset", "Speed preset", "World › Relativity", ControlKind::segmented, K::set_relativity_speed, EditCategory::parameter, relativity_presets),
+                    readout("world.relativity.rest_mass", "Rest mass m", "World › Relativity", relativity_mass_words),
                 };
                 std::sort(value.begin(), value.end(), [](const auto& a, const auto& b)
                     {
@@ -326,6 +401,77 @@ namespace rigidbodies::ui
                 return value;
             }();
             return table;
+        }
+
+        // What one step of each size multiplies the step by on a linear scale, and the factor it
+        // applies on a logarithmic one.
+        double linear_multiplier(const NumberSpec& spec, StepSize size)
+        {
+            return size == StepSize::coarse ? spec.coarse : size == StepSize::fine ? spec.fine
+                                                                                   : 1.0;
+        }
+
+        double logarithmic_factor(const NumberSpec& spec, StepSize size)
+        {
+            return size == StepSize::coarse ? spec.coarse : size == StepSize::fine ? spec.fine
+                                                                                   : spec.step;
+        }
+
+        // A speed fraction as its own text reads it, so the stored value is exactly what the learner
+        // sees and the factors worked out from that text match the readouts. The text is cut towards
+        // rest (to within a millionth of its last digit), and the maximum caps it, so it is never c.
+        double quantised_speed_fraction(const NumberSpec& spec, double fraction)
+        {
+            constexpr auto quantity = core::DisplayQuantity::speed_fraction;
+            const auto shown = core::parse_quantity(core::format_value(fraction, quantity, core::DisplayUnits::si), quantity, core::DisplayUnits::si);
+            return std::min(shown.value_or(fraction), spec.maximum);
+        }
+
+        // The rapidity range of a slider over speed fractions.
+        double rapidity_low(const NumberSpec& spec)
+        {
+            return physics::rapidity_from_speed_fraction(spec.soft_minimum);
+        }
+
+        double rapidity_high(const NumberSpec& spec)
+        {
+            return physics::rapidity_from_speed_fraction(spec.soft_maximum);
+        }
+
+        // One unit in the last digit a speed's own text is worked to, which may be a trimmed zero:
+        // 0.99999 is worked to six decimals, so it moves to 0.999991 or 0.999989.
+        double digit_step(const NumberSpec& spec, double shown, int sign)
+        {
+            return quantised_speed_fraction(spec, shown + sign * std::pow(10.0, -core::speed_fraction_decimals(shown)));
+        }
+
+        // One step of a speed fraction in [minimum, maximum]: the normal step moves the rapidity by
+        // the spec's step (near c a tenth of a nine), the coarse step goes to the next speed on the
+        // ladder, so a focused field's Shift+arrow is the global Shift+Up, and the fine step is the
+        // digit step of the value's own text (0.99999 to 0.999991, 0.123 to 0.124, and a typed
+        // 0.1234567, which reads 0.123, to 0.124).
+        double rapidity_step(const NumberSpec& spec, double value, int direction, StepSize size)
+        {
+            const auto sign = direction > 0 ? 1 : -1;
+            double result = value;
+            if (size == StepSize::coarse)
+                result = physics::adjacent_speed_preset(value, sign);
+            else if (size == StepSize::fine)
+            {
+                // The step back from a digit step into finer digits (0.99999 up to 0.999991, 0.1 down
+                // to 0.099, rest up to 0.001) keeps the coarser unit and so returns where it came
+                // from: Alt+Up then Alt+Down come back to every rung of the ladder.
+                const auto shown = quantised_speed_fraction(spec, value);
+                const auto unit = std::pow(10.0, -core::speed_fraction_decimals(shown));
+                const auto coarser = sign < 0 && shown == digit_step(spec, 0.0, 1) ? 0.0 : quantised_speed_fraction(spec, shown + sign * 10.0 * unit);
+                result = digit_step(spec, coarser, -sign) == shown ? coarser : digit_step(spec, shown, sign);
+            }
+            else
+                result = quantised_speed_fraction(spec, physics::speed_fraction_from_rapidity(physics::rapidity_from_speed_fraction(value) + sign * spec.step));
+            // Below the slowest moving speed, the next step down is rest.
+            if (result > 0.0 && result < spec.smallest_nonzero)
+                result = sign < 0 ? 0.0 : spec.smallest_nonzero;
+            return std::clamp(result, spec.minimum, spec.maximum);
         }
     }
 
@@ -342,6 +488,99 @@ namespace rigidbodies::ui
     math::Span<const ControlSpec> control_specs()
     {
         return registry();
+    }
+
+    double slider_position(const NumberSpec& spec, double value)
+    {
+        const auto clamped = std::clamp(value, spec.soft_minimum, spec.soft_maximum);
+        double position = 0.0;
+        if (spec.scale == NumberScale::rapidity)
+        {
+            const auto low = rapidity_low(spec);
+            position = (physics::rapidity_from_speed_fraction(clamped) - low) / (rapidity_high(spec) - low);
+        }
+        else if (spec.scale == NumberScale::logarithmic)
+            position = std::log(clamped / spec.soft_minimum) / std::log(spec.soft_maximum / spec.soft_minimum);
+        else
+            position = (clamped - spec.soft_minimum) / (spec.soft_maximum - spec.soft_minimum);
+        return std::clamp(position, 0.0, 1.0);
+    }
+
+    double slider_value(const NumberSpec& spec, double position)
+    {
+        if (spec.scale == NumberScale::rapidity)
+        {
+            // The ends are exact, so the slider's end is the soft maximum itself and never c.
+            if (position <= 0.0)
+                return spec.soft_minimum;
+            if (position >= 1.0)
+                return spec.soft_maximum;
+            const auto low = rapidity_low(spec);
+            const auto fraction = physics::speed_fraction_from_rapidity(low + position * (rapidity_high(spec) - low));
+            return std::clamp(quantised_speed_fraction(spec, fraction), spec.soft_minimum, spec.soft_maximum);
+        }
+        const auto clamped = std::clamp(position, 0.0, 1.0);
+        if (spec.scale == NumberScale::logarithmic)
+            return spec.soft_minimum * std::pow(spec.soft_maximum / spec.soft_minimum, clamped);
+        return spec.soft_minimum + (spec.soft_maximum - spec.soft_minimum) * clamped;
+    }
+
+    double keyboard_step(const NumberSpec& spec, double value, int direction, StepSize size)
+    {
+        if (direction == 0)
+            return std::clamp(value, spec.minimum, spec.maximum);
+        if (spec.scale == NumberScale::rapidity)
+            return rapidity_step(spec, std::clamp(value, spec.minimum, spec.maximum), direction, size);
+        if (spec.scale == NumberScale::logarithmic)
+        {
+            const auto factor = logarithmic_factor(spec, size);
+            return std::clamp(value * (direction > 0 ? factor : 1.0 / factor), spec.minimum, spec.maximum);
+        }
+        return std::clamp(value + direction * spec.step * linear_multiplier(spec, size), spec.minimum, spec.maximum);
+    }
+
+    double scrub_value(const NumberSpec& spec, double start, int steps, StepSize size)
+    {
+        if (spec.scale == NumberScale::rapidity)
+        {
+            // A scrub is that many keyboard steps; each one is quantised to its own text, and the
+            // coarse steps climb the ladder one rung at a time.
+            auto value = std::clamp(start, spec.minimum, spec.maximum);
+            for (int index = 0; index < std::abs(steps); ++index)
+            {
+                const auto next = rapidity_step(spec, value, steps, size);
+                if (next == value)
+                    break;
+                value = next;
+            }
+            return value;
+        }
+        if (spec.scale == NumberScale::logarithmic)
+            return std::clamp(start * std::pow(logarithmic_factor(spec, size), steps), spec.minimum, spec.maximum);
+        return std::clamp(start + steps * spec.step * linear_multiplier(spec, size), spec.minimum, spec.maximum);
+    }
+
+    double rounded_value(const NumberSpec& spec, double value)
+    {
+        if (spec.decimals >= 0)
+        {
+            const auto precision = std::pow(10.0, spec.decimals);
+            value = std::round(value * precision) / precision;
+        }
+        // Rounding can carry a value just inside a limit past it.
+        return std::clamp(value, spec.minimum, spec.maximum);
+    }
+
+    bool accepts_value(const NumberSpec& spec, double value)
+    {
+        return std::isfinite(value) && value >= spec.minimum && value <= spec.maximum && (value == 0.0 || std::abs(value) >= spec.smallest_nonzero);
+    }
+
+    bool differs_from_shown(const NumberSpec& spec, double typed, double shown)
+    {
+        constexpr auto rounding = 1.0e-12;
+        const auto tolerance = spec.smallest_nonzero > 0.0 ? rounding * std::max(std::abs(typed), std::abs(shown)) : rounding;
+        return std::abs(typed - shown) > tolerance;
     }
 
     bool valid_control_key(std::string_view key)
@@ -574,6 +813,9 @@ namespace rigidbodies::ui
             return command.id.empty() ? "tools.select" : std::string("tools.") + command.id;
         case K::load_scenario:
             return "library.cards.card";
+        case K::set_relativity_speed:
+            // A preset chip keeps its option id; the field, slider and keys send a bare value.
+            return command.id.empty() ? "world.relativity.speed" : "world.relativity.preset";
         case K::none:
             if (command.detail.rfind("view:", 0) == 0)
                 return "view." + command.detail.substr(5);

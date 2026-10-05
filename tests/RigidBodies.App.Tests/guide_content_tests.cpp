@@ -1,6 +1,7 @@
 #include <rigidbodies/app/experiment_content.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/ui/control_spec.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 
 #include "test_framework.hpp"
 
@@ -13,7 +14,7 @@ namespace
 
     RIGIDBODIES_TEST("every bundled Content 1.1 guide resolves its controls bodies and instances")
     {
-        const std::array<std::string_view, 7> collections { "motion_and_gravity", "spin_and_mass", "friction_and_support", "bounces_and_collisions", "moving_through_air", "springs_joints_and_machines", "make_your_own" };
+        const std::array<std::string_view, 8> collections { "motion_and_gravity", "spin_and_mass", "friction_and_support", "bounces_and_collisions", "moving_through_air", "springs_joints_and_machines", "special_relativity", "make_your_own" };
         std::set<std::pair<std::string, int>> orders;
         bool empty_lab_seen = false;
         for (const auto& description : physics::available_scenarios())
@@ -21,7 +22,7 @@ namespace
             const auto* document = physics::scenario_document_for_id(description.id);
             RIGIDBODIES_EXPECT(document != nullptr, "every catalogue item retains its document");
             RIGIDBODIES_EXPECT(document->root.at("version").at("major").as_number() == 1 && document->root.at("version").at("minor").as_number() >= 1, "bundled content is version 1.1");
-            RIGIDBODIES_EXPECT(std::find(collections.begin(), collections.end(), document->metadata.collection) != collections.end(), "collection uses one of the seven canonical keys");
+            RIGIDBODIES_EXPECT(std::find(collections.begin(), collections.end(), document->metadata.collection) != collections.end(), "collection uses one of the eight canonical keys");
             RIGIDBODIES_EXPECT(orders.emplace(document->metadata.collection, document->metadata.collection_order).second, "collection order is unique");
             RIGIDBODIES_EXPECT(document->metadata.hook.size() <= 90, "library hooks fit the card limit");
             const auto content = app::parse_experiment_content(*document);
@@ -47,19 +48,48 @@ namespace
                             if (id && id->is_string())
                                 instances.insert(id->as_string());
                         }
-            const auto validate = [&](std::string_view control, std::string_view body, std::string_view instance)
+            // The parser clears what does not resolve, so the bundled document's own guide is checked.
+            const auto text = [](const physics::content::Json& item, std::string_view key)
             {
-                if (!control.empty())
-                    RIGIDBODIES_EXPECT(ui::find_control_spec(control) != nullptr, "guide control resolves through the registry");
-                if (!body.empty())
-                    RIGIDBODIES_EXPECT(bodies.find(std::string(body)) != bodies.end(), "guide body resolves to a document id");
-                if (!instance.empty())
-                    RIGIDBODIES_EXPECT(instances.find(std::string(instance)) != instances.end(), "guide instance resolves to a joint or spring key");
+                const auto* value = item.find(std::string(key));
+                RIGIDBODIES_EXPECT(!value || value->is_string(), "guide references are strings");
+                return value ? value->as_string() : std::string {};
             };
-            for (const auto& variable : content.guide.variables)
-                validate(variable.control, variable.body, variable.instance);
-            for (const auto& step : content.guide.steps)
-                validate(step.control, step.body, step.instance);
+            const auto validate = [&](const physics::content::Json& item, bool step)
+            {
+                RIGIDBODIES_EXPECT(item.is_object(), "guide entries are objects");
+                const auto control = text(item, "control"), body = text(item, "body"), instance = text(item, "instance");
+                if (!control.empty())
+                    RIGIDBODIES_EXPECT(ui::find_control_spec(control) != nullptr, "guide control resolves through the registry: " + control);
+                if (!body.empty())
+                    RIGIDBODIES_EXPECT(bodies.find(body) != bodies.end(), "guide body resolves to a document id: " + body);
+                if (!instance.empty())
+                    RIGIDBODIES_EXPECT(instances.find(instance) != instances.end(), "guide instance resolves to a joint or spring key: " + instance);
+                const auto open = text(item, "open");
+                RIGIDBODIES_EXPECT(open.empty() || (step && ui::valid_guide_open_target(open)), "a step's open target is a control, a Measure tab or a legacy target: " + open);
+            };
+            std::size_t raw_variables = 0, raw_steps = 0;
+            if (const auto* guide = document->root.find("guide"); guide && guide->is_object())
+            {
+                if (const auto* variables = guide->find("variables"); variables && variables->is_array())
+                    for (const auto& variable : variables->as_array())
+                    {
+                        validate(variable, false);
+                        ++raw_variables;
+                    }
+                if (const auto* steps = guide->find("steps"); steps && steps->is_array())
+                    for (const auto& step : steps->as_array())
+                    {
+                        validate(step, true);
+                        ++raw_steps;
+                    }
+            }
+            RIGIDBODIES_EXPECT(content.guide.variables.size() == raw_variables && content.guide.steps.size() == raw_steps, "every guide entry reaches the content");
+            for (std::size_t index = 0; index < content.guide.steps.size(); ++index)
+            {
+                const auto* raw = document->root.at("guide").at("steps").as_array()[index].find("open");
+                RIGIDBODIES_EXPECT((raw ? raw->as_string() : std::string {}) == content.guide.steps[index].open, "a valid open target survives parsing");
+            }
         }
         RIGIDBODIES_EXPECT(empty_lab_seen, "the catalogue includes Empty lab");
     }

@@ -1,5 +1,6 @@
 #include <rigidbodies/physics/content_json.hpp>
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <limits>
@@ -643,6 +644,10 @@ namespace rigidbodies::physics::content
     }
     bool validate_document_header(const Json& root, std::string_view format, std::string& error)
     {
+        return validate_document_header(root, format, error, {});
+    }
+    bool validate_document_header(const Json& root, std::string_view format, std::string& error, std::initializer_list<std::string_view> supported_features)
+    {
         try
         {
             if (root.at("format").as_string() != format)
@@ -654,8 +659,19 @@ namespace rigidbodies::physics::content
             if (!std::isfinite(minor) || minor < 0.0 || minor > 1000000.0 || std::floor(minor) != minor)
                 throw std::runtime_error("Document minor version must be a nonnegative integer.");
             if (const auto features = root.find("required_features"))
-                if (!features->is_array() || !features->as_array().empty())
+            {
+                if (!features->is_array())
                     throw std::runtime_error("Document requires unsupported features.");
+                std::vector<std::string_view> seen;
+                for (const auto& feature : features->as_array())
+                {
+                    // A duplicate is malformed rather than harmless, so it fails like an unknown feature.
+                    if (!feature.is_string() || std::find(supported_features.begin(), supported_features.end(), feature.as_string()) == supported_features.end() ||
+                        std::find(seen.begin(), seen.end(), feature.as_string()) != seen.end())
+                        throw std::runtime_error("Document requires unsupported features.");
+                    seen.push_back(feature.as_string());
+                }
+            }
             error.clear();
             return true;
         }

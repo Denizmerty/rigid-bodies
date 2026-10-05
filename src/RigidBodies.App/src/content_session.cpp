@@ -1,6 +1,7 @@
 #include <rigidbodies/app/simulation_session.hpp>
 #include <rigidbodies/app/content_files.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/physics/shape_document.hpp>
 
@@ -147,6 +148,10 @@ namespace rigidbodies::app
         view["center_x_m"] = camera_.center_m().x;
         view["center_y_m"] = camera_.center_m().y;
         view["height_m"] = camera_.view_height_m();
+        // The probe's speed is a parameter, so the starting setup and the current moment hold the
+        // same value. Its clocks and race are time counters and are never stored.
+        if (setup_.relativity)
+            physics::write_relativity_setup(document.root, *setup_.relativity);
         return physics::write_scenario_document(document, text, error);
     }
 
@@ -170,6 +175,10 @@ namespace rigidbodies::app
         if (!physics::capture_scenario_document(setup_view_, metadata, document, error) ||
             !physics::write_scenario_document(document, text, error))
             return {};
+        // The World has no place for the probe, so its setup is appended: a speed edit dirties the
+        // setup, and running never does.
+        if (setup_.relativity)
+            text += "\nrelativity " + physics::relativity_setup_fingerprint(*setup_.relativity);
         return text;
     }
 
@@ -342,6 +351,8 @@ namespace rigidbodies::app
             if (!physics::populate_world(document, world_, error))
                 throw std::runtime_error(error);
             scenario_document_ = std::make_shared<physics::ScenarioDocument>(std::move(document));
+            // Parsing validated the object already; a throw here still cancels the edit below.
+            const auto relativity = physics::read_relativity_setup(scenario_document_->root);
             experiment_content_ = parse_experiment_content(*scenario_document_);
             scenario_id_ = scenario_document_->metadata.id;
             setup_file_ = std::make_shared<SetupFileAssociation>();
@@ -355,15 +366,38 @@ namespace rigidbodies::app
             stepper_.set_paused(true);
             single_step_pending_ = false;
             default_lab_ = capture_lab_settings();
-            original_ = { world_.snapshot(), gravity_direction_degrees_ };
+            original_ = { world_.snapshot(), gravity_direction_degrees_, relativity };
             apply_lab_settings(had_setup && keep_lab_settings_ ? carried_lab : default_lab_);
-            setup_ = { world_.snapshot(), gravity_direction_degrees_ };
+            setup_ = { world_.snapshot(), gravity_direction_degrees_, relativity };
+            install_relativity(relativity);
             rebuild_snapshot_views();
             setup_file_->saved_setup_fingerprint = setup_fingerprint();
             reset_measurements();
             synchronize_render_history();
             const auto* presentation = scenario_document_->root.find("presentation");
-            if (scenario_document_->root.find("view") || (presentation && presentation->is_object() && presentation->find("view")))
+            const auto saved_view = presentation && presentation->is_object() && presentation->find("view");
+            if (relativity_)
+            {
+                // A relativity setup keeps the view it was saved with until the stage, the text
+                // size or the units change; the document's own view gives way to the framing that
+                // makes room for the instrument band.
+                if (saved_view)
+                {
+                    camera_ = view;
+                    // The document's view is not a move of the learner's, so a pan made before the
+                    // file was opened does not keep it once the stage changes.
+                    camera_user_moved_ = false;
+                    const auto focus = camera_.focus_rect();
+                    if (!focus.empty())
+                    {
+                        update_relativity_tier(focus, true);
+                        relativity_framed_ = RelativityFraming { focus, relativity_text_pixel_scale(), scene_settings_.display_units, relativity_tier_ };
+                    }
+                }
+                else
+                    frame_subject();
+            }
+            else if (scenario_document_->root.find("view") || saved_view)
                 camera_ = view;
             else
                 frame_subject();
@@ -435,6 +469,12 @@ namespace rigidbodies::app
 
     bool SimulationSession::import_shape(std::string_view text, std::string& error)
     {
+        // The probe's experiment has no Newtonian objects to add a shape to.
+        if (relativity_)
+        {
+            error = "Shapes cannot be imported into a relativity experiment.";
+            return false;
+        }
         physics::ShapeDocument document;
         if (!physics::parse_shape_document(text, document, error))
             return false;
@@ -472,7 +512,7 @@ namespace rigidbodies::app
             {
                 if (world_.statistics().elapsed_time_s <= 0.0)
                 {
-                    setup_ = { world_.snapshot(), gravity_direction_degrees_ };
+                    setup_ = { world_.snapshot(), gravity_direction_degrees_, setup_.relativity };
                     rebuild_snapshot_views();
                 }
                 else

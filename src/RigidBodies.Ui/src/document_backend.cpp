@@ -3,6 +3,7 @@
 #include <rigidbodies/core/log.hpp>
 #include <rigidbodies/core/text_format.hpp>
 #include <rigidbodies/ui/icons.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 #include <rigidbodies/ui/panels.hpp>
 
 #include <RmlUi/Core.h>
@@ -160,6 +161,32 @@ namespace rigidbodies::ui
         {
             const auto& tag = element.GetTagName();
             return tag == "button" || tag == "input" || tag == "select" || tag == "textarea" || element.HasAttribute("tabindex");
+        }
+
+        // The identity of an option list: its ids joined by U+001F, with their labels where those are
+        // not refreshed each frame (checklists and selects).
+        std::string option_signature(math::Span<const OptionSpec> options, bool labels)
+        {
+            std::string result;
+            for (std::size_t index = 0; index < options.size(); ++index)
+            {
+                if (index > 0)
+                    result.push_back('\x1f');
+                result.append(options[index].id);
+                if (labels)
+                {
+                    result.push_back('\x1f');
+                    result.append(options[index].label);
+                }
+            }
+            return result;
+        }
+
+        // Shift takes the coarse step and Alt the fine one, for field arrows and label scrubs alike.
+        StepSize step_size(const KeyModifiers& modifiers)
+        {
+            return modifiers.shift ? StepSize::coarse : modifiers.alt ? StepSize::fine
+                                                                      : StepSize::normal;
         }
 
         std::string slug(std::string_view text)
@@ -797,6 +824,10 @@ namespace rigidbodies::ui
         std::map<std::string, UiCommand> alternate_commands;
         std::map<std::string, UiCommand> shift_commands;
         std::vector<std::string> controls, selects;
+        // The read-outs the last build showed, which a search can reveal although they send nothing.
+        std::vector<std::string> readouts;
+        // The time the last build wrote its rows at, which a revealed read-out flashes from.
+        double built_at {};
         std::vector<UiCommand> pending;
         std::unordered_map<std::string, std::string> contents, structures;
         std::unordered_map<std::string, Binding> bindings;
@@ -883,6 +914,8 @@ namespace rigidbodies::ui
         float content_scale { 0.0f };
         bool content_window_controls { false };
         Vec2 pointer;
+        // Where a value or a graph was last right-clicked: its menu opens there.
+        Vec2 context_pointer;
 
         bool keyboard_candidate(Rml::Element* element, std::string_view scope = {}) const
         {
@@ -1006,7 +1039,7 @@ namespace rigidbodies::ui
             }
         }
 
-        void number_error(Rml::Element* field, const Binding& binding, bool invalid)
+        void number_error(Rml::Element* field, const Binding& binding, bool invalid, std::optional<double> typed = {})
         {
             if (!field)
                 return;
@@ -1015,7 +1048,21 @@ namespace rigidbodies::ui
             if (const auto suffix = error_id.rfind("--field"); suffix != std::string::npos)
                 error_id.replace(suffix, std::string::npos, "--field-error");
             if (auto* error = document->GetElementById(error_id))
-                set_text(error, invalid ? core::substitute("{} must be {} to {}.", binding.spec->label, core::format_quantity(binding.spec->number.minimum, binding.spec->number.quantity, binding.units), core::format_quantity(binding.spec->number.maximum, binding.spec->number.quantity, binding.units)) : "");
+                set_text(error, invalid ? number_error_text(binding, typed) : "");
+        }
+
+        // One message for every refused entry: out of range, or not a number at all. A speed
+        // fraction also says why c itself is out of reach, and one too slow to set what to type.
+        static std::string number_error_text(const Binding& binding, std::optional<double> typed)
+        {
+            const auto& spec = *binding.spec;
+            if (typed && *typed > 0.0 && *typed < spec.number.smallest_nonzero)
+                return core::substitute("{} must be {} for rest or at least {}.", spec.label, core::format_quantity(0.0, spec.number.quantity, binding.units), core::format_quantity(spec.number.smallest_nonzero, spec.number.quantity, binding.units));
+            const auto minimum = core::format_quantity(spec.number.minimum, spec.number.quantity, binding.units);
+            const auto maximum = core::format_quantity(spec.number.maximum, spec.number.quantity, binding.units);
+            if (spec.number.quantity == core::DisplayQuantity::speed_fraction)
+                return core::substitute("{} must be from {} to {}. A massive object can get ever closer to c but never reach it.", spec.label, minimum, maximum);
+            return core::substitute("{} must be {} to {}.", spec.label, minimum, maximum);
         }
 
         void synchronize_number_field(Rml::Element* element, Binding& binding, double value)
@@ -1163,6 +1210,48 @@ namespace rigidbodies::ui
             auto* child = append_element(parent, tag, id, class_name);
             set_text(child, text);
             return child;
+        }
+
+        // Option buttons are created once and then refreshed in place, so a list that depends on
+        // the model (the Measure tabs, a per-experiment quantity list) keeps its signature on the
+        // container. Returns whether the caller must create the options: on first sight, or after
+        // the old ones were removed because the signature changed. A focused option whose id
+        // survives is focused again when the frame ends.
+        bool reset_options(Rml::Element* parent, const std::string& signature)
+        {
+            const auto same = string_attribute(parent, "data-option-ids") == signature;
+            if (same && parent->GetNumChildren() > 0)
+                return false;
+            if (parent->GetNumChildren() > 0)
+            {
+                synchronizing_control = true;
+                while (parent->GetNumChildren() > 0)
+                    parent->RemoveChild(parent->GetChild(0));
+                synchronizing_control = false;
+                ++structure_changes;
+            }
+            if (!same)
+                parent->SetAttribute("data-option-ids", signature);
+            return true;
+        }
+
+        // The select widget keeps its options outside the DOM children, so they are counted and
+        // removed through it.
+        bool reset_options(Rml::ElementFormControlSelect* select, const std::string& signature)
+        {
+            const auto same = string_attribute(select, "data-option-ids") == signature;
+            if (same && select->GetNumOptions() > 0)
+                return false;
+            if (select->GetNumOptions() > 0)
+            {
+                synchronizing_control = true;
+                select->RemoveAll();
+                synchronizing_control = false;
+                ++structure_changes;
+            }
+            if (!same)
+                select->SetAttribute("data-option-ids", signature);
+            return true;
         }
 
         Rml::Element* create_row(Rml::Element* parent, const PanelRow& row, const std::string& id)
@@ -1478,28 +1567,17 @@ namespace rigidbodies::ui
                 {
                     const auto position = std::clamp(std::stod(form->GetValue()), 0.0, 1000.0) / 1000.0;
                     const auto& number = found->second.spec->number;
-                    command.value = number.scale == NumberScale::logarithmic
-                        ? number.soft_minimum * std::pow(number.soft_maximum / number.soft_minimum, position)
-                        : number.soft_minimum + (number.soft_maximum - number.soft_minimum) * position;
+                    command.value = slider_value(number, position);
                     if (!event.GetParameter<bool>("alt_key", false))
                         for (const auto detent : number.detents)
-                        {
-                            const auto detent_position = number.scale == NumberScale::logarithmic
-                                ? std::log(detent / number.soft_minimum) / std::log(number.soft_maximum / number.soft_minimum)
-                                : (detent - number.soft_minimum) / (number.soft_maximum - number.soft_minimum);
-                            if (std::abs(position - detent_position) * bounds(target).width() <= 6.0 * scale)
+                            if (std::abs(position - slider_position(number, detent)) * bounds(target).width() <= 6.0 * scale)
                             {
                                 command.value = detent;
                                 break;
                             }
-                        }
                     if (number.dial && event.GetParameter<bool>("shift_key", false))
                         command.value = std::round(command.value / 15.0) * 15.0;
-                    if (number.decimals >= 0)
-                    {
-                        const auto precision = std::pow(10.0, number.decimals);
-                        command.value = std::round(command.value * precision) / precision;
-                    }
+                    command.value = rounded_value(number, command.value);
                     found->second.model_value = command.value;
                     active_slider = target->GetId();
                     if (!preview_sent_this_frame)
@@ -1519,8 +1597,8 @@ namespace rigidbodies::ui
                 if (found != bindings.end() && field && found->second.spec && found->second.spec->kind == ControlKind::number && !found->second.slider && !found->second.scrub)
                 {
                     const auto parsed = parse_field(found->second, field->GetValue());
-                    const auto valid = parsed && *parsed >= found->second.spec->number.minimum && *parsed <= found->second.spec->number.maximum;
-                    if (valid && field->GetValue() != field_text(found->second) && std::abs(*parsed - found->second.model_value) > 1.0e-12)
+                    const auto valid = parsed && accepts_value(found->second.spec->number, *parsed);
+                    if (valid && field->GetValue() != field_text(found->second) && differs_from_shown(found->second.spec->number, *parsed, found->second.model_value))
                     {
                         pending.push_back(number_command(found->second, *parsed, UiEditPhase::commit));
                     }
@@ -1953,18 +2031,25 @@ namespace rigidbodies::ui
         if (!impl_->document)
             return;
         const auto found = impl_->commands_by_key.find(std::string(key));
-        if (found == impl_->commands_by_key.end() || found->second.empty())
-            return;
+        // A checklist sends no command of its own (it edits a view value), so it is found by its
+        // binding instead: the Graph's Clocks, which a clock reading's Plot over time reveals.
+        const auto checklist = std::any_of(impl_->view_bindings.begin(), impl_->view_bindings.end(), [&](const auto& binding)
+            {
+                return binding.second.kind == Impl::ViewBindingKind::checklist_toggle && binding.second.key == key;
+            });
+        // A read-out sends nothing either. It is scrolled into view and flashed rather than focused.
+        const auto reading = (found == impl_->commands_by_key.end() || found->second.empty()) && !checklist;
         // A setting can be shown twice (the Guide repeats the one its lesson changes); the reveal
         // goes to the copy the learner can see, never to one in a surface that just closed. The
-        // setting's own home (the Inspector, Show, Preferences) comes before a lesson's copy, so
-        // Open World or a "World > ..." search result lands on World, not on the Guide.
+        // setting's own home (the Inspector, Show, Preferences) comes before a lesson's copy or the
+        // Relativity tab's, so Open World or a "World > ..." search result lands on World, not on
+        // the Guide or Measure.
         const auto lesson_copy = [](std::string_view row_instance)
         {
-            return row_instance.rfind("guide", 0) == 0 || row_instance.rfind("present", 0) == 0;
+            return row_instance.rfind("guide", 0) == 0 || row_instance.rfind("present", 0) == 0 || row_instance == "measure";
         };
         for (const auto lesson_pass : { false, true })
-            for (const auto& id : impl_->controls)
+            for (const auto& id : reading ? impl_->readouts : impl_->controls)
                 if (auto* element = impl_->document->GetElementById(id); element && element->IsVisible(true))
                 {
                     auto* row = element;
@@ -1975,6 +2060,13 @@ namespace rigidbodies::ui
                     const auto row_instance = string_attribute(row, "data-instance");
                     if ((instance.empty() && lesson_copy(row_instance) == lesson_pass) || (!instance.empty() && row_instance == instance))
                     {
+                        if (reading)
+                        {
+                            element->ScrollIntoView(false);
+                            impl_->value_changed_at[id] = impl_->built_at;
+                            element->SetClass("is-flash", !element->IsClassSet("is-live"));
+                            return;
+                        }
                         element->Focus(true);
                         element->ScrollIntoView(false);
                         impl_->focus_keyboard_visible = true;
@@ -2044,6 +2136,7 @@ namespace rigidbodies::ui
                                     value = value_element->GetInnerRML();
                             open.detail = "context-ui:" + std::string(kind == "plot" ? "graph" : "readout") + '\x1f' + value;
                             state.pending.push_back(std::move(open));
+                            state.context_pointer = event.pointer_px;
                             consumed = true;
                         }
                     }
@@ -2076,25 +2169,7 @@ namespace rigidbodies::ui
                     if (steps != 0 || state.drag_moved)
                     {
                         const auto& number = binding->second.spec->number;
-                        double value = state.drag_start_value;
-                        if (number.scale == NumberScale::logarithmic)
-                        {
-                            const auto factor = event.modifiers.shift ? number.coarse : event.modifiers.alt ? number.fine
-                                                                                                            : number.step;
-                            value *= std::pow(factor, steps);
-                        }
-                        else
-                        {
-                            const auto multiplier = event.modifiers.shift ? number.coarse : event.modifiers.alt ? number.fine
-                                                                                                                : 1.0;
-                            value += steps * number.step * multiplier;
-                        }
-                        value = std::clamp(value, number.minimum, number.maximum);
-                        if (number.decimals >= 0)
-                        {
-                            const auto precision = std::pow(10.0, number.decimals);
-                            value = std::round(value * precision) / precision;
-                        }
+                        const auto value = rounded_value(number, scrub_value(number, state.drag_start_value, steps, step_size(event.modifiers)));
                         binding->second.model_value = value;
                         state.drag_moved = true;
                         if (!state.preview_sent_this_frame)
@@ -2239,9 +2314,9 @@ namespace rigidbodies::ui
                         break;
                     }
                     const auto parsed = field ? Impl::parse_field(binding->second, field->GetValue()) : std::optional<double> {};
-                    const auto valid = parsed && *parsed >= binding->second.spec->number.minimum && *parsed <= binding->second.spec->number.maximum;
-                    state.number_error(focus, binding->second, !valid);
-                    if (valid && field->GetValue() != Impl::field_text(binding->second) && std::abs(*parsed - binding->second.model_value) > 1.0e-12)
+                    const auto valid = parsed && accepts_value(binding->second.spec->number, *parsed);
+                    state.number_error(focus, binding->second, !valid, parsed);
+                    if (valid && field->GetValue() != Impl::field_text(binding->second) && differs_from_shown(binding->second.spec->number, *parsed, binding->second.model_value))
                     {
                         state.pending.push_back(Impl::number_command(binding->second, *parsed, UiEditPhase::commit));
                     }
@@ -2364,8 +2439,8 @@ namespace rigidbodies::ui
                         if (auto* field = dynamic_cast<Rml::ElementFormControl*>(focused); field && field->GetValue() != Impl::field_text(binding->second))
                         {
                             const auto parsed = Impl::parse_field(binding->second, field->GetValue());
-                            const auto valid = parsed && *parsed >= spec.minimum && *parsed <= spec.maximum;
-                            state.number_error(focused, binding->second, !valid);
+                            const auto valid = parsed && accepts_value(spec, *parsed);
+                            state.number_error(focused, binding->second, !valid, parsed);
                             if (!valid)
                             {
                                 consumed = true;
@@ -2373,12 +2448,7 @@ namespace rigidbodies::ui
                             }
                             value = *parsed;
                         }
-                        const auto direction = event.key == UiKey::arrow_up ? 1.0 : -1.0;
-                        const auto factor = event.modifiers.shift ? spec.coarse : event.modifiers.alt ? spec.fine
-                                                                                                      : spec.step;
-                        value = spec.scale == NumberScale::logarithmic ? value * (direction > 0 ? factor : 1.0 / factor) : value + direction * spec.step * (event.modifiers.shift ? spec.coarse : event.modifiers.alt ? spec.fine
-                                                                                                                                                                                                                      : 1.0);
-                        value = std::clamp(value, spec.minimum, spec.maximum);
+                        value = keyboard_step(spec, value, event.key == UiKey::arrow_up ? 1 : -1, step_size(event.modifiers));
                         state.pending.push_back(Impl::number_command(binding->second, value, UiEditPhase::commit));
                         // The focused field is preserved during model refreshes. Keep it in sync
                         // with keyboard steps so a later blur cannot restore its old value, and
@@ -2663,10 +2733,11 @@ namespace rigidbodies::ui
             grip->SetClass("is-sheet", resizable && drawer->presentation == RegionPresentation::sheet);
             grip->SetClass("is-dragging", state.measure_drag);
         }
-        // The Graph tab may use the drawer's full width; the other tabs keep a readable measure.
+        // The Graph and Relativity tabs may use the drawer's full width; the other tabs keep a
+        // readable measure. The tab is read as Measure reads it, so a default tab counts too.
         {
-            static constexpr std::string_view graph_tab[] { "graph" };
-            measure->SetClass("is-graph", frame.view && frame.view->active_tab("measure.header.tabs", graph_tab, "energy") == "graph");
+            const auto relativity = frame.model && frame.model->relativity.has_value();
+            measure->SetClass("is-graph", frame.view && measure_tab_is_wide(frame.view->active_tab("measure.header.tabs", measure_tab_ids(relativity), default_measure_tab(relativity))));
         }
         place_region(status_line, RegionId::status_line);
         const auto panel_has_content = [&](const Panel* panel)
@@ -2676,7 +2747,13 @@ namespace rigidbodies::ui
             if (panel->id() == "command_search")
                 return frame.view && frame.view->sheet_open("command_search");
             if (panel->id() == "context_menu")
-                return frame.model->context_menu_request.has_value() && frame.view && frame.view->transient_open("context_menu");
+            {
+                // A stage menu needs the session's target; a value's or a graph's menu has none.
+                if (!frame.view || !frame.view->transient_open("context_menu"))
+                    return false;
+                const auto kind = frame.view->value("context.kind", "stage");
+                return kind == "readout" || kind == "graph" || frame.model->context_menu_request.has_value();
+            }
             if (panel->id() == "hover_card")
                 return frame.model->hover && !frame.model->hover->card_lines.empty();
             if (panel->id() == "add_menu")
@@ -2800,7 +2877,14 @@ namespace rigidbodies::ui
                 pointer,
                 beside
             } placement = Placement::below;
-            if (id == "context_menu" && frame.model->context_menu_request)
+            const auto context_kind = frame.view ? frame.view->value("context.kind", "stage") : std::string_view { "stage" };
+            if (id == "context_menu" && (context_kind == "readout" || context_kind == "graph"))
+            {
+                anchor = { state.context_pointer, state.context_pointer };
+                width = 240.0 * frame.scale;
+                placement = Placement::pointer;
+            }
+            else if (id == "context_menu" && frame.model->context_menu_request)
             {
                 const auto point = frame.model->context_menu_request->screen_position_px;
                 anchor = { point, point };
@@ -3106,6 +3190,7 @@ namespace rigidbodies::ui
         state.commands_by_key.clear();
         state.view_bindings.clear();
         state.controls.clear();
+        state.readouts.clear();
         state.selects.clear();
         state.text.clear();
         state.preview_sent_this_frame = false;
@@ -3347,6 +3432,9 @@ namespace rigidbodies::ui
                 state.contents[row_id] = content_signature;
                 if (row.kind == PanelRowKind::readout)
                 {
+                    if (!item.key.empty())
+                        state.readouts.push_back(row_id);
+                    state.built_at = now;
                     state.set_text(state.document->GetElementById(row_id + "--label"), row.text);
                     state.set_text(state.document->GetElementById(row_id + "--icon"), icons::utf8(presentation.icon));
                     if (auto* value = state.document->GetElementById(row_id + "--value"); value && can_write_live)
@@ -3503,13 +3591,10 @@ namespace rigidbodies::ui
                     const auto slider_id = row_id + "--slider";
                     if (auto* slider = dynamic_cast<Rml::ElementFormControl*>(state.document->GetElementById(slider_id)))
                     {
-                        const auto& number = row.spec->number;
-                        const auto clamped = std::clamp(row.number_si, number.soft_minimum, number.soft_maximum);
-                        const auto slider_position = number.scale == NumberScale::logarithmic ? std::log(clamped / number.soft_minimum) / std::log(number.soft_maximum / number.soft_minimum) : (clamped - number.soft_minimum) / (number.soft_maximum - number.soft_minimum);
                         if (state.active_slider != slider_id)
                         {
                             state.synchronizing_control = true;
-                            slider->SetValue(std::to_string(std::clamp(slider_position, 0.0, 1.0) * 1000.0));
+                            slider->SetValue(std::to_string(slider_position(row.spec->number, row.number_si) * 1000.0));
                             state.synchronizing_control = false;
                         }
                         if (row.disabled_reason.empty() && !row.mixed)
@@ -3525,7 +3610,7 @@ namespace rigidbodies::ui
                     auto* select = dynamic_cast<Rml::ElementFormControlSelect*>(state.document->GetElementById(row_id + "--field"));
                     // The select widget moves appended options out of its DOM children on the
                     // next update, so they are counted through the widget.
-                    if (select && select->GetNumOptions() == 0)
+                    if (select && state.reset_options(select, option_signature(row.spec->options, true)))
                         for (const auto& option : row.spec->options)
                         {
                             auto* child = state.append_text(select, "option", {}, {}, option.label);
@@ -3611,7 +3696,7 @@ namespace rigidbodies::ui
                     state.view_bindings[row_id + "--field"] = { Impl::ViewBindingKind::checklist_toggle, item.key, {} };
                     state.controls.push_back(row_id + "--field");
                     auto* option_parent = state.document->GetElementById(row_id + "--options");
-                    if (option_parent && option_parent->GetNumChildren() == 0)
+                    if (option_parent && state.reset_options(option_parent, option_signature(row.options, true)))
                         for (const auto& option : row.options)
                             state.append_text(option_parent, "button", row_id + "--option_" + slug(option.id), "checklist-option", option.label)->SetAttribute("tabindex", "0");
                     for (const auto& option : row.options)
@@ -3633,7 +3718,7 @@ namespace rigidbodies::ui
                     const auto options = !row.options.empty() ? math::Span<const OptionSpec>(row.options) : row.spec ? row.spec->options
                                                                                                                      : math::Span<const OptionSpec> {};
                     auto* option_parent = state.document->GetElementById(row_id + "--options");
-                    if (option_parent && option_parent->GetNumChildren() == 0)
+                    if (option_parent && state.reset_options(option_parent, option_signature(options, false)))
                         for (const auto& option : options)
                         {
                             const auto option_id = row_id + "--option_" + slug(option.id);
@@ -3649,7 +3734,9 @@ namespace rigidbodies::ui
                     for (const auto& option : options)
                     {
                         const auto option_id = row_id + "--option_" + slug(option.id);
-                        auto command = row.command;
+                        // A numeric option (a probe-speed preset) carries its number as the value,
+                        // as a select's option does.
+                        auto command = choice_command(row.command, row.spec.get(), option.id).value_or(row.command);
                         command.id = std::string(option.id);
                         if (row.kind == PanelRowKind::tabs)
                             state.view_bindings[option_id] = { Impl::ViewBindingKind::tab, item.key, std::string(option.id) };
@@ -3662,10 +3749,16 @@ namespace rigidbodies::ui
                         {
                             const auto selected = option.id == row.selected_option;
                             state.set_text(state.document->GetElementById(option_id + "--text"), option.label);
-                            if (!option.secondary.empty())
+                            // A disabled row's chips say why, as the row does: hovering one must not
+                            // describe a tool, or name a key, that the row refuses.
+                            if (!row.disabled_reason.empty())
+                                option_element->SetAttribute("data-tooltip", row.disabled_reason);
+                            else if (!option.secondary.empty())
                                 option_element->SetAttribute("data-tooltip", std::string(option.secondary));
                             else if (!option.icon.empty())
                                 option_element->SetAttribute("data-tooltip", std::string(option.label));
+                            else
+                                option_element->RemoveAttribute("data-tooltip");
                             option_element->SetClass("selected", selected);
                             option_element->SetClass("is-selected", selected);
                             option_element->SetAttribute("aria-pressed", selected ? "true" : "false");
@@ -4328,6 +4421,16 @@ namespace rigidbodies::ui
                     return text->GetText();
         }
         return std::nullopt;
+    }
+
+    std::vector<std::string> DocumentBackend::select_option_values(std::string_view id) const
+    {
+        std::vector<std::string> result;
+        if (auto* select = dynamic_cast<Rml::ElementFormControlSelect*>(impl_->document ? impl_->document->GetElementById(std::string(id)) : nullptr))
+            for (int index = 0; index < select->GetNumOptions(); ++index)
+                if (const auto* option = select->GetOption(index))
+                    result.push_back(option->GetAttribute<Rml::String>("value", Rml::String {}));
+        return result;
     }
 
     std::size_t DocumentBackend::structure_change_count() const

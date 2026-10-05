@@ -25,10 +25,12 @@ existing fields. An older reader accepts those revisions and retains their origi
 A different major number is rejected before the live world changes. Version 1 is the first public
 file format.
 
-The optional `required_features` array declares features that a reader must understand. Version
-1.0 supports an absent or empty array. A nonempty requirement is rejected, even when the version
-number would otherwise be compatible. Unknown physics component kinds also fail explicitly;
-they are never silently dropped or replaced by a default component.
+The optional `required_features` array declares features that a reader must understand. It must
+be an array of distinct strings, each naming a feature the reader supports. Scenario documents
+support one feature, `special_relativity` (see [Special relativity](#special-relativity)); shape
+documents support none. Any other requirement is rejected, even when the version number would
+otherwise be compatible. Unknown physics component kinds also fail explicitly; they are never
+silently dropped or replaced by a default component.
 
 Unknown object fields are retained in the source document. Scenario capture with that source
 updates known fields while retaining extensions on matching objects. Body extensions follow the
@@ -66,7 +68,7 @@ The bundled catalogue has these additional requirements:
 | `prerequisites` | Unique scenario IDs that exist in the same catalogue; the graph must be acyclic |
 | `suggested_order` | Nonnegative integer; sorting uses this first, then ID |
 
-The first suggested scenario is the default. `assets/scenarios` contains 24 complete arrangements,
+The first suggested scenario is the default. `assets/scenarios` contains 25 complete arrangements,
 with explicit ordering and concepts. The application reads its delivered asset directory before
 configuring the session. Headless tests and tools have a build-configured source asset directory.
 `available_scenarios()`, `find_scenario()`, and `load_scenario()` still expose descriptions and
@@ -201,6 +203,41 @@ References to missing bodies, duplicate stable keys, invalid joint definitions, 
 component types reject the whole arrangement. User-defined C++ integrators, collision algorithms,
 force generators, shapes, or constraints without a format-1 codec cause save to fail explicitly.
 
+## Special relativity
+
+A scenario that lists `special_relativity` in `required_features` is a relativity experiment. It
+must also carry a top-level `relativity` object with both of these fields:
+
+```json
+{
+  "required_features": ["special_relativity"],
+  "relativity": { "rest_mass_kg": 1, "speed_fraction_c": 0 }
+}
+```
+
+| Field | Meaning | Accepted values |
+| --- | --- | --- |
+| `rest_mass_kg` | The probe's rest mass | Finite, from 0.000001 to 1,000,000 kilograms |
+| `speed_fraction_c` | The probe's speed as a fraction of the speed of light | 0 (rest), or finite from 0.000000000001 to 0.9999999 |
+
+A missing object, a missing field, a value of another JSON type or a value out of range rejects
+the document with a message that names the field, before the session changes. Parsing,
+populating a world, capture from a source document and the catalogue all apply this check. A
+`relativity` object in a document that does not declare the feature is an ordinary extension: it
+is retained and ignored, and the document opens as a Newtonian experiment.
+
+The probe is not a body. It moves along the x axis at the set speed on a repeating track of ten
+light-nanoseconds (about 3 m) that starts at x = 0, and carries its own clock. Its speed is a
+setting, so the starting and current speeds are always the same. The `world` section is still
+required: the bundled `chasing_light` document uses it for the probe's track, one static body with
+`role: "marker"`, and sets gravity to zero. Saving writes the current speed and rest mass into
+`relativity` and keeps any unknown members of that object.
+
+The application frames a relativity experiment from the stage size, leaving room for the band of
+readings above the track. A saved `presentation.view` is kept until the stage, the text size or
+the units change; a top-level `view` is used only when no stage size is known, as in headless
+sessions.
+
 ## Standalone authored shapes
 
 A shape document has `format: "rigid-bodies.shape"`, `version`, optional `metadata` with `title`
@@ -299,6 +336,8 @@ time, accumulated step count, contact/warm-start caches, quiet-time counters, co
 render trails, impact particles, and education graph history are rebuilt. Reopening an in-flight
 scene restores that arrangement, but its subsequent motion may differ because the solver history
 has been rebuilt. In-memory undo snapshots also keep the solver state needed for exact replay.
+A relativity experiment's clock readings, lap count and light race are never stored, so a saved
+current moment reopens at t = 0 with both clocks at zero and the saved speed.
 
 ## Resource limits
 

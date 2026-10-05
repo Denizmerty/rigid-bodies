@@ -4,6 +4,7 @@
 #include <rigidbodies/app/property_records.hpp>
 #include <rigidbodies/physics/world.hpp>
 #include <rigidbodies/physics/scenario_document.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/physics/time_stepper.hpp>
 #include <rigidbodies/render/camera2d.hpp>
 #include <optional>
@@ -15,6 +16,8 @@ namespace rigidbodies::app
     {
         physics::WorldSnapshot world;
         double gravity_direction_degrees { -90.0 };
+        // Present only in a relativity experiment: the probe's starting speed and rest mass.
+        std::optional<physics::RelativitySetup> relativity;
     };
 
     // Save destinations belong to a document, rather than to individual physics edits. History
@@ -56,6 +59,8 @@ namespace rigidbodies::app
         std::shared_ptr<SetupFileAssociation> setup_file;
         double gravity_direction_degrees {};
         bool state_setup_toast_shown {};
+        // The live probe with its clocks and race, in a relativity experiment.
+        std::optional<physics::RelativisticProbe> relativity;
     };
     struct SessionEdit
     {

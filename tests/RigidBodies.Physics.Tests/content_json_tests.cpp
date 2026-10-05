@@ -1,4 +1,6 @@
+#include <rigidbodies/physics/benchmark.hpp>
 #include <rigidbodies/physics/content_json.hpp>
+#include <rigidbodies/physics/shape_document.hpp>
 
 #include "test_framework.hpp"
 
@@ -147,6 +149,65 @@ namespace
         RIGIDBODIES_EXPECT(!validate_document_header(root, "rigid-bodies.scenario", error), "wrong document kind is rejected");
         root["required_features"] = Json::Array { "future_behavior" };
         RIGIDBODIES_EXPECT(!validate_document_header(root, "rigid-bodies.shape", error), "required unknown behavior is not silently ignored");
+    }
+
+    RIGIDBODIES_TEST("the supported-feature overload accepts only listed string features")
+    {
+        const auto unsupported = std::string("Document requires unsupported features.");
+        Json root = Json::Object { { "format", "rigid-bodies.scenario" }, { "version", document_version() } };
+        std::string error;
+        RIGIDBODIES_EXPECT(validate_document_header(root, "rigid-bodies.scenario", error, { "special_relativity" }), "a document may require nothing");
+        root["required_features"] = Json::Array {};
+        RIGIDBODIES_EXPECT(validate_document_header(root, "rigid-bodies.scenario", error, { "special_relativity" }), "an empty list requires nothing");
+        RIGIDBODIES_EXPECT(validate_document_header(root, "rigid-bodies.scenario", error), "an empty list passes the strict form too");
+        root["required_features"] = Json::Array { "special_relativity" };
+        RIGIDBODIES_EXPECT(validate_document_header(root, "rigid-bodies.scenario", error, { "special_relativity" }) && error.empty(), "a listed feature is accepted");
+        RIGIDBODIES_EXPECT(validate_document_header(root, "rigid-bodies.scenario", error, { "other_feature", "special_relativity" }), "a feature is found anywhere in the supported list");
+        RIGIDBODIES_EXPECT(!validate_document_header(root, "rigid-bodies.scenario", error) && error == unsupported, "the three-argument form supports no feature");
+        RIGIDBODIES_EXPECT(!validate_document_header(root, "rigid-bodies.scenario", error, {}) && error == unsupported, "an empty supported list supports no feature");
+        const Json invalid[] = {
+            Json::Array { "special_relativity", "special_relativity" },
+            Json::Array { "special_relativity", "future_behavior" },
+            Json::Array { "future_behavior", "special_relativity" },
+            Json::Array { "Special_Relativity" },
+            Json::Array { "special_relativity " },
+            Json::Array { 1 },
+            Json::Array { nullptr },
+            Json::Array { Json(Json::Array { "special_relativity" }) },
+            Json::Array { Json::Object { { "name", "special_relativity" } } },
+            Json("special_relativity"),
+            Json(Json::Object { { "special_relativity", true } }),
+            Json(true),
+            Json(nullptr),
+        };
+        for (const auto& features : invalid)
+        {
+            root["required_features"] = features;
+            error.clear();
+            RIGIDBODIES_EXPECT(!validate_document_header(root, "rigid-bodies.scenario", error, { "special_relativity" }), "duplicates, unknown names and non-strings are rejected");
+            RIGIDBODIES_EXPECT(error == unsupported, "every rejection keeps the existing explanation");
+        }
+    }
+
+    RIGIDBODIES_TEST("shape and benchmark headers still reject special_relativity")
+    {
+        const auto unsupported = std::string("Document requires unsupported features.");
+        std::string error;
+        for (const auto* format : { "rigid-bodies.shape", "rigid-bodies-benchmark" })
+        {
+            Json root = Json::Object { { "format", format }, { "version", document_version() }, { "required_features", Json::Array { "special_relativity" } } };
+            RIGIDBODIES_EXPECT(!validate_document_header(root, format, error) && error == unsupported, "formats without the feature reject it");
+        }
+        const auto square = std::string(R"({"format":"rigid-bodies.shape","version":{"major":1,"minor":0},"metadata":{"title":"Square","summary":"Fixture"},"shape":{"outline":{"closed":true,"nodes":[{"position_m":[0,0]},{"position_m":[1,0]},{"position_m":[1,1]},{"position_m":[0,1]}]},"options":{"max_render_vertices":64,"max_collision_vertices":32,"max_subdivision_depth":8}}})");
+        rigidbodies::physics::ShapeDocument shape;
+        RIGIDBODIES_EXPECT(rigidbodies::physics::parse_shape_document(square, shape, error), error);
+        Json changed;
+        RIGIDBODIES_EXPECT(parse_json(square, changed, error), error);
+        changed["required_features"] = Json::Array { "special_relativity" };
+        RIGIDBODIES_EXPECT(!rigidbodies::physics::parse_shape_document(write_json(changed), shape, error) && error == unsupported, "a shape file that requires special relativity is rejected");
+        const Json benchmark = Json::Object { { "format", "rigid-bodies-benchmark" }, { "version", document_version() }, { "required_features", Json::Array { "special_relativity" } }, { "suite_revision", 1 } };
+        rigidbodies::physics::BenchmarkReport report;
+        RIGIDBODIES_EXPECT(!rigidbodies::physics::parse_benchmark_report(write_json(benchmark), report, error) && error == unsupported, "a benchmark report that requires special relativity is rejected by its header");
     }
 }
 

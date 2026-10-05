@@ -13,11 +13,11 @@ namespace rigidbodies::app
         constexpr std::size_t scene_channels = 8;
         constexpr std::size_t ledger_channels = 6;
         constexpr std::size_t object_channels = 14;
+        constexpr std::size_t relativity_channels = 3;
         constexpr std::size_t maximum_objects = 32;
         constexpr std::size_t maximum_samples = 2400;
         constexpr std::size_t maximum_runs_per_experiment = 10;
         constexpr std::size_t maximum_starred_runs = 8;
-        constexpr std::size_t maximum_pinned_values = 12;
         constexpr std::size_t full_run_bytes = 4444800;
         constexpr std::size_t memory_budget_bytes = 48u * 1024u * 1024u;
 
@@ -75,6 +75,24 @@ namespace rigidbodies::app
             return {};
         }
 
+        // The probe's clocks and Lorentz factor, recorded in RunSeries::relativity. The lab clock
+        // needs no channel of its own: a world second is a lab nanosecond, so it is the sample time.
+        std::optional<std::size_t> relativity_channel(std::string_view quantity)
+        {
+            if (quantity == "probe_clock")
+                return 0;
+            if (quantity == "clock_gap")
+                return 1;
+            if (quantity == "lorentz")
+                return 2;
+            return {};
+        }
+
+        bool relativity_quantity(std::string_view quantity)
+        {
+            return quantity == "lab_clock" || relativity_channel(quantity);
+        }
+
         void erase_first_sample(ui::RunSeries& series)
         {
             if (series.time_s.empty())
@@ -84,11 +102,12 @@ namespace rigidbodies::app
             series.ledger.erase(series.ledger.begin(), series.ledger.begin() + static_cast<std::ptrdiff_t>(std::min(ledger_channels, series.ledger.size())));
             const auto count = object_channels * series.object_ids.size();
             series.objects.erase(series.objects.begin(), series.objects.begin() + static_cast<std::ptrdiff_t>(count));
+            series.relativity.erase(series.relativity.begin(), series.relativity.begin() + static_cast<std::ptrdiff_t>(std::min(relativity_channels, series.relativity.size())));
         }
 
         std::size_t samples_bytes(const ui::RunRecord& run)
         {
-            return (run.series.time_s.capacity() + run.series.scene.capacity() + run.series.ledger.capacity() + run.series.objects.capacity()) * sizeof(float);
+            return (run.series.time_s.capacity() + run.series.scene.capacity() + run.series.ledger.capacity() + run.series.objects.capacity() + run.series.relativity.capacity()) * sizeof(float);
         }
     }
 
@@ -108,10 +127,11 @@ namespace rigidbodies::app
         state_->experiment_id = std::string(experiment_id);
         (void)state_->experiments[state_->experiment_id];
         state_->current.reset();
+        state_->current_relativity = false;
     }
 
     void RunRecorder::begin_run(const physics::World& world, std::vector<ui::SetupChange> changes_from_original,
-        std::vector<ui::SetupChange> changes_from_previous, std::optional<ui::Prediction> prediction)
+        std::vector<ui::SetupChange> changes_from_previous, std::optional<ui::Prediction> prediction, bool relativity)
     {
         if (state_->current || state_->experiment_id.empty())
             return;
@@ -129,10 +149,14 @@ namespace rigidbodies::app
         run.series.scene.reserve(maximum_samples * scene_channels);
         run.series.ledger.reserve(maximum_samples * ledger_channels);
         run.series.objects.reserve(maximum_samples * object_channels * run.series.object_ids.size());
+        // Only a relativity run pays for its block, so a Newtonian run's memory is unchanged.
+        if (relativity)
+            run.series.relativity.reserve(maximum_samples * relativity_channels);
         state_->current = std::move(run);
+        state_->current_relativity = relativity;
     }
 
-    void RunRecorder::record_sample(const physics::World& world, double time_s)
+    void RunRecorder::record_sample(const physics::World& world, double time_s, const physics::RelativisticProbe* probe)
     {
         if (!state_->current || !std::isfinite(time_s))
             return;
@@ -197,6 +221,23 @@ namespace rigidbodies::app
             run.series.objects.push_back(static_cast<float>(body->world_center_of_mass_m().x));
             run.series.objects.push_back(static_cast<float>(body->orientation_rad()));
         }
+        if (state_->current_relativity)
+        {
+            if (!probe)
+                run.series.relativity.insert(run.series.relativity.end(), relativity_channels, std::numeric_limits<float>::quiet_NaN());
+            else
+            {
+                // The clocks are read at the sample's own instant on the 40 Hz grid, as the lab clock
+                // is. The substep that reaches a grid point can pass it, and the speed is constant
+                // within a substep, so each clock is wound back at its own rate.
+                const auto& race = probe->race();
+                const auto& factors = probe->factors();
+                const auto overshoot_s = std::max(0.0, time_s - sample_time_s) * physics::relativity_lab_seconds_per_world_second;
+                run.series.relativity.push_back(static_cast<float>(race.proper_time_s - overshoot_s * factors.inverse_lorentz_factor));
+                run.series.relativity.push_back(static_cast<float>(race.clock_lag_s - overshoot_s * factors.clock_lag_rate));
+                run.series.relativity.push_back(static_cast<float>(factors.lorentz_factor_minus_one));
+            }
+        }
         run.duration_s = sample_time_s;
     }
 
@@ -241,6 +282,8 @@ namespace rigidbodies::app
         run.series.scene.resize(kept_count * scene_channels);
         run.series.ledger.resize(kept_count * ledger_channels);
         run.series.objects.resize(kept_count * object_channels * run.series.object_ids.size());
+        if (!run.series.relativity.empty())
+            run.series.relativity.resize(kept_count * relativity_channels);
         run.markers.erase(std::remove_if(run.markers.begin(), run.markers.end(), [&](const auto& marker)
                               {
                                   return marker.time_s > time_s;
@@ -265,6 +308,7 @@ namespace rigidbodies::app
         ensure_unique();
         auto run = std::move(*state_->current);
         state_->current.reset();
+        state_->current_relativity = false;
         if (!keep || run.duration_s < 0.5)
             return;
         auto& experiment = state_->experiments[state_->experiment_id];
@@ -358,7 +402,11 @@ namespace rigidbodies::app
 
     bool RunRecorder::pin(ui::PinnedValue value)
     {
-        if ((value.body.is_valid() ? !object_channel(value.quantity) : value.quantity != "mechanical" && !scene_channel(value.quantity)) ||
+        // The probe's clocks and Lorentz factor belong to the experiment rather than to an object,
+        // and nothing in it collides.
+        const auto relativity = relativity_quantity(value.quantity);
+        if ((value.body.is_valid() ? !object_channel(value.quantity) : value.quantity != "mechanical" && !scene_channel(value.quantity) && !relativity) ||
+            (relativity && value.aggregator == ui::RunAggregator::at_first_impact) ||
             (value.aggregator == ui::RunAggregator::at_time && (!std::isfinite(value.time_s) || value.time_s < 0.0 || value.time_s > 60.0)))
             return false;
         ensure_unique();
@@ -409,7 +457,19 @@ namespace rigidbodies::app
             const float* values = nullptr;
             std::size_t stride = 0;
             const bool scene_mechanical = !pinned.body.is_valid() && pinned.quantity == "mechanical";
-            if (!pinned.body.is_valid())
+            // The lab clock reads the sample time in lab seconds. Like the probe's channels, it
+            // exists only in a run that recorded the relativity block.
+            const auto relativity_recorded = !run.series.relativity.empty() && run.series.relativity.size() == samples * relativity_channels;
+            const bool lab_clock = pinned.quantity == "lab_clock" && relativity_recorded;
+            if (const auto relativity_index = relativity_channel(pinned.quantity))
+            {
+                if (relativity_recorded)
+                {
+                    values = run.series.relativity.data() + *relativity_index;
+                    stride = relativity_channels;
+                }
+            }
+            else if (!pinned.body.is_valid())
             {
                 const auto channel = scene_channel(pinned.quantity);
                 if (channel)
@@ -429,13 +489,15 @@ namespace rigidbodies::app
                     stride = run.series.object_ids.size() * object_channels;
                 }
             }
-            if ((!values && !scene_mechanical) || samples == 0)
+            if ((!values && !scene_mechanical && !lab_clock) || samples == 0)
             {
                 run.pinned_results.push_back({});
                 continue;
             }
             const auto sample_at = [&](std::size_t index) -> double
             {
+                if (lab_clock)
+                    return static_cast<double>(run.series.time_s[index]) * physics::relativity_lab_seconds_per_world_second;
                 if (!scene_mechanical)
                     return static_cast<double>(values[index * stride]);
                 const auto base = index * scene_channels;

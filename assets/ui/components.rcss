@@ -255,6 +255,10 @@ button.row-list_item.has-actions .list-actions { display: flex; flex-direction: 
 /* A wide drawer sets the graph's controls in a column beside it, so what it plots stays in view. */
 .measure .group-graph_side { float: right; clear: right; box-sizing: border-box; width: 272dp; }
 .measure .row-plot.group-graph_main { margin-right: 292dp; }
+/* A remark on the plot (the Relativity tab's) sits above it, clear of the column beside it. */
+.measure .row-label.group-graph_main { margin-right: 292dp; }
+/* The chips of a disabled segmented row (Tools in a relativity experiment) do not offer a press. */
+.is-disabled .segment { cursor: default; }
 /* Clipping would make the canvas a layout root, which RmlUi sets below floats, not beside them;
    the plot keeps its own drawing inside its frame. */
 .measure .row-plot.group-graph_main .plot-canvas { overflow: visible; }

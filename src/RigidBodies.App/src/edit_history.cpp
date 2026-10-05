@@ -1,4 +1,5 @@
 #include <rigidbodies/app/simulation_session.hpp>
+#include <rigidbodies/core/display_units.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/physics/joint.hpp>
 #include <algorithm>
@@ -112,6 +113,10 @@ namespace rigidbodies::app
                 return "Edit spring";
             case K::set_energy_reference_height:
                 return "Set zero height";
+            case K::set_relativity_speed:
+                // Value-free: a preview fixes the label at its first value, and the run marker
+                // carries the values instead.
+                return "Change probe speed";
             default:
                 return {};
             }
@@ -150,6 +155,7 @@ namespace rigidbodies::app
             case K::set_gravity_magnitude:
             case K::set_gravity_angle_degrees:
             case K::set_selected_gravity_scale:
+            case K::set_relativity_speed:
                 return true;
             default:
                 return false;
@@ -190,6 +196,7 @@ namespace rigidbodies::app
             case K::set_continuous_collision:
             case K::set_energy_reference_height:
             case K::revert_change:
+            case K::set_relativity_speed:
                 return ui::EditCategory::parameter;
             case K::delete_selected_body:
             case K::commit_shape_outline:
@@ -233,6 +240,7 @@ namespace rigidbodies::app
         state.setup_file = setup_file_;
         state.gravity_direction_degrees = gravity_direction_degrees_;
         state.state_setup_toast_shown = state_setup_toast_shown_;
+        state.relativity = relativity_;
         return state;
     }
 
@@ -265,6 +273,13 @@ namespace rigidbodies::app
         selected_connection_ = state.selected_connection;
         scenario_id_ = state.scenario_id;
         scenario_document_ = state.scenario_document;
+        relativity_ = state.relativity;
+        // The tool is not part of the history, so a restored probe gets the selection tool as
+        // install_relativity gives it, never a Newtonian tool its experiment refuses.
+        if (relativity_)
+            interaction_.mode = InteractionMode::select;
+        // An unmoved camera reframes for the restored experiment on the next focus update.
+        relativity_framed_.reset();
         setup_file_ = state.setup_file;
         // Guide content and body annotations are derived from the document. Restoring only
         // the world would leave the previous experiment's labels and controls on screen.
@@ -376,6 +391,9 @@ namespace rigidbodies::app
         }
 
         setup_ = state.setup;
+        // The probe's speed only: its clocks keep running, as a parameter undo never rewinds.
+        if (relativity_ && state.relativity)
+            relativity_->set_speed_fraction(state.relativity->setup().speed_fraction);
         apply_lab_settings(lab_);
         rebuild_snapshot_views();
         synchronize_render_history();
@@ -389,6 +407,7 @@ namespace rigidbodies::app
         pending_edit_ = capture_edit_state();
         pending_edit_label_ = std::move(label);
         pending_edit_command_.reset();
+        speed_change_time_s_.reset();
         edit_changed_ = false;
     }
     bool SimulationSession::edit_in_progress() const
@@ -426,10 +445,20 @@ namespace rigidbodies::app
                                                                                    : ui::EditCategory::state;
             next.coalescing_command = command ? *command : ui::UiCommand {};
             next.committed_wall_time_s = wall_time_s_;
+            auto marker_time_s = world_.statistics().elapsed_time_s;
             if (command && !starting_value && run_recorder_.current() && next.category != ui::EditCategory::lab)
             {
                 auto marker = next.label;
-                if (command->kind == ui::UiCommandKind::set_selected_mass)
+                const auto speed_before = next.before.relativity ? next.before.relativity->setup().speed_fraction : 0.0;
+                if (relativity_ && next.before.relativity && (command->kind == ui::UiCommandKind::set_relativity_speed || speed_before != relativity_->setup().speed_fraction))
+                {
+                    // Named by both speeds, a per-item revert's too, and placed where the speed
+                    // first changed: a drag changes the clocks' rates as soon as it moves.
+                    const auto units = scene_settings_.display_units;
+                    marker = core::substitute("Speed {} → {}", core::format_quantity(speed_before, core::DisplayQuantity::speed_fraction, units), core::format_quantity(relativity_->setup().speed_fraction, core::DisplayQuantity::speed_fraction, units));
+                    marker_time_s = speed_change_time_s_.value_or(marker_time_s);
+                }
+                else if (command->kind == ui::UiCommandKind::set_selected_mass)
                 {
                     physics::World before;
                     before.restore(next.before.world);
@@ -439,7 +468,7 @@ namespace rigidbodies::app
                     if (old_body && new_body)
                         marker = core::substitute("Mass {} → {} kg", core::fixed(old_body->mass_properties().mass_kg, 2), core::fixed(new_body->mass_properties().mass_kg, 2));
                 }
-                run_recorder_.add_marker(world_.statistics().elapsed_time_s, std::move(marker));
+                run_recorder_.add_marker(marker_time_s, std::move(marker));
                 if (next.category != ui::EditCategory::parameter)
                     run_recorder_.mark_changed_during_run();
             }
@@ -462,16 +491,37 @@ namespace rigidbodies::app
         }
         pending_edit_.reset();
         pending_edit_command_.reset();
+        speed_change_time_s_.reset();
         edit_changed_ = false;
     }
     void SimulationSession::cancel_edit()
     {
         if (!pending_edit_)
             return;
+        // A cancelled speed drag restores the speed alone; the probe's clocks were never held, so
+        // they are not rewound.
+        const auto speed = pending_edit_command_ && pending_edit_command_->kind == ui::UiCommandKind::set_relativity_speed;
+        const auto changed_at = speed_change_time_s_;
+        const auto dragged = relativity_ ? relativity_->setup().speed_fraction : 0.0;
         auto state = std::move(*pending_edit_);
         pending_edit_.reset();
         pending_edit_command_.reset();
-        restore_edit_state(state);
+        speed_change_time_s_.reset();
+        if (speed)
+        {
+            restore_property_state(state, ui::EditCategory::parameter);
+            // The clocks ran at the dragged speed until now, so the run's graph shows where that
+            // began and ended, unless no time passed in between.
+            const auto now = world_.statistics().elapsed_time_s;
+            if (relativity_ && changed_at && now > *changed_at)
+            {
+                const auto restored = relativity_->setup().speed_fraction;
+                mark_relativity_speed_change(restored, dragged, *changed_at);
+                mark_relativity_speed_change(dragged, restored, now);
+            }
+        }
+        else
+            restore_edit_state(state);
         edit_changed_ = false;
     }
 
@@ -502,7 +552,15 @@ namespace rigidbodies::app
             apply(point_command);
             return;
         }
+        // The probe's speed keys reach every experiment. A Newtonian one ignores them entirely, so an
+        // edit or a gesture in progress is neither committed nor cancelled by them.
+        if (command.kind == ui::UiCommandKind::set_relativity_speed && !relativity_)
+            return;
         command_target_body_ = command.body.is_valid() ? command.body : selection();
+        // One gate before every Newtonian path: a refused command changes nothing, makes no
+        // history entry and leaves an edit in progress alone.
+        if (relativity_ && refuse_in_relativity(command))
+            return;
         using K = ui::UiCommandKind;
         const auto changed = [&]()
         {
@@ -600,8 +658,15 @@ namespace rigidbodies::app
                 auto entry = std::move(source.back());
                 source.pop_back();
                 const auto& target = command.kind == K::undo ? entry.before : entry.after;
+                const auto speed_before = relativity_ ? relativity_->setup().speed_fraction : 0.0;
                 if (entry.category == ui::EditCategory::parameter || entry.category == ui::EditCategory::lab)
+                {
                     restore_property_state(target, entry.category);
+                    // The probe's clocks keep running at the restored speed, so the run's graph is
+                    // marked where their rates changed.
+                    if (relativity_)
+                        mark_relativity_speed_change(speed_before, relativity_->setup().speed_fraction, world_.statistics().elapsed_time_s);
+                }
                 else
                     restore_edit_state(target, entry.category);
                 if (run_recorder_.current() && entry.category != ui::EditCategory::parameter && entry.category != ui::EditCategory::lab)
@@ -680,7 +745,9 @@ namespace rigidbodies::app
                     throw;
                 }
                 applying_preview_ = false;
-                if (edit_changed_)
+                // The probe's clocks keep running under the learner's hand and change rate as the
+                // speed is dragged, as playback speed does.
+                if (edit_changed_ && command.kind != K::set_relativity_speed)
                     held_reason_ = "adjusting";
                 return command.kind != K::none;
             }

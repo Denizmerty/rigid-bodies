@@ -1,6 +1,7 @@
 # Rigid Bodies
 
-A 2D playground for exploring classical Newtonian mechanics.
+A 2D playground for exploring classical Newtonian mechanics, with one special-relativity experiment
+that shows where it stops applying.
 
 Download the [Windows x64 installer](https://github.com/Denizmerty/rigid-bodies/releases/latest).
 Under **Assets**, choose `Rigid-Bodies-<version>-windows-x64-setup.exe`. The ZIP is a portable
@@ -21,7 +22,7 @@ quantities. Labels avoid overlap and follow the text-size preference. Contact sh
 trails and impact effects help show motion. Reduce motion turns off blur, impact flashes, sparks,
 dust and smooth transitions.
 
-The current version is `1.0.1`.
+The current version is `1.2.0`.
 
 ## License and author
 
@@ -101,8 +102,9 @@ and the menu stay on the bar. Icon-only controls keep their names as tooltips an
 The status line reports time,
 selection, the lab integrator and view height. The Guide explains the experiment; the contextual
 Inspector edits World, objects, joints and springs; Measure contains Energy, Graph, Collisions,
-Theory checks and Runs. The Library searches bundled experiments and saved setups. **Ctrl+K**
-searches every command and control, then runs the action or opens and focuses the matching setting.
+Theory checks and Runs, or Relativity, Graph and Runs in the relativity experiment. The Library
+searches bundled experiments and saved setups. **Ctrl+K** searches every command and control, then
+runs the action or opens and focuses the matching setting.
 
 The playback speed menu includes **Custom…**, which opens an exact multiplier editor from
 0.05× to 4×, with validation and a **Reset to 1×** action. The toolbar shows the active multiplier.
@@ -155,8 +157,8 @@ a clock, and Spotlight, Lock and Exit controls. The current Guide step appears i
 card at the bottom of the stage, with Previous, Next and Show me. Camera framing keeps the subject
 above the card. The optional spotlight draws a soft circle around the pointer, scaled for the
 display. Demonstration lock starts on and disables file actions and destructive edits with an
-explanation. Playback, Throw, Pull and Guide variables remain available. The first time you enter
-Present mode, the caption card offers the high-contrast Projector theme.
+explanation. Playback, Throw, Pull, Guide variables and the probe speed keys remain available.
+The first time you enter Present mode, the caption card offers the high-contrast Projector theme.
 Performance statistics are available through **View → Performance overlay**; the old Diagnostics
 panel is retired.
 
@@ -186,6 +188,8 @@ Throw learning task.
 | Ctrl+G / Ctrl+Shift+G | Combine selected authored shapes / separate parts |
 | [ / ] | Select the previous / next object |
 | Alt+Arrow / Shift+Alt+Arrow | Nudge the selection 1 cm / 10 cm |
+| Up / Down | Raise / lower probe speed a little (relativity experiment) |
+| Shift+Up / Shift+Down | Next / previous speed preset (relativity experiment) |
 | L / S / M | Open Library / toggle Show / toggle Measure |
 | W / G / I | Open World / toggle Guide / pin Inspector |
 | F10 | Open the main menu |
@@ -216,6 +220,20 @@ Starred runs are protected. Up to twelve pinned values can report At end, Maximu
 impact or At t = …; Compare shows A, B, Δ and Δ %, with a warning when starting setups differ by
 more than one change. Graph can overlay the previous run and one kept comparison run.
 
+**Chasing light**, in the Special relativity collection, sends a 1 kg probe racing a light pulse
+along a track about 3 m long, at a speed you choose from rest to 0.9999999 c; c itself is refused.
+Time runs a billion times slower than real time: at 1×, one second on screen is one nanosecond in
+the lab, and the status line shows lab time. The stage carries a lab clock and a clock riding the
+probe, a new light pulse on every lap with the race result, and a band of readings: rest mass, v,
+v/c, γ, kinetic energy, momentum and how close the probe is to c. **Probe speed** accepts values
+such as `0.99 c`, `99.9 %` or `150000 km/s`, and its slider moves in equal boosts.
+**Measure › Relativity** plots kinetic energy, momentum, γ or the probe's clock rate against
+Newton's predictions, either up to c or on a near-c axis where each step adds a nine; Graph and
+Runs record both clocks over lab time. **Back to start** zeroes the clocks and keeps the speed, and
+undoing a speed change never rewinds them. Clicking the probe, or pressing **W**, opens Probe speed
+in the Inspector. Tools that act on Newtonian objects, such as Add, Draw, Throw and Pull, are
+unavailable there.
+
 PNG capture has two areas, chosen in Preferences: **Stage only** crops to the simulation stage
 and contains no interface, while **Whole window** composites the learner interface over the scene
 exactly as shown.
@@ -228,7 +246,7 @@ values are reported and skipped so configuration cannot prevent startup. See
 
 ```
 src/RigidBodies.Math/        Vectors, rotations, transforms, bounds, polygon geometry
-src/RigidBodies.Physics/     Bodies, shapes, materials, forces, integration, collision, worlds
+src/RigidBodies.Physics/     Bodies, shapes, materials, forces, integration, collision, worlds, relativity
 src/RigidBodies.Core/        Logging, configuration, resource location, project identity
 src/RigidBodies.Render/      Camera, draw lists, render device, scene renderer, layers
 src/RigidBodies.Ui/          Panels, commands, interface backends

@@ -117,10 +117,10 @@ namespace rigidbodies::ui
             follow.flag = !model.follow_selection;
             builder.toggle_row("menu.view.follow_selection", "Follow selection", model.follow_selection, follow);
         }
-        builder.live_value_row("Elapsed", quantity(model.elapsed_time_s, core::DisplayQuantity::time, model));
+        builder.live_value_row("Elapsed", now_text(model));
         if (model.discarded_time_s > 0.0)
         {
-            builder.live_value_row("Time skipped", quantity(model.discarded_time_s, core::DisplayQuantity::time, model));
+            builder.live_value_row("Time skipped", elapsed_text(model, model.discarded_time_s));
         }
         builder.value_row("Time step", core::substitute("{}\xC2\xA0ms", core::format_value(model.fixed_step_s * 1000.0, core::DisplayQuantity::coefficient, model.display_units)));
         if (model.world != nullptr)
@@ -225,6 +225,9 @@ namespace rigidbodies::ui
         // Custom carries the current mix, so choosing it keeps the layers exactly as they are.
         builder.segmented_row(spec("show.presets.preset"), selected_preset, command(UiCommandKind::set_layer_mask, static_cast<double>(model.layers.bits())));
         // Layers are grouped by what they explain; the solver's own diagnostics stay folded away.
+        // A relativity experiment draws its own stage, so only the grid, the rail and its labels
+        // remain to show or hide.
+        const auto relativity = model.relativity.has_value();
         const auto layer_switches = [&](std::string_view location)
         {
             for (const auto& description : render::layer_catalogue())
@@ -237,6 +240,8 @@ namespace rigidbodies::ui
                 auto set = command(UiCommandKind::set_layer, description.id);
                 set.flag = !model.layers.is_enabled(description.layer);
                 builder.switch_row(layer_spec, model.layers.is_enabled(description.layer), set);
+                if (relativity && description.id != "grid" && description.id != "bodies" && description.id != "labels")
+                    builder.disable_last("Not used in relativity experiments.");
             }
         };
         for (const auto& [heading, location] : std::array<std::pair<std::string_view, std::string_view>, 4> { { { "Objects", "Show › Objects" }, { "Motion", "Show › Motion" }, { "Forces and contact", "Show › Forces and contact" }, { "Reference", "Show › Reference" } } })
@@ -246,7 +251,7 @@ namespace rigidbodies::ui
         }
         if (builder.section("show.internals", "Engine internals", false))
             layer_switches("Show › Engine internals");
-        if (builder.section("show.arrows", "Arrows", true))
+        if (!relativity && builder.section("show.arrows", "Arrows", true))
         {
             builder.segmented_row(spec("show.arrows.scope"), model.visual_settings.vectors_selected_only ? "selected" : "all", command(UiCommandKind::set_vector_scope));
             builder.switch_row(spec("show.arrows.auto_length"), model.vector_scales.automatic, flag_command(UiCommandKind::set_vector_auto_scale, !model.vector_scales.automatic));
@@ -499,7 +504,7 @@ namespace rigidbodies::ui
         builder.present_last(presentation(icons::replay, "Shift+R").always_overflow());
         auto pause_next = command(UiCommandKind::pause_at_next_impact);
         pause_next.flag = !model.next_impact_armed;
-        builder.action_row(model.next_impact_armed ? "Cancel play until next impact" : "Play until next impact", pause_next);
+        builder.action_row(model.next_impact_armed ? "Cancel play until next impact" : "Play until next impact", pause_next, model.relativity ? "Nothing collides in this experiment." : "");
         builder.present_last(presentation(icons::impact, "Shift+Space").always_overflow());
         if (model.next_impact_armed)
         {
@@ -513,6 +518,8 @@ namespace rigidbodies::ui
         builder.begin_group("tools");
         builder.segmented_row(spec("tools.mode"), model.interaction_mode, command(UiCommandKind::set_interaction_mode));
         builder.present_last(presentation().hide_label_at(5));
+        if (model.relativity)
+            builder.disable_last("Throw and Pull act on Newtonian objects. Change the probe's speed instead.");
         builder.end_group();
 
         builder.begin_group("history");
@@ -535,7 +542,7 @@ namespace rigidbodies::ui
         builder.spacer(0.0);
 
         builder.begin_group("workspace");
-        builder.action_row("Add", view("add"));
+        builder.action_row("Add", view("add"), model.relativity ? "Objects cannot be added to a relativity experiment." : "");
         builder.present_last(presentation(icons::add, "Shift+A").hide_label_at(6).overflow_at(13));
         builder.select_last(builder.view_transient_open("add_menu"));
         builder.action_row("Library", view("library"));
@@ -589,7 +596,9 @@ namespace rigidbodies::ui
             builder.readout("status.pick_surface", "Pick", "Click a surface to set the direction", RowTone::info);
             builder.present_last(presentation(icons::crosshair));
         }
-        builder.readout("bar.time.readout", "Time", core::format_quantity(model.elapsed_time_s, core::DisplayQuantity::time, model.display_units), RowTone::normal, true);
+        // A relativity experiment's clock is the lab's, in nanoseconds of lab time; the line shows
+        // no names, so the reading carries its own, as the view height does.
+        builder.readout("bar.time.readout", model.relativity ? "Lab time" : "Time", model.relativity ? "Lab time " + now_text(model) : now_text(model), RowTone::normal, true);
         builder.present_last(presentation(icons::timer));
         if (!model.selected_bodies.empty())
         {
@@ -619,7 +628,7 @@ namespace rigidbodies::ui
                                                                                                                                    : icons::info)
                     .overflow_at(3));
         }
-        if (!model.lab_changes.empty())
+        if (!model.lab_changes.empty() && !model.relativity)
         {
             const auto suffix = model.lab_changes.size() > 1 ? core::substitute(" and {} more", model.lab_changes.size() - 1) : std::string {};
             builder.action_row("Lab: " + model.lab_changes.front().current_text + suffix, command(UiCommandKind::revert_lab_settings));
@@ -739,7 +748,7 @@ namespace rigidbodies::ui
             builder.present_last(presentation(icons::open, "Ctrl+O"));
             builder.action_row("Save setup", command(UiCommandKind::save_arrangement));
             builder.present_last(presentation(icons::save, "Ctrl+S"));
-            builder.action_row("Import shape", command(UiCommandKind::import_shape));
+            builder.action_row("Import shape", command(UiCommandKind::import_shape), model.relativity ? "Shapes cannot be imported into a relativity experiment." : "");
             builder.present_last(presentation(icons::open, "Ctrl+I"));
         }
         const auto folded = [](std::string_view value)
@@ -827,6 +836,9 @@ namespace rigidbodies::ui
             if (experiment->id == model.scenario_id)
                 badges.push_back("Current");
             badges.push_back(experiment->level);
+            // Sorted by collection, the heading above already names it.
+            if (experiment->special_relativity && sort != "collections")
+                badges.push_back("Special relativity");
             // The selected card opens into its own description: the full summary and every
             // concept, where the others show the one-line hook and the first few.
             for (std::size_t index = 0; index < std::min<std::size_t>(is_selected ? experiment->concepts.size() : 3, experiment->concepts.size()); ++index)
@@ -1160,10 +1172,12 @@ namespace rigidbodies::ui
         close.detail = "view:close";
         builder.action_row("playback.close", "Done", close);
         builder.present_last(presentation(icons::close, "Esc").icon_label_only().in_header());
-        builder.paragraph("1× is real time. Choose 0.05× to 4×; slower playback makes motion easier to inspect.");
+        // A relativity experiment plays in slow motion: a world second is a lab nanosecond.
+        builder.paragraph(model.relativity ? "1× plays one nanosecond of lab time each second, a billion times slower than real time. Choose 0.05× to 4×; slower playback makes the clocks easier to compare."
+                                           : "1× is real time. Choose 0.05× to 4×; slower playback makes motion easier to inspect.");
         builder.number_row(spec("bar.speed.custom"), model.time_scale, command(UiCommandKind::set_time_scale));
         builder.action_row("playback.normal", "Reset to 1×", command(UiCommandKind::set_time_scale, 1.0));
-        builder.readout("playback.elapsed", "Each real second advances", quantity(model.time_scale, core::DisplayQuantity::time, model));
+        builder.readout("playback.elapsed", "Each real second advances", elapsed_text(model, model.time_scale) + (model.relativity ? " of lab time" : ""));
     }
 
     std::vector<std::unique_ptr<Panel>> create_default_panels()

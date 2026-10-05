@@ -33,6 +33,8 @@ namespace rigidbodies::ui
         std::vector<float> ledger;
         std::vector<float> objects;
         std::vector<physics::BodyId> object_ids;
+        // Special relativity, three per sample: probe clock τ (s), lab − probe t − τ (s), γ − 1. Empty for Newtonian runs.
+        std::vector<float> relativity;
     };
 
     struct Prediction

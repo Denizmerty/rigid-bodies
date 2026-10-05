@@ -47,11 +47,13 @@
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\geometry.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\icons.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\layout.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\measure_tabs.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\notifications.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\overlay_backend.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\panel.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\panels.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\plot.hpp" />
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\relativity_model.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\run_compare.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\run_types.hpp" />
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\toast_presenter.hpp" />
@@ -86,6 +88,7 @@
     <ClCompile Include="..\src\RigidBodies.Ui\src\view_state.cpp" />
     <ClCompile Include="..\src\RigidBodies.Ui\src\document_backend.cpp" />
     <ClCompile Include="..\src\RigidBodies.Ui\src\plot_element.cpp" />
+    <ClCompile Include="..\src\RigidBodies.Ui\src\relativity_panel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="RigidBodies.Render.vcxproj">

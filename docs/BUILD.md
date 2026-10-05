@@ -135,3 +135,18 @@ applies interface states in order: `guide`, `noguide`, `inspector`, `noinspector
 `graph`, `collisions`, `runs`, `world`, `library`, `preferences`, `shortcuts`, `about`, `search`,
 `menu`, `add`, `show`, `playback_speed`, `present`, `spotlight`, `unlock`, `performance`, `nohints`, `select`,
 `selectall`, `context`, `hover`, `draw`, `draw-options`, `reduce-motion` and `run`.
+
+Some states record runs before the capture. `play=N` plays N sixtieths of a second and leaves the
+run going, so a later state changes it mid-run. `keep=N` plays the same way and then goes back to
+start, which keeps the run for the Runs table and the Graph's previous run; plain `keep` plays two
+seconds. `pin=<quantity>[:maximum|minimum]` adds a value that needs no object to the Runs table,
+such as `pin=probe_clock` or `pin=lorentz:maximum`.
+
+The special-relativity experiment has its own states: `relativity` opens Measure › Relativity,
+`speed=<v/c>` commits a probe speed as the Probe speed field would, and
+`curve=energy|momentum|gamma|clock_rate` and `range=full|near` choose the Relativity plot's curve
+and its Up to c or Near c axis. For example:
+
+```powershell
+.\build\rigid_bodies.exe --screenshot rel.png --size 1600x900 --scenario chasing_light --run-frames 240 --state nohints,speed=0.99999,measure,relativity,range=near
+```

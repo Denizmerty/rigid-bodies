@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <initializer_list>
 #include <map>
 #include <string>
 #include <string_view>
@@ -70,6 +71,11 @@ namespace rigidbodies::physics::content
 
     // Schema 1 accepts later minor revisions and unknown additive fields. A changed major is
     // deliberately rejected before geometry or world state is constructed.
+    // The three-argument form supports no features, so shape and benchmark documents reject every
+    // required feature. A format that implements some passes them as `supported_features`:
+    // required_features must then be an array of distinct strings, each one listed there.
     [[nodiscard]] bool validate_document_header(const Json& root, std::string_view format, std::string& error);
+    [[nodiscard]] bool validate_document_header(const Json& root, std::string_view format, std::string& error,
+        std::initializer_list<std::string_view> supported_features);
     [[nodiscard]] Json document_version();
 }

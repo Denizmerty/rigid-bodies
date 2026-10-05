@@ -28,7 +28,7 @@ namespace rigidbodies::ui
         const auto guide_shown = builder.view_region_present(RegionId::guide_panel);
         const auto text = hint == "play" ? (!predict_first ? "Press Play to start the experiment." : guide_shown ? "Answer the prediction in the Guide, then press Play."
                                                                                                                  : "Open the Guide to answer its prediction, then press Play.")
-            : hint == "inspect"          ? "Select an object, then drag its arrow tip to set velocity."
+            : hint == "inspect"          ? (model.relativity ? "Drag Probe speed, or press Shift+Up, to send the probe closer to c." : "Select an object, then drag its arrow tip to set velocity.")
                                          : "Open the Library to try another experiment.";
         builder.paragraph(text);
         if (predict_first && !guide_shown)

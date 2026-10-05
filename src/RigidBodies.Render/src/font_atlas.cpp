@@ -11,6 +11,14 @@
 
 namespace rigidbodies::render
 {
+    math::Span<const std::uint32_t> font_atlas_extra_code_points()
+    {
+        // Superscripts complete scientific notation such as "1.00 × 10⁶ dyn", and the thin space
+        // keeps Core's digit groups apart ("299 792 458 m/s").
+        static constexpr std::uint32_t codes[] { 0x394u, 0x3b1u, 0x3b2u, 0x3b3u, 0x3b8u, 0x3bcu, 0x3c0u, 0x3c4u, 0x3c9u, 0x2009u, 0x2013u, 0x2014u, 0x2022u, 0x2070u, 0x2074u, 0x2075u, 0x2076u, 0x2077u, 0x2078u, 0x2079u, 0x207bu, 0x2190u, 0x2192u, 0x2212u, 0x221au, 0x221eu, 0x2264u, 0x2265u };
+        return codes;
+    }
+
     namespace
     {
         constexpr std::size_t cache_budget = 32 * 1024 * 1024;
@@ -119,8 +127,7 @@ namespace rigidbodies::render
             std::vector<std::uint32_t> codes;
             for (std::uint32_t code = 32; code <= 255; ++code)
                 codes.push_back(code);
-            // Superscripts complete scientific notation such as "1.00 × 10⁶ dyn".
-            for (const auto code : { 0x394u, 0x3b1u, 0x3b2u, 0x3b8u, 0x3bcu, 0x3c0u, 0x3c9u, 0x2013u, 0x2014u, 0x2022u, 0x2070u, 0x2074u, 0x2075u, 0x2076u, 0x2077u, 0x2078u, 0x2079u, 0x207bu, 0x2190u, 0x2192u, 0x2212u, 0x221au, 0x221eu, 0x2264u, 0x2265u })
+            for (const auto code : font_atlas_extra_code_points())
                 codes.push_back(code);
             auto pixels = std::make_shared<TexturePixels>();
             pixels->width = size > 56 ? 2048 : 1024;

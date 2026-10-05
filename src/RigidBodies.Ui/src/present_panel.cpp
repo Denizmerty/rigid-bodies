@@ -73,7 +73,9 @@ namespace rigidbodies::ui
         builder.present_last(presentation(running ? icons::pause : icons::play, "Space").primary().hide_label_at(5));
         builder.action_row("present.transport.step", "Step", action(UiCommandKind::single_step));
         builder.present_last(presentation(icons::step, ".").icon_label_only());
-        builder.readout("present.time", "Time", core::substitute("{} s", core::fixed(model.elapsed_time_s, 2)), RowTone::normal, true);
+        // A relativity experiment's clock is the lab's, in nanoseconds of lab time; the strip shows
+        // no names, so the reading carries its own.
+        builder.readout("present.time", model.relativity ? "Lab time" : "Time", model.relativity ? "Lab time " + now_text(model) : core::substitute("{} s", core::fixed(model.elapsed_time_s, 2)), RowTone::normal, true);
         builder.present_last(presentation(icons::timer).overflow_at(4));
         builder.end_group();
         builder.spacer(0.0);

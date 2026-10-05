@@ -1,3 +1,4 @@
+#include <rigidbodies/ui/measure_tabs.hpp>
 #include <rigidbodies/ui/view_state.hpp>
 
 #include "test_framework.hpp"
@@ -33,6 +34,35 @@ namespace
         const std::array<std::string_view, 3> with { "properties", "motion", "joints" };
         RIGIDBODIES_EXPECT(state.active_tab("inspector.object", without, "properties") == "properties", "missing tab falls back");
         RIGIDBODIES_EXPECT(state.active_tab("inspector.object", with, "properties") == "joints", "remembered tab returns");
+    }
+
+    RIGIDBODIES_TEST("a stored relativity tab falls back to energy and back")
+    {
+        ui::ViewState state;
+        const auto newtonian = ui::measure_tab_ids(false);
+        const auto relativity = ui::measure_tab_ids(true);
+        const auto newtonian_tab = [&]
+        {
+            return state.active_tab("measure.header.tabs", newtonian, ui::default_measure_tab(false));
+        };
+        const auto relativity_tab = [&]
+        {
+            return state.active_tab("measure.header.tabs", relativity, ui::default_measure_tab(true));
+        };
+        RIGIDBODIES_EXPECT(newtonian_tab() == "energy" && relativity_tab() == "relativity", "each model opens Measure on its own default tab");
+        state.set_active_tab("measure.header.tabs", "relativity");
+        RIGIDBODIES_EXPECT(newtonian_tab() == "energy", "a Newtonian experiment never shows the Relativity tab");
+        RIGIDBODIES_EXPECT(relativity_tab() == "relativity", "the relativity experiment returns to it");
+        state.set_active_tab("measure.header.tabs", "collisions");
+        RIGIDBODIES_EXPECT(relativity_tab() == "relativity" && newtonian_tab() == "collisions", "a Newtonian-only tab falls back in the relativity experiment and returns afterwards");
+        state.set_active_tab("measure.header.tabs", "graph");
+        RIGIDBODIES_EXPECT(relativity_tab() == "graph" && newtonian_tab() == "graph", "Graph belongs to both models");
+
+        state.set_active_tab("measure.header.tabs", "relativity");
+        ui::ViewState loaded;
+        RIGIDBODIES_EXPECT(loaded.deserialize(state.serialize()).empty(), "a stored relativity tab is valid state");
+        RIGIDBODIES_EXPECT(loaded.active_tab("measure.header.tabs", newtonian, ui::default_measure_tab(false)) == "energy" && loaded.active_tab("measure.header.tabs", relativity, ui::default_measure_tab(true)) == "relativity", "the stored tab survives a restart and still falls back");
+        RIGIDBODIES_EXPECT(ui::measure_tab_is_wide("graph") && ui::measure_tab_is_wide("relativity") && !ui::measure_tab_is_wide("energy") && !ui::measure_tab_is_wide("runs"), "the plotting tabs may use the drawer's full width");
     }
 
     RIGIDBODIES_TEST("malformed unknown and newer state is handled defensively")

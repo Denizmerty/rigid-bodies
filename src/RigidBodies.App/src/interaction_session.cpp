@@ -203,6 +203,10 @@ namespace rigidbodies::app
             return ui::CursorShape::crosshair;
         if (interaction_.mode == InteractionMode::pull)
             return ui::CursorShape::grab;
+        // The probe opens its speed control when clicked, so the cursor uses the scale pointer
+        // events carry (display scale times Text size) for the same tolerance as the click.
+        if (hit_relativity_probe(camera_.world_to_screen(pointer_world_m_), static_cast<double>(scene_settings_.display_scale) * ui_scale_))
+            return ui::CursorShape::pointer;
         if (world_.is_valid(interaction_.hover_body))
             if (const auto* body = world_.find_body(interaction_.hover_body); body && body->type() == physics::BodyType::dynamic_body)
                 return ui::CursorShape::open_hand;
@@ -363,7 +367,8 @@ namespace rigidbodies::app
             if (!on_other_centre && within(rotation_knob_position(camera_.world_to_screen(centre_m), ring, body->orientation_rad()), overlay::handle_hit_radius * scale))
                 return "rotation";
         }
-        if (within(gravity_compass_centre(camera_, drawn_scale), std::max(overlay::handle_hit_radius * scale, (overlay::compass_radius + 2.0) * drawn_scale)))
+        // A relativity experiment draws no gravity dial, so a press there is not a gravity edit.
+        if (!relativity_ && within(gravity_compass_centre(camera_, drawn_scale), std::max(overlay::handle_hit_radius * scale, (overlay::compass_radius + 2.0) * drawn_scale)))
             return "gravity";
         return {};
     }
@@ -577,8 +582,11 @@ namespace rigidbodies::app
             }
             interaction_.hover_connection_key.clear();
             interaction_.hover_connection_kind.clear();
-            auto hit = pick_body_at(event.pointer_px, event.logical_pixel_scale);
-            if (!hit.is_valid())
+            // The probe stands on the rail and takes a click before any body, so pointing at it
+            // highlights nothing beneath it.
+            const auto over_probe = hit_relativity_probe(event.pointer_px, event.logical_pixel_scale);
+            auto hit = over_probe ? physics::BodyId {} : pick_body_at(event.pointer_px, event.logical_pixel_scale);
+            if (!hit.is_valid() && !over_probe)
             {
                 const auto tolerance = 6.0 * std::max(0.01, event.logical_pixel_scale);
                 double area = std::numeric_limits<double>::infinity();
@@ -938,43 +946,47 @@ namespace rigidbodies::app
                 }
             }
 
-            // A small dial: the needle shows the direction of gravity in the force colour, and is
-            // drawn muted with no arrowhead when gravity is switched off.
-            const auto compass = gravity_compass_centre(camera_, overlay_scale());
-            const auto radius = paint.px(overlay::compass_radius);
-            const auto compass_state = state_of("gravity");
-            const auto gravity_on = gravity_ && gravity_->is_enabled() && math::length_squared(world_.settings().gravity_m_s2) > 0.0;
-            const auto angle = math::degrees_to_radians(gravity_direction_degrees_);
-            const math::Vec2 down { std::cos(angle), -std::sin(angle) };
-            if (compass_state != HandleState::normal)
-                paint.halo(compass, radius + paint.px(4.0), with_opacity(palette.accent, 0.18f));
-            list.add_circle_fill(compass + math::Vec2 { 0.0, paint.px(1.0) }, static_cast<float>(radius + paint.px(1.5)), with_opacity(palette.shadow, 0.6f));
-            list.add_circle_fill(compass, static_cast<float>(radius), palette.plate);
-            list.add_circle_outline(compass, static_cast<float>(radius), compass_state == HandleState::normal ? with_opacity(palette.muted, 0.45f) : palette.accent, paint.width(compass_state == HandleState::normal ? overlay::hairline : overlay::standard));
-            for (int tick = 0; tick < 8; ++tick)
+            // A relativity experiment's track has no gravity to turn, so it has no dial.
+            if (!relativity_)
             {
-                const auto tick_angle = math::pi * 0.25 * static_cast<double>(tick);
-                const math::Vec2 radial { std::cos(tick_angle), std::sin(tick_angle) };
-                // The label sits opposite the needle, so the ticks beside it are left out.
-                if (math::dot(radial, -down) > 0.6)
-                    continue;
-                const auto inner = radius - paint.px(tick % 2 == 0 ? 4.0 : 2.5);
-                list.add_line(compass + radial * inner, compass + radial * (radius - paint.px(1.0)), with_opacity(palette.muted, 0.55f), paint.width(overlay::hairline));
+                // A small dial: the needle shows the direction of gravity in the force colour, and is
+                // drawn muted with no arrowhead when gravity is switched off.
+                const auto compass = gravity_compass_centre(camera_, overlay_scale());
+                const auto radius = paint.px(overlay::compass_radius);
+                const auto compass_state = state_of("gravity");
+                const auto gravity_on = gravity_ && gravity_->is_enabled() && math::length_squared(world_.settings().gravity_m_s2) > 0.0;
+                const auto angle = math::degrees_to_radians(gravity_direction_degrees_);
+                const math::Vec2 down { std::cos(angle), -std::sin(angle) };
+                if (compass_state != HandleState::normal)
+                    paint.halo(compass, radius + paint.px(4.0), with_opacity(palette.accent, 0.18f));
+                list.add_circle_fill(compass + math::Vec2 { 0.0, paint.px(1.0) }, static_cast<float>(radius + paint.px(1.5)), with_opacity(palette.shadow, 0.6f));
+                list.add_circle_fill(compass, static_cast<float>(radius), palette.plate);
+                list.add_circle_outline(compass, static_cast<float>(radius), compass_state == HandleState::normal ? with_opacity(palette.muted, 0.45f) : palette.accent, paint.width(compass_state == HandleState::normal ? overlay::hairline : overlay::standard));
+                for (int tick = 0; tick < 8; ++tick)
+                {
+                    const auto tick_angle = math::pi * 0.25 * static_cast<double>(tick);
+                    const math::Vec2 radial { std::cos(tick_angle), std::sin(tick_angle) };
+                    // The label sits opposite the needle, so the ticks beside it are left out.
+                    if (math::dot(radial, -down) > 0.6)
+                        continue;
+                    const auto inner = radius - paint.px(tick % 2 == 0 ? 4.0 : 2.5);
+                    list.add_line(compass + radial * inner, compass + radial * (radius - paint.px(1.0)), with_opacity(palette.muted, 0.55f), paint.width(overlay::hairline));
+                }
+                const auto needle_color = gravity_on ? theme.force : with_opacity(palette.muted, 0.8f);
+                if (gravity_on)
+                    list.add_arrow(compass, compass + down * (radius - paint.px(4.5)), needle_color, paint.width(overlay::standard), paint.width(6.0));
+                else
+                    list.add_line(compass, compass + down * (radius - paint.px(5.0)), needle_color, paint.width(overlay::standard));
+                list.add_circle_fill(compass, paint.width(1.75), palette.text);
+                const auto glyph = std::round(overlay::label_text_scale * overlay_scale() * 14.0);
+                const auto label = compass - down * paint.px(8.5);
+                list.add_text({ std::round(label.x - glyph * 0.28), std::round(label.y - glyph * 0.80) }, "g", palette.muted, static_cast<float>(overlay::label_text_scale * overlay_scale()));
+                if (compass_state != HandleState::normal)
+                    paint.chip(compass + math::Vec2 { radius, radius + paint.px(8.0) + paint.chip_height() * 0.5 },
+                        core::substitute("Gravity {}", core::format_quantity(std::round(gravity_direction_degrees_), core::DisplayQuantity::angle, units)),
+                        ChipAlign::right,
+                        palette.text);
             }
-            const auto needle_color = gravity_on ? theme.force : with_opacity(palette.muted, 0.8f);
-            if (gravity_on)
-                list.add_arrow(compass, compass + down * (radius - paint.px(4.5)), needle_color, paint.width(overlay::standard), paint.width(6.0));
-            else
-                list.add_line(compass, compass + down * (radius - paint.px(5.0)), needle_color, paint.width(overlay::standard));
-            list.add_circle_fill(compass, paint.width(1.75), palette.text);
-            const auto glyph = std::round(overlay::label_text_scale * overlay_scale() * 14.0);
-            const auto label = compass - down * paint.px(8.5);
-            list.add_text({ std::round(label.x - glyph * 0.28), std::round(label.y - glyph * 0.80) }, "g", palette.muted, static_cast<float>(overlay::label_text_scale * overlay_scale()));
-            if (compass_state != HandleState::normal)
-                paint.chip(compass + math::Vec2 { radius, radius + paint.px(8.0) + paint.chip_height() * 0.5 },
-                    core::substitute("Gravity {}", core::format_quantity(std::round(gravity_direction_degrees_), core::DisplayQuantity::angle, units)),
-                    ChipAlign::right,
-                    palette.text);
         }
 
         if (interaction_.active && interaction_.mode == InteractionMode::pull)

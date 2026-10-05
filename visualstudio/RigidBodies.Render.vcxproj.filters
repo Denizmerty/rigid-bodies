@@ -27,6 +27,9 @@
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\gl_render_device.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\relativity_stage.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\render_device.hpp">
       <Filter>include</Filter>
     </ClInclude>
@@ -38,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Render\include\rigidbodies\render\visualization_layers.hpp">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Render\src\scene_style.hpp">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -69,6 +75,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\RigidBodies.Render\src\visualization_layers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Render\src\relativity_stage.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

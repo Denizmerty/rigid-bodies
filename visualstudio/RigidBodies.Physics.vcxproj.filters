@@ -84,6 +84,9 @@
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\parallel_executor.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\relativity_document.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\restitution_comparison.hpp">
       <Filter>include</Filter>
     </ClInclude>
@@ -106,6 +109,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\simulation_island.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\special_relativity.hpp">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Physics\include\rigidbodies\physics\spring.hpp">
@@ -246,6 +252,12 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\RigidBodies.Physics\src\world_dynamics.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\special_relativity.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Physics\src\relativity_document.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

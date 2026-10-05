@@ -412,6 +412,202 @@ namespace
         };
         RIGIDBODIES_EXPECT(ui::setup_difference_count(a, b) == 3, "changed and one-sided setup keys are each counted exactly once");
     }
+
+    // Advances the probe and the recorder together by world substeps, as the session does: a world
+    // second is a lab nanosecond.
+    double record_probe(app::RunRecorder& recorder, const physics::World& world, physics::RelativisticProbe& probe, double time_s, double until_s, double substep_s)
+    {
+        while (time_s < until_s - 1.0e-9)
+        {
+            probe.advance(substep_s * physics::relativity_lab_seconds_per_world_second);
+            time_s += substep_s;
+            recorder.record_sample(world, time_s, &probe);
+        }
+        return time_s;
+    }
+
+    RIGIDBODIES_TEST("relativity channels are sampled at 40 Hz and cut with the run")
+    {
+        physics::World world;
+        physics::RelativisticProbe probe({ 1.0, 0.6 });
+        app::RunRecorder recorder;
+        recorder.set_experiment("relativity channels");
+        recorder.begin_run(world, {}, {}, {}, true);
+        recorder.record_sample(world, 0.0, &probe);
+        // A 1/90 s substep does not divide the 25 ms grid, so most samples are taken past their
+        // grid point; the clocks are still read at the grid point itself.
+        auto time_s = record_probe(recorder, world, probe, 0.0, 10.0, 1.0 / 90.0);
+        const auto& series = recorder.current()->series;
+        RIGIDBODIES_EXPECT(series.time_s.size() == 401 && series.relativity.size() == 3 * series.time_s.size(), "ten seconds hold 401 samples of three relativity channels each");
+        bool on_grid = true, clocks_agree = true;
+        for (std::size_t sample = 0; sample < series.time_s.size(); ++sample)
+        {
+            const auto t = static_cast<double>(series.time_s[sample]);
+            on_grid = on_grid && std::abs(t - 0.025 * static_cast<double>(sample)) < 1.0e-5;
+            const auto lab_s = t * 1.0e-9;
+            const auto tau = static_cast<double>(series.relativity[3 * sample]);
+            const auto gap = static_cast<double>(series.relativity[3 * sample + 1]);
+            clocks_agree = clocks_agree && std::abs(tau - 0.8 * lab_s) <= 1.0e-6 * lab_s + 1.0e-18 && std::abs(gap - 0.2 * lab_s) <= 1.0e-6 * lab_s + 1.0e-18 &&
+                series.relativity[3 * sample + 2] == static_cast<float>(probe.factors().lorentz_factor_minus_one);
+        }
+        RIGIDBODIES_EXPECT(on_grid, "the samples lie on the 40 Hz grid");
+        RIGIDBODIES_EXPECT(clocks_agree, "every sample reads τ = 0.8 t, t − τ = 0.2 t and γ − 1 = 0.25 at its own instant");
+
+        recorder.cut_at(5.0);
+        RIGIDBODIES_EXPECT(series.time_s.size() == 201 && series.relativity.size() == 603, "cutting a run trims its relativity block with its samples");
+        RIGIDBODIES_EXPECT_NEAR(static_cast<double>(series.relativity[600]), 4.0e-9, 1.0e-14, "the last kept sample is the probe clock at 5 ns");
+
+        // The run continues from the cut, as after an undo, until the 60-second window rolls.
+        physics::RelativisticProbe resumed({ 1.0, 0.6 });
+        resumed.advance(5.0e-9);
+        time_s = record_probe(recorder, world, resumed, 5.0, 70.0, 1.0 / 120.0);
+        RIGIDBODIES_EXPECT(series.time_s.size() == 2400 && series.relativity.size() == 7200, "the rolling window drops a sample's three channels with its time");
+        RIGIDBODIES_EXPECT_NEAR(static_cast<double>(series.relativity[0]), 0.8e-9 * static_cast<double>(series.time_s.front()), 1.0e-14, "the oldest retained sample keeps its own clock reading");
+
+        const auto before = recorder.memory_bytes();
+        recorder.record_sample(world, time_s + 0.025, nullptr);
+        RIGIDBODIES_EXPECT(series.relativity.size() == 3 * series.time_s.size() && std::isnan(series.relativity.back()), "a sample without the probe keeps the block aligned with NaN");
+        RIGIDBODIES_EXPECT(recorder.memory_bytes() == before, "the block was reserved for a full run at the start");
+    }
+
+    RIGIDBODIES_TEST("Newtonian runs keep their 4 444 800-byte budget")
+    {
+        auto world = world_with_objects(32);
+        physics::RelativisticProbe probe({ 1.0, 0.5 });
+        app::RunRecorder recorder;
+        recorder.set_experiment("newtonian budget");
+        recorder.begin_run(world, {}, {});
+        for (int sample = 1; sample <= 2400; ++sample)
+            recorder.record_sample(world, sample * 0.025, &probe);
+        const auto* run = recorder.current();
+        RIGIDBODIES_EXPECT(run && run->series.relativity.empty() && run->series.relativity.capacity() == 0, "a Newtonian run records no relativity block, even when handed a probe");
+        RIGIDBODIES_EXPECT(recorder.memory_bytes() == 4444800, "a full 32-object Newtonian run still occupies exactly 4,444,800 bytes");
+        recorder.close_run(true, true);
+        recorder.begin_run(world, {}, {}, {}, true);
+        for (int sample = 1; sample <= 2400; ++sample)
+            recorder.record_sample(world, sample * 0.025, &probe);
+        RIGIDBODIES_EXPECT(recorder.current()->series.relativity.size() == 7200 && recorder.memory_bytes() == 2 * 4444800 + 2400 * 3 * 4, "a relativity run adds exactly its three channels: 28,800 bytes for 60 s");
+    }
+
+    RIGIDBODIES_TEST("relativity pins validate and aggregate")
+    {
+        physics::World world;
+        app::RunRecorder recorder;
+        recorder.set_experiment("relativity pins");
+        const physics::BodyId object { 0, 1 };
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "probe_clock", object, ui::RunAggregator::at_end, 0.0 }), "the clocks belong to the experiment, not to an object");
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "lorentz", {}, ui::RunAggregator::at_first_impact, 0.0 }) && !recorder.pin({ {}, "lab_clock", {}, ui::RunAggregator::at_first_impact, 0.0 }), "nothing collides, so nothing is read at a first impact");
+        RIGIDBODIES_EXPECT(!recorder.pin({ {}, "lab_clock", {}, ui::RunAggregator::at_time, 60.5 }) && !recorder.pin({ {}, "probe_time", {}, ui::RunAggregator::at_end, 0.0 }), "times past the window and unknown clocks are refused");
+        RIGIDBODIES_EXPECT(recorder.pinned("relativity pins").empty(), "refused values take no slot");
+        for (const ui::PinnedValue& value : { ui::PinnedValue { "lab", "lab_clock", {}, ui::RunAggregator::at_end, 0.0 }, ui::PinnedValue { "tau", "probe_clock", {}, ui::RunAggregator::at_end, 0.0 }, ui::PinnedValue { "tau5", "probe_clock", {}, ui::RunAggregator::at_time, 5.0 }, ui::PinnedValue { "tau6", "probe_clock", {}, ui::RunAggregator::at_time, 6.0125 }, ui::PinnedValue { "gap", "clock_gap", {}, ui::RunAggregator::maximum, 0.0 }, ui::PinnedValue { "slow", "lorentz", {}, ui::RunAggregator::minimum, 0.0 }, ui::PinnedValue { "fast", "lorentz", {}, ui::RunAggregator::maximum, 0.0 }, ui::PinnedValue { "lab5", "lab_clock", {}, ui::RunAggregator::at_time, 5.0 } })
+            RIGIDBODIES_EXPECT(recorder.pin(value), "a clock or the Lorentz factor can be pinned: " + value.key);
+
+        // 0.6 c for 5 ns, then 0.8 c for 5 ns.
+        physics::RelativisticProbe probe({ 1.0, 0.6 });
+        recorder.begin_run(world, {}, {}, {}, true);
+        recorder.record_sample(world, 0.0, &probe);
+        auto time_s = record_probe(recorder, world, probe, 0.0, 5.0, 1.0 / 120.0);
+        probe.set_speed_fraction(0.8);
+        time_s = record_probe(recorder, world, probe, time_s, 10.0, 1.0 / 120.0);
+        recorder.close_run(true, true);
+        const auto kept = recorder.kept("relativity pins");
+        RIGIDBODIES_EXPECT(kept.size() == 1 && kept.front().pinned_results.size() == 8, "the run is kept with one result per pinned value");
+        if (kept.size() != 1 || kept.front().pinned_results.size() != 8)
+            return;
+        const auto& results = kept.front().pinned_results;
+        for (const auto& result : results)
+            RIGIDBODIES_EXPECT(result.has_value(), "every pinned clock has a value");
+        if (std::any_of(results.begin(), results.end(), [](const auto& result)
+                {
+                    return !result;
+                }))
+            return;
+        RIGIDBODIES_EXPECT_NEAR(*results[0], 10.0e-9, 1.0e-15, "the lab clock at the end reads 10 ns");
+        RIGIDBODIES_EXPECT_NEAR(*results[1], 7.0e-9, 1.0e-14, "the probe clock gains 0.8 × 5 + 0.6 × 5 = 7 ns");
+        RIGIDBODIES_EXPECT_NEAR(*results[2], 4.0e-9, 1.0e-14, "at 5 ns the probe clock read 4 ns");
+        RIGIDBODIES_EXPECT_NEAR(*results[3], 4.0e-9 + 0.6 * 1.0125e-9, 1.0e-14, "between samples the reading is interpolated");
+        RIGIDBODIES_EXPECT_NEAR(*results[4], 3.0e-9, 1.0e-14, "the largest gap is the final 1 + 2 = 3 ns");
+        RIGIDBODIES_EXPECT_NEAR(*results[5], 0.25, 1.0e-7, "the smallest γ − 1 is 0.25 at 0.6 c");
+        RIGIDBODIES_EXPECT_NEAR(*results[6], 2.0 / 3.0, 1.0e-7, "the largest γ − 1 is 2/3 at 0.8 c");
+        RIGIDBODIES_EXPECT_NEAR(*results[7], 5.0e-9, 1.0e-15, "the lab clock at 5 ns reads 5 ns");
+
+        recorder.begin_run(world, {}, {});
+        for (int sample = 0; sample <= 40; ++sample)
+            recorder.record_sample(world, sample * 0.025, &probe);
+        recorder.close_run(true, true);
+        const auto& newtonian = recorder.kept("relativity pins").back().pinned_results;
+        RIGIDBODIES_EXPECT(newtonian.size() == 8 && std::none_of(newtonian.begin(), newtonian.end(), [](const auto& result)
+                                                        {
+                                                            return result.has_value();
+                                                        }),
+            "a run without the relativity block has no clock values");
+    }
+
+    RIGIDBODIES_TEST("a relativity session records the clocks with every run")
+    {
+        app::SimulationSession session;
+        RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light opens");
+        ui::UiCommand speed;
+        speed.kind = ui::UiCommandKind::set_relativity_speed;
+        speed.value = 0.6;
+        session.apply(speed);
+        // The readings' Add to runs table sends the channel alone, read at the end of each run.
+        for (const auto* channel : { "probe_clock", "lab_clock", "clock_gap", "lorentz" })
+        {
+            ui::UiCommand pin;
+            pin.kind = ui::UiCommandKind::pin_run_value;
+            pin.id = channel;
+            session.apply(pin);
+        }
+        const auto pinned_model = session.build_model();
+        RIGIDBODIES_EXPECT(pinned_model.pinned_values.size() == 4 && pinned_model.pinned_values.front().quantity == "probe_clock" && pinned_model.pinned_values.front().aggregator == ui::RunAggregator::at_end, "the clocks and γ are pinned for every run");
+        RIGIDBODIES_EXPECT(std::none_of(pinned_model.notifications.begin(), pinned_model.notifications.end(), [](const auto& notification)
+                               {
+                                   return notification.source == "runs";
+                               }),
+            "no pin is refused");
+        // The context menu cannot see the table, so a second Add to runs table on the same reading
+        // is refused as Add value refuses it.
+        ui::UiCommand again;
+        again.kind = ui::UiCommandKind::pin_run_value;
+        again.id = "probe_clock";
+        session.apply(again);
+        const auto repeated_model = session.build_model();
+        RIGIDBODIES_EXPECT(repeated_model.pinned_values.size() == 4, "pinning the probe clock again takes no second slot");
+        RIGIDBODIES_EXPECT(std::any_of(repeated_model.notifications.begin(), repeated_model.notifications.end(), [](const auto& notification)
+                               {
+                                   return notification.source == "runs" && notification.text == "This value is already pinned.";
+                               }),
+            "the repeated pin says the value is already pinned");
+        session.stepper().set_paused(false);
+        for (int frame = 0; frame < 400; ++frame)
+            session.advance(0.025);
+        const auto model = session.build_model();
+        const auto* run = model.current_run;
+        RIGIDBODIES_EXPECT(run && run->series.time_s.size() > 300 && run->series.relativity.size() == 3 * run->series.time_s.size(), "the run records three relativity channels with every sample");
+        if (!run)
+            return;
+        bool proper_time = true;
+        for (std::size_t sample = 0; sample < run->series.time_s.size(); ++sample)
+        {
+            const auto lab_s = static_cast<double>(run->series.time_s[sample]) * 1.0e-9;
+            proper_time = proper_time && std::abs(static_cast<double>(run->series.relativity[3 * sample]) - 0.8 * lab_s) <= 1.0e-6 * lab_s + 1.0e-18;
+        }
+        RIGIDBODIES_EXPECT(proper_time, "each sample's probe clock is 0.8 of its lab time");
+        session.reset_scenario();
+        const auto kept = session.build_model().runs;
+        RIGIDBODIES_EXPECT(kept.size() == 1 && kept.front().pinned_results.size() == 4 && kept.front().pinned_results.front(), "Back to start keeps the run with its pinned clock");
+        if (kept.size() == 1 && kept.front().pinned_results.size() == 4 && kept.front().pinned_results.front())
+            RIGIDBODIES_EXPECT_NEAR(*kept.front().pinned_results.front(), 0.8 * kept.front().duration_s * 1.0e-9, 1.0e-15, "the pinned probe clock reads 0.8 of the run's lab time");
+
+        app::SimulationSession newtonian_session;
+        RIGIDBODIES_EXPECT(newtonian_session.load_scenario("free_fall"), "a Newtonian experiment opens");
+        newtonian_session.stepper().set_paused(false);
+        for (int frame = 0; frame < 40; ++frame)
+            newtonian_session.advance(0.025);
+        const auto* newtonian = newtonian_session.build_model().current_run;
+        RIGIDBODIES_EXPECT(newtonian && newtonian->series.relativity.empty(), "a Newtonian run records no relativity block");
+    }
 }
 
 int main()

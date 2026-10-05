@@ -16,7 +16,7 @@
     ],
     "id": "empty_lab",
     "prerequisites": [],
-    "suggested_order": 240,
+    "suggested_order": 270,
     "summary": "Build your own rigid-body experiment on an empty floor.",
     "title": "Empty lab"
   },

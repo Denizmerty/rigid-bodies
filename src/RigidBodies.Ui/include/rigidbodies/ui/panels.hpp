@@ -158,11 +158,19 @@ namespace rigidbodies::ui
         void build(const UiModel& model, PanelBuilder& builder) override;
 
     private:
+        // The Relativity tab of a special-relativity experiment (relativity_panel.cpp).
+        void build_relativity_tab(const UiModel& model, PanelBuilder& builder);
+
         PlotData plot_;
         std::vector<std::vector<float>> plot_values_;
         std::vector<std::string> option_ids_, option_labels_;
         std::vector<std::string> tab_labels_;
         std::vector<OptionSpec> tab_options_, graph_quantity_options_, graph_compare_options_, graph_scope_options_, run_options_, object_options_;
+        // The Relativity curves depend only on the chosen curve and range, so their samples are
+        // rebuilt when that pair changes (relativity_samples_key_) and never while the speed moves.
+        PlotData relativity_plot_;
+        std::vector<float> relativity_x_, relativity_solid_, relativity_dashed_;
+        std::string relativity_samples_key_;
     };
 
     // The impacts the Collisions tab lists under its Show filter ("all" or "moving"); the Measure
@@ -284,6 +292,20 @@ namespace rigidbodies::ui
     // The gravity preset the world's gravity matches ("earth", "moon", "mars"), "custom" for any
     // other strength or a tilted direction, or empty while gravity is off.
     [[nodiscard]] std::string_view gravity_preset_id(const UiModel& model);
+    // The current moment as the learner reads it: lab time in ns in a relativity experiment.
+    [[nodiscard]] std::string now_text(const UiModel& model);
+    // A world-clock time (run durations, graph times, pinned times) as the learner reads it.
+    [[nodiscard]] std::string elapsed_text(const UiModel& model, double world_seconds);
+    // The probe-speed preset whose value is exactly this speed fraction, or empty for any other speed.
+    // Exact, so 0.9999 and 0.99999 never both read as selected.
+    [[nodiscard]] std::string_view relativity_preset_id(double speed_fraction);
+    // Probe speed field + slider and the preset chips, with an instance ("", "measure").
+    void relativity_speed_rows(const UiModel& model, PanelBuilder& builder, std::string_view instance);
+    // The Inspector World page in relativity mode.
+    void relativity_world_section(const UiModel& model, PanelBuilder& builder);
+    // Command search filter: false for relativity-only keys in a Newtonian experiment and
+    // Newtonian-only keys here.
+    [[nodiscard]] bool control_available(const UiModel& model, std::string_view key);
 
     // Whether an object counts as moving rather than resting, the one test behind every place the
     // interface names its state (Inspector, hover card, object list).

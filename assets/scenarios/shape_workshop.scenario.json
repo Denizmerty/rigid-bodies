@@ -10,7 +10,7 @@
     "concepts": ["authored outlines", "concave shapes", "curves and compounds"],
     "id": "shape_workshop",
     "prerequisites": ["compound_object"],
-    "suggested_order": 220,
+    "suggested_order": 260,
     "summary": "Try editing the bracket and curved shape, separating and combining the tool's parts, or drawing a new shape. Adjust collision precision to see how the outlines are used by the simulation.",
     "title": "Shape workshop"
   },

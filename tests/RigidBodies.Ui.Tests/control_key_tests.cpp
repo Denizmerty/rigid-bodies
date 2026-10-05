@@ -2,6 +2,7 @@
 #include <rigidbodies/ui/panels.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 
+#include "relativity_fixture.hpp"
 #include "test_framework.hpp"
 
 #include <filesystem>
@@ -110,6 +111,54 @@ namespace
                 RIGIDBODIES_EXPECT(identities.insert(row.key + "#" + row.instance).second, "interactive host/key/instance identity is unique: " + row.key);
             }
         }
+    }
+
+    RIGIDBODIES_TEST("relativity interactive rows carry unique well formed final keys")
+    {
+        physics::World world;
+        RIGIDBODIES_EXPECT(physics::load_scenario(world, "chasing_light"), "the relativity scenario loads");
+        ui::UiModel model;
+        model.world = &world;
+        model.scenario_id = "chasing_light";
+        model.scenario_title = "Chasing light";
+        model.relativity = testing::relativity_model_at(0.9999999, 5.0e-9);
+        model.changes.push_back({ "relativity:speed", "world.relativity.speed", {}, "Probe speed", "0\xC2\xA0"
+                                                                                                   "c",
+            "0.9999999\xC2\xA0"
+            "c",
+            ui::EditCategory::parameter });
+
+        MeasurementDevice device;
+        render::Theme theme;
+        render::DrawList list;
+        std::vector<ui::Hotspot> hotspots;
+        // Each Measure tab of the experiment, so every row it can show is checked.
+        for (const auto* tab : { "relativity", "graph", "runs" })
+            for (auto& panel : ui::create_default_panels())
+            {
+                ui::ViewState view;
+                view.set_active_tab("measure.header.tabs", tab);
+                view.open_transient("add_menu");
+                std::set<std::string> identities;
+                std::vector<ui::PanelRow> rows;
+                ui::PanelBuilder builder { theme, device, 1.0f, { {}, { 1000, 100000 } }, list, hotspots, &view };
+                builder.record_rows(rows);
+                panel->build(model, builder);
+                for (const auto& row : rows)
+                {
+                    const auto interactive = row.kind == ui::PanelRowKind::action || (row.kind >= ui::PanelRowKind::number && row.kind != ui::PanelRowKind::notice && row.kind != ui::PanelRowKind::readout && row.kind != ui::PanelRowKind::plot);
+                    if (!interactive)
+                        continue;
+                    RIGIDBODIES_EXPECT(!row.key.empty() && ui::valid_control_key(row.key), "interactive row has a valid semantic key: " + row.text);
+                    RIGIDBODIES_EXPECT(identities.insert(row.key + "#" + row.instance).second, "interactive host/key/instance identity is unique: " + row.key + "#" + row.instance);
+                }
+                if (panel->id() == "measure" && std::string_view(tab) == "relativity")
+                    for (const auto* key : { "world.relativity.speed#measure", "world.relativity.preset#measure", "measure.relativity.curve#", "measure.relativity.range#" })
+                        RIGIDBODIES_EXPECT(identities.count(key) == 1, std::string("the Relativity tab has its own copy of ") + key);
+                if (panel->id() == "inspector")
+                    for (const auto* key : { "world.relativity.speed#", "world.relativity.preset#" })
+                        RIGIDBODIES_EXPECT(identities.count(key) == 1, std::string("the World page has ") + key);
+            }
     }
 
     RIGIDBODIES_TEST("every registry key has one command template")

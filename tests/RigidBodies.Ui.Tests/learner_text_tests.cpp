@@ -1,5 +1,6 @@
 #include <rigidbodies/app/simulation_session.hpp>
 #include <rigidbodies/physics/scenario.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/ui/panels.hpp>
 
 #include "test_framework.hpp"
@@ -149,6 +150,116 @@ namespace
                     model.display_units = units;
                     scan_model(model, session, device);
                 }
+    }
+
+    // A probe reading that would read as c itself: "1 c", "1.0 c" or "100 %" standing alone.
+    void check_not_light_speed(std::string_view text, std::string_view light_digits, std::string_view label, const std::string& context)
+    {
+        static const std::regex whole_c { "(^|[^0-9.,])1(\\.0+)?(\\s|\xC2\xA0"
+                                          ")c([^a-z]|$)" };
+        static const std::regex whole_percent { "(^|[^0-9.,])100(\\.0+)?(\\s|\xC2\xA0)%" };
+        const std::string owned { text };
+        RIGIDBODIES_EXPECT(!std::regex_search(owned, whole_c), "a relativity reading never reads 1 c: " + owned + context);
+        RIGIDBODIES_EXPECT(!std::regex_search(owned, whole_percent), "a relativity reading never reads 100 %: " + std::string(label) + " " + owned + context);
+        if (owned.find(light_digits) != std::string::npos)
+            RIGIDBODIES_EXPECT(label == "Speed of light c" || label == "Below c by", "only c itself, or the gap below it at rest, shows c's digits: " + std::string(label) + " " + owned + context);
+    }
+
+    RIGIDBODIES_TEST("relativity text never reads as light speed")
+    {
+        TextDevice device;
+        std::vector<double> speeds(physics::speed_fraction_ladder.begin(), physics::speed_fraction_ladder.end());
+        speeds.push_back(physics::maximum_speed_fraction);
+        speeds.push_back(1.0e-9);
+        for (const auto units : { core::DisplayUnits::si, core::DisplayUnits::centimetre_gram })
+            for (const auto speed : speeds)
+            {
+                app::SimulationSession session;
+                session.configure({});
+                session.set_viewport({ 1600, 900 });
+                RIGIDBODIES_EXPECT(session.load_scenario("chasing_light"), "Chasing light loads");
+                session.scene_settings().display_units = units;
+                ui::UiCommand set;
+                set.kind = ui::UiCommandKind::set_relativity_speed;
+                set.value = speed;
+                session.apply(set);
+                session.stepper().set_paused(false);
+                for (int frame = 0; frame < 120; ++frame)
+                    session.advance(1.0 / 60.0);
+                auto model = session.build_model();
+                model.display_units = units;
+                RIGIDBODIES_EXPECT(model.relativity && model.relativity->speed_fraction == speed && model.relativity->lab_time_s > 1.9e-9, "the probe is set and its clocks ran for about 2 ns");
+                const auto light_digits = core::format_value(core::speed_of_light_m_s, core::DisplayQuantity::relativistic_speed, units);
+                const auto context = " (" + core::format_quantity(speed, core::DisplayQuantity::speed_fraction, units) + (units == core::DisplayUnits::si ? ", SI)" : ", CGS)");
+                // The Guide's authored text may name c ("Type 1 c into Probe speed"), and Preferences
+                // sizes text in percent; every value, control and reading elsewhere, the Guide's own
+                // copies of the speed controls included, must not read as c.
+                const auto check_rows = [&](const std::vector<ui::PanelRow>& rows, std::string_view panel_id)
+                {
+                    for (const auto& row : rows)
+                    {
+                        check_text(row.text);
+                        check_text(row.value);
+                        if (panel_id == "preferences" || (panel_id == "guide" && (row.kind == ui::PanelRowKind::paragraph || row.kind == ui::PanelRowKind::checkbox)))
+                            continue;
+                        for (const auto* text : { &row.text, &row.value, &row.hint })
+                            check_not_light_speed(*text, light_digits, row.text, context);
+                        if (row.kind == ui::PanelRowKind::number && row.spec)
+                            check_not_light_speed(core::format_quantity(row.number_si, row.spec->number.quantity, units), light_digits, row.text, context);
+                        for (const auto& option : row.options)
+                            check_not_light_speed(option.label, light_digits, row.text, context);
+                        if (row.plot)
+                        {
+                            check_not_light_speed(row.plot->subject, light_digits, {}, context);
+                            for (const auto* axis : { &row.plot->x, &row.plot->y })
+                                for (const auto& tick : axis->ticks)
+                                    check_not_light_speed(tick.label, light_digits, {}, context);
+                        }
+                    }
+                };
+                for (auto& panel : ui::create_default_panels())
+                {
+                    for (const auto* curve : { "energy", "momentum", "gamma", "clock_rate" })
+                        for (const auto* range : { "full", "near" })
+                        {
+                            ui::ViewState view;
+                            view.set_active_tab("measure.header.tabs", "relativity");
+                            view.set_value("measure.relativity.curve", curve);
+                            view.set_value("measure.relativity.range", range);
+                            view.open_transient("playback_speed");
+                            render::Theme theme;
+                            render::DrawList draw;
+                            std::vector<ui::Hotspot> hotspots;
+                            std::vector<ui::PanelRow> rows;
+                            ui::PanelBuilder builder { theme, device, 1.0f, { { 0.0, 0.0 }, { 1000.0, 2000.0 } }, draw, hotspots, &view };
+                            builder.record_rows(rows);
+                            panel->build(model, builder);
+                            check_rows(rows, panel->id());
+                            if (panel->id() != "measure")
+                                break;
+                        }
+                }
+                // The transport panel the menu no longer shows reads lab time too.
+                ui::SimulationControlsPanel transport;
+                const auto transport_rows = rows_for(transport, model, device);
+                check_rows(transport_rows, transport.id());
+                RIGIDBODIES_EXPECT(std::any_of(transport_rows.begin(), transport_rows.end(), [&](const auto& row)
+                                       {
+                                           return row.text == "Elapsed" && row.value == ui::now_text(model) && row.value.find("ns") != std::string::npos;
+                                       }),
+                    "the transport's elapsed time reads lab nanoseconds" + context);
+
+                render::DrawList scene;
+                session.render(scene);
+                for (const auto& command : scene.commands())
+                    if (command.kind == render::DrawCommandKind::text)
+                    {
+                        const auto stage = scene.text_buffer().substr(command.text_offset, command.text_length);
+                        check_text(stage);
+                        RIGIDBODIES_EXPECT(stage.find('?') == std::string::npos, "stage text has no missing glyphs: " + stage + context);
+                        check_not_light_speed(stage, light_digits, "stage", context);
+                    }
+            }
     }
 
     RIGIDBODIES_TEST("overlay paragraphs stop on a whole ellipsised line")

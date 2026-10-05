@@ -33,6 +33,9 @@
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\layout.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\measure_tabs.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\notifications.hpp">
       <Filter>include</Filter>
     </ClInclude>
@@ -46,6 +49,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\plot.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\relativity_model.hpp">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\RigidBodies.Ui\include\rigidbodies\ui\run_compare.hpp">
@@ -144,6 +150,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\RigidBodies.Ui\src\plot_element.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RigidBodies.Ui\src\relativity_panel.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

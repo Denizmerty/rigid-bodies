@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -103,7 +104,7 @@ namespace
         {
             const auto result = fuzz::exercise_document(seed.text);
             RIGIDBODIES_EXPECT(!result.semantic_budget_exceeded, "Every tracked corpus seed reaches semantic parsers when JSON is valid: " + seed.name);
-            if (seed.name == "scenario-circle.json" || seed.name == "scenario-mechanism.json" || seed.name == "scenario-authored.json" || seed.name == "scenario-kinematic.json")
+            if (seed.name == "scenario-circle.json" || seed.name == "scenario-mechanism.json" || seed.name == "scenario-authored.json" || seed.name == "scenario-kinematic.json" || seed.name == "scenario-relativity.json")
                 RIGIDBODIES_EXPECT(result.scenario_accepted, "Valid scenario seed reaches world population: " + seed.name);
             if (seed.name == "shape-square.json" || seed.name == "shape-concave.json" || seed.name == "shape-curved.json")
                 RIGIDBODIES_EXPECT(result.shape_accepted, "Valid shape seed reaches authored geometry: " + seed.name);
@@ -163,6 +164,46 @@ namespace
             RIGIDBODIES_EXPECT(!result.scenario_accepted && !result.shape_accepted && result.world_rejection_checked, "Unsupported required feature preserves destination");
         }
         RIGIDBODIES_EXPECT(checked == 16 && accepted > 0 && rejected > 0, "Boundary mutations cover both successful and rejected geometry");
+    }
+
+    RIGIDBODIES_TEST("structured relativity mutations accept only setups below c")
+    {
+        using physics::content::Json;
+        std::size_t checked = 0;
+        for (const auto& seed : corpus())
+        {
+            if (seed.name != "scenario-relativity.json")
+                continue;
+            Json original;
+            std::string error;
+            RIGIDBODIES_EXPECT(physics::content::parse_json(seed.text, original, error), error);
+            const std::pair<double, bool> speeds[] = { { -1.0, false }, { -1.0e-300, false }, { -0.0, true }, { 0.0, true }, { 1.0e-300, false }, { 1.0e-13, false }, { 1.0e-12, true }, { 0.5, true }, { 0.9999999, true }, { 0.99999995, false }, { 1.0, false }, { 1.0e308, false } };
+            for (const auto& [speed, valid] : speeds)
+            {
+                auto changed = original;
+                changed["relativity"]["speed_fraction_c"] = speed;
+                const auto result = fuzz::exercise_document(physics::content::write_json(changed));
+                RIGIDBODIES_EXPECT(result.scenario_accepted == valid, "only speeds from 0 c to the maximum are accepted");
+                RIGIDBODIES_EXPECT(valid || result.world_rejection_checked, "a rejected setup preserves the destination");
+                ++checked;
+            }
+            for (const double mass : { 0.0, 1.0e-7, 2.0e6, -1.0 })
+            {
+                auto changed = original;
+                changed["relativity"]["rest_mass_kg"] = mass;
+                const auto result = fuzz::exercise_document(physics::content::write_json(changed));
+                RIGIDBODIES_EXPECT(!result.scenario_accepted && result.world_rejection_checked, "masses outside the relativity bounds are rejected");
+                ++checked;
+            }
+            auto missing = original;
+            missing.as_object().erase("relativity");
+            RIGIDBODIES_EXPECT(!fuzz::exercise_document(physics::content::write_json(missing)).scenario_accepted, "the declared feature requires its object");
+            auto undeclared = original;
+            undeclared.as_object().erase("required_features");
+            undeclared["relativity"]["speed_fraction_c"] = 1.0;
+            RIGIDBODIES_EXPECT(fuzz::exercise_document(physics::content::write_json(undeclared)).scenario_accepted, "without the feature the object is an ignored extension");
+        }
+        RIGIDBODIES_EXPECT(checked == 16, "the relativity seed is in the corpus");
     }
 
     RIGIDBODIES_TEST("fuzz workload limits bound semantic expansion while preserving JSON coverage")

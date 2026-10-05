@@ -1,6 +1,7 @@
 #include <rigidbodies/physics/scenario_document.hpp>
 #include <rigidbodies/physics/authored_body.hpp>
 #include <rigidbodies/physics/joint.hpp>
+#include <rigidbodies/physics/relativity_document.hpp>
 #include <rigidbodies/physics/shape_document.hpp>
 
 #include <algorithm>
@@ -229,14 +230,17 @@ namespace rigidbodies::physics
             }
             return result;
         }
+        // Runs wherever a scenario is parsed, populated or captured from a source, so a document that
+        // declares special relativity without a valid relativity object fails closed on every path.
         void validate_envelope(const Json& root)
         {
             std::string error;
-            const auto valid = content::validate_document_header(root, "rigid-bodies.scenario", error);
+            const auto valid = content::validate_document_header(root, "rigid-bodies.scenario", error, { special_relativity_feature });
             require(valid, error);
             // Also fail closed on the early development spelling of required features.
             if (const auto* features = root.find("requires"))
                 require(array(*features).empty(), "Document requires unsupported features");
+            (void)read_relativity_setup(root);
         }
         const char* mixing_name(MaterialMixing value)
         {

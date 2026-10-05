@@ -55,6 +55,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Preferences.Tes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Present.Tests", "visualstudio\tests\App\RigidBodies.Present.Tests.vcxproj", "{AF879CEA-AB53-5B7B-A419-5F07121A8C54}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.RelativitySession.Tests", "visualstudio\tests\App\RigidBodies.RelativitySession.Tests.vcxproj", "{D636A754-F301-5C20-BDDB-B8B988098451}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.RunModel.Tests", "visualstudio\tests\App\RigidBodies.RunModel.Tests.vcxproj", "{65AAED25-EA45-5080-B3EB-C5E301A97B0F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.RunRecording.Tests", "visualstudio\tests\App\RigidBodies.RunRecording.Tests.vcxproj", "{EDDA66E9-FB1A-5DB1-96E0-8530B0A3EDB8}"
@@ -145,6 +147,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Physics.shape_d
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Physics.simulation_island.Tests", "visualstudio\tests\Physics\RigidBodies.Physics.simulation_island.Tests.vcxproj", "{40FEE99E-6D48-529E-B1D3-341993B6D155}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Physics.special_relativity.Tests", "visualstudio\tests\Physics\RigidBodies.Physics.special_relativity.Tests.vcxproj", "{3C769234-16A8-5AEB-A736-CAD589462B29}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Physics.spring.Tests", "visualstudio\tests\Physics\RigidBodies.Physics.spring.Tests.vcxproj", "{AA917024-58DC-585C-BF48-12625FE5481E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Physics.staged_state.Tests", "visualstudio\tests\Physics\RigidBodies.Physics.staged_state.Tests.vcxproj", "{7B11D0CE-F644-5F3B-A0D5-A405093CECD6}"
@@ -166,6 +170,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.GraphicsDevice.Tests", "visualstudio\tests\Render\RigidBodies.GraphicsDevice.Tests.vcxproj", "{2A79238C-86FF-5FEB-8DE5-C757FC7E334F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.PresentationGallery.Tests", "visualstudio\tests\Render\RigidBodies.PresentationGallery.Tests.vcxproj", "{EFD016E9-56D9-5291-ACC2-8B6A4DBE763C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.RelativityStage.Tests", "visualstudio\tests\Render\RigidBodies.RelativityStage.Tests.vcxproj", "{D6024744-E817-5539-97F3-8E8FFD9FCDF0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RigidBodies.Render.Tests", "visualstudio\tests\Render\RigidBodies.Render.Tests.vcxproj", "{B7E45F27-50C8-5D79-B270-D2BFB094E606}"
 EndProject
@@ -284,6 +290,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{933F
 		scripts\verify-runtime-dependencies.ps1 = scripts\verify-runtime-dependencies.ps1
 		scripts\version.ps1 = scripts\version.ps1
 		scripts\add_icon_glyphs.py = scripts\add_icon_glyphs.py
+		scripts\add_thin_space.py = scripts\add_thin_space.py
 		scripts\compare_determinism.py = scripts\compare_determinism.py
 		scripts\generate_ui_themes.py = scripts\generate_ui_themes.py
 		scripts\generate_visual_studio.py = scripts\generate_visual_studio.py
@@ -300,6 +307,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test support", "Test suppor
 	ProjectSection(SolutionItems) = preProject
 		tests\support\determinism_workload.hpp = tests\support\determinism_workload.hpp
 		tests\support\learner_interface_harness.hpp = tests\support\learner_interface_harness.hpp
+		tests\support\relativity_fixture.hpp = tests\support\relativity_fixture.hpp
+		tests\support\relativity_stage_fixture.hpp = tests\support\relativity_stage_fixture.hpp
 		tests\support\test_framework.hpp = tests\support\test_framework.hpp
 	EndProjectSection
 EndProject
@@ -396,6 +405,9 @@ Global
 		{AF879CEA-AB53-5B7B-A419-5F07121A8C54}.Release|x64.ActiveCfg = Release|x64
 		{AF879CEA-AB53-5B7B-A419-5F07121A8C54}.Test|x64.ActiveCfg = Release|x64
 		{AF879CEA-AB53-5B7B-A419-5F07121A8C54}.Test|x64.Build.0 = Release|x64
+		{D636A754-F301-5C20-BDDB-B8B988098451}.Release|x64.ActiveCfg = Release|x64
+		{D636A754-F301-5C20-BDDB-B8B988098451}.Test|x64.ActiveCfg = Release|x64
+		{D636A754-F301-5C20-BDDB-B8B988098451}.Test|x64.Build.0 = Release|x64
 		{65AAED25-EA45-5080-B3EB-C5E301A97B0F}.Release|x64.ActiveCfg = Release|x64
 		{65AAED25-EA45-5080-B3EB-C5E301A97B0F}.Test|x64.ActiveCfg = Release|x64
 		{65AAED25-EA45-5080-B3EB-C5E301A97B0F}.Test|x64.Build.0 = Release|x64
@@ -531,6 +543,9 @@ Global
 		{40FEE99E-6D48-529E-B1D3-341993B6D155}.Release|x64.ActiveCfg = Release|x64
 		{40FEE99E-6D48-529E-B1D3-341993B6D155}.Test|x64.ActiveCfg = Release|x64
 		{40FEE99E-6D48-529E-B1D3-341993B6D155}.Test|x64.Build.0 = Release|x64
+		{3C769234-16A8-5AEB-A736-CAD589462B29}.Release|x64.ActiveCfg = Release|x64
+		{3C769234-16A8-5AEB-A736-CAD589462B29}.Test|x64.ActiveCfg = Release|x64
+		{3C769234-16A8-5AEB-A736-CAD589462B29}.Test|x64.Build.0 = Release|x64
 		{AA917024-58DC-585C-BF48-12625FE5481E}.Release|x64.ActiveCfg = Release|x64
 		{AA917024-58DC-585C-BF48-12625FE5481E}.Test|x64.ActiveCfg = Release|x64
 		{AA917024-58DC-585C-BF48-12625FE5481E}.Test|x64.Build.0 = Release|x64
@@ -564,6 +579,9 @@ Global
 		{EFD016E9-56D9-5291-ACC2-8B6A4DBE763C}.Release|x64.ActiveCfg = Release|x64
 		{EFD016E9-56D9-5291-ACC2-8B6A4DBE763C}.Test|x64.ActiveCfg = Release|x64
 		{EFD016E9-56D9-5291-ACC2-8B6A4DBE763C}.Test|x64.Build.0 = Release|x64
+		{D6024744-E817-5539-97F3-8E8FFD9FCDF0}.Release|x64.ActiveCfg = Release|x64
+		{D6024744-E817-5539-97F3-8E8FFD9FCDF0}.Test|x64.ActiveCfg = Release|x64
+		{D6024744-E817-5539-97F3-8E8FFD9FCDF0}.Test|x64.Build.0 = Release|x64
 		{B7E45F27-50C8-5D79-B270-D2BFB094E606}.Release|x64.ActiveCfg = Release|x64
 		{B7E45F27-50C8-5D79-B270-D2BFB094E606}.Test|x64.ActiveCfg = Release|x64
 		{B7E45F27-50C8-5D79-B270-D2BFB094E606}.Test|x64.Build.0 = Release|x64
@@ -658,6 +676,7 @@ Global
 		{BAE36C84-F6C3-5CDC-95E1-48647042FADB} = {B412361C-27EC-52B4-B346-C93948CDC386}
 		{E602D55D-A156-5E31-BB49-FED8CC96B8A6} = {B412361C-27EC-52B4-B346-C93948CDC386}
 		{AF879CEA-AB53-5B7B-A419-5F07121A8C54} = {B412361C-27EC-52B4-B346-C93948CDC386}
+		{D636A754-F301-5C20-BDDB-B8B988098451} = {B412361C-27EC-52B4-B346-C93948CDC386}
 		{65AAED25-EA45-5080-B3EB-C5E301A97B0F} = {B412361C-27EC-52B4-B346-C93948CDC386}
 		{EDDA66E9-FB1A-5DB1-96E0-8530B0A3EDB8} = {B412361C-27EC-52B4-B346-C93948CDC386}
 		{601D459C-3BD6-5880-B5C7-8AD27FC47BB8} = {B412361C-27EC-52B4-B346-C93948CDC386}
@@ -703,6 +722,7 @@ Global
 		{9D0AF27E-1A7A-51EE-9C20-563776062777} = {D908F546-777C-5C93-932E-CCF8EF15A326}
 		{73CFD0D5-E4D0-5AD9-8040-F8B7EDCD5CB3} = {D908F546-777C-5C93-932E-CCF8EF15A326}
 		{40FEE99E-6D48-529E-B1D3-341993B6D155} = {D908F546-777C-5C93-932E-CCF8EF15A326}
+		{3C769234-16A8-5AEB-A736-CAD589462B29} = {D908F546-777C-5C93-932E-CCF8EF15A326}
 		{AA917024-58DC-585C-BF48-12625FE5481E} = {D908F546-777C-5C93-932E-CCF8EF15A326}
 		{7B11D0CE-F644-5F3B-A0D5-A405093CECD6} = {D908F546-777C-5C93-932E-CCF8EF15A326}
 		{7CB2A8FA-9776-5CDB-A678-39A6D83E424C} = {D908F546-777C-5C93-932E-CCF8EF15A326}
@@ -714,6 +734,7 @@ Global
 		{A663A002-422B-54AE-A3AD-EDB574B07864} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
 		{2A79238C-86FF-5FEB-8DE5-C757FC7E334F} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
 		{EFD016E9-56D9-5291-ACC2-8B6A4DBE763C} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
+		{D6024744-E817-5539-97F3-8E8FFD9FCDF0} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
 		{B7E45F27-50C8-5D79-B270-D2BFB094E606} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
 		{ECA04B3A-C3F4-592B-B940-2E217AC115D5} = {D813A1C6-E6CB-5389-B794-C04F554F7259}
 		{DD431D8F-F5AE-5291-B27C-90B9313EE7EE} = {D813A1C6-E6CB-5389-B794-C04F554F7259}

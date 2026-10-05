@@ -9,6 +9,7 @@
 #include <rigidbodies/render/visualization_layers.hpp>
 #include <rigidbodies/ui/notifications.hpp>
 #include <rigidbodies/ui/experiment_content.hpp>
+#include <rigidbodies/ui/relativity_model.hpp>
 #include <rigidbodies/ui/run_types.hpp>
 #include <rigidbodies/ui/ui_command.hpp>
 
@@ -62,6 +63,8 @@ namespace rigidbodies::ui
         int collection_order { 0 }, suggested_order { 0 };
         std::vector<std::string> concepts, builds_on, tags;
         bool lab { false };
+        // A special-relativity experiment, from the document's required features.
+        bool special_relativity { false };
     };
 
     struct LabChange
@@ -288,6 +291,8 @@ namespace rigidbodies::ui
         std::string experiments_on_start { "last" }, effects_quality { "standard" }, capture_area { "stage" };
         const physics::World* setup_world { nullptr };
         const physics::World* original_world { nullptr };
+        // Present only in a special-relativity experiment; panels branch on it alone.
+        std::optional<RelativityModel> relativity;
 
         [[nodiscard]] const InlineNotice* inline_notice(std::string_view key) const
         {

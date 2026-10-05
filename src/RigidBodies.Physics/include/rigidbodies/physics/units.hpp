@@ -13,6 +13,9 @@ namespace rigidbodies::physics
     // has to trace a value back to its source to know what it holds.
     inline constexpr Real standard_gravity_m_s2 = 9.80665;
 
+    // Exact: the SI metre is defined by this speed.
+    inline constexpr Real speed_of_light_m_s = 299792458.0;
+
     // Sea-level dry air at 15 degrees Celsius, the default the playground starts from.
     inline constexpr Real default_air_density_kg_m3 = 1.225;
 

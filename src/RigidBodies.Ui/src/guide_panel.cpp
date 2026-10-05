@@ -75,6 +75,8 @@ namespace rigidbodies::ui
                 return model.gravity_direction_degrees + 90.0;
             if (key == "world.gravity.zero_height" && model.world)
                 return model.world->potential_energy_reference_height_m();
+            if (key == "world.relativity.speed" && model.relativity)
+                return model.relativity->speed_fraction;
             if (key == "joint.motor.angular_speed" || key == "joint.motor.linear_speed")
                 if (const auto* joint = joint_by_key(model, instance))
                     return std::visit([](const auto& value) -> double
@@ -132,6 +134,8 @@ namespace rigidbodies::ui
                 return {};
             if (key == "world.gravity.preset")
                 return std::string(gravity_preset_id(model));
+            if (key == "world.relativity.preset" && model.relativity)
+                return std::string(relativity_preset_id(model.relativity->speed_fraction));
             if (key == "object.properties.material")
             {
                 const auto* body = model.world->find_body(id);
@@ -207,7 +211,8 @@ namespace rigidbodies::ui
     bool guide_control_row(const UiModel& model, PanelBuilder& builder, std::string_view control, std::string_view body_document_id, std::string_view instance, std::string_view label, std::string_view surface)
     {
         const auto* spec = find_control_spec(control);
-        if (!spec || !guide_control_fits_row(control))
+        // A file's guide may name a control of the other kind of experiment, which would do nothing here.
+        if (!spec || !guide_control_fits_row(control) || !control_available(model, control))
             return false;
         const auto body = annotated_body(model, body_document_id);
         UiCommand command;
@@ -330,7 +335,9 @@ namespace rigidbodies::ui
         if (!guide.variables.empty() && builder.section("guide.change", "Change one thing", true))
         {
             for (const auto& variable : guide.variables)
-                if (!guide_control_row(model, builder, variable.control, variable.body, variable.instance, variable.label, "guide"))
+                if (!control_available(model, variable.control))
+                    builder.paragraph("This control does not apply to this experiment.");
+                else if (!guide_control_row(model, builder, variable.control, variable.body, variable.instance, variable.label, "guide"))
                     builder.paragraph("This control is unavailable in this version.");
         }
         if (!guide.steps.empty() && builder.section("guide.steps", "Try this", true))
@@ -350,7 +357,7 @@ namespace rigidbodies::ui
                     show.body = annotated_body(model, step.body);
                     show.id = !step.instance.empty() ? step.instance : std::string {};
                     show.detail = "reveal:" + reveal_key;
-                    builder.action_row("guide.steps.show_me", "Show me", show);
+                    builder.action_row("guide.steps.show_me", "Show me", show, control_available(model, reveal_key) ? "" : "This control does not apply to this experiment.");
                     builder.present_last(presentation(icons::frame_subject));
                 }
             }

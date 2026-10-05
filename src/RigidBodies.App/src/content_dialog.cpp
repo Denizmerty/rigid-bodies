@@ -36,6 +36,13 @@ namespace rigidbodies::app
         const bool shape = command.kind == K::import_shape || command.kind == K::export_shape;
         if (!saving && command.kind != K::open_arrangement && command.kind != K::import_shape)
             return false;
+        // A relativity experiment has no Newtonian objects to add a shape to: the session refuses
+        // the command with its notice, and no file dialog opens.
+        if (command.kind == K::import_shape && session_.relativity_active())
+        {
+            session_.apply(command);
+            return true;
+        }
         if (content_dialog_)
             return true;
         auto state = std::make_shared<ContentFileDialog>();

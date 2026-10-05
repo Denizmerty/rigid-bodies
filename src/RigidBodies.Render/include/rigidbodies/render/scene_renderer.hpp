@@ -4,9 +4,11 @@
 #include <rigidbodies/physics/world.hpp>
 #include <rigidbodies/render/camera2d.hpp>
 #include <rigidbodies/render/draw_list.hpp>
+#include <rigidbodies/render/relativity_stage.hpp>
 #include <rigidbodies/render/visualization_layers.hpp>
 
 #include <deque>
+#include <optional>
 #include <array>
 #include <string>
 #include <unordered_map>
@@ -163,6 +165,10 @@ namespace rigidbodies::render
         // handles and the gravity compass. Stage labels are placed clear of them until the
         // areas are replaced.
         void set_overlay_areas(const std::vector<std::pair<Vec2, Vec2>>& areas);
+        [[nodiscard]] const std::vector<std::pair<Vec2, Vec2>>& overlay_areas() const
+        {
+            return overlay_label_areas_;
+        }
         // Circles an overlay strokes over the scene, such as a selection's rotation ring, given as
         // centre and radius in pixels. Plates prefer places off them.
         void set_overlay_rings(const std::vector<std::pair<Vec2, double>>& rings);
@@ -197,6 +203,24 @@ namespace rigidbodies::render
         // this interval once, so export passes and repeated draws remain exactly repeatable.
         void advance_presentation(double real_delta_s);
 
+        // The special-relativity apparatus to draw with the next frames, already interpolated, or
+        // std::nullopt for a Newtonian experiment, which also clears what the last stage drew.
+        void set_relativity_stage(std::optional<RelativityStage> stage);
+        [[nodiscard]] const std::optional<RelativityStage>& relativity_stage() const
+        {
+            return relativity_stage_;
+        }
+        // Where the last frame drew the apparatus, in screen pixels.
+        [[nodiscard]] const std::optional<RelativityStageLayout>& relativity_stage_layout() const
+        {
+            return relativity_layout_;
+        }
+        // The band, clocks, track and fixed plates the last frame drew, which the scale key keeps clear of.
+        [[nodiscard]] const std::vector<std::pair<Vec2, Vec2>>& stage_instrument_areas() const
+        {
+            return stage_instrument_areas_;
+        }
+
     private:
         void draw_background(const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list) const;
         void draw_grid(const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list) const;
@@ -210,8 +234,12 @@ namespace rigidbodies::render
         void draw_visual_impacts(const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list) const;
         void draw_contact_shadows(const physics::World& world, const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list) const;
         void draw_center_markers(const SceneRenderSettings& settings, DrawList& list) const;
+        // The special-relativity apparatus: the instrument band, the track with its marks, the light
+        // pulse, the probe and both clocks, and the fixed lab and race plates. Records what it drew
+        // in relativity_layout_ and the areas the scale key and other plates keep clear of.
+        void draw_relativity_stage(const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list);
         // The scale bar and force key, in the first corner of the framing area that no arrow,
-        // moving body or overlay occupies; it keeps its corner while that stays free.
+        // moving body, overlay or stage instrument occupies; it keeps its corner while that stays free.
         void draw_scale_key(const Camera2D& camera, const SceneRenderSettings& settings, DrawList& list);
         // Resolves every queued annotation together so labels avoid one another, the objects
         // they describe and the vectors already drawn. Secondary text is dropped first.
@@ -373,6 +401,13 @@ namespace rigidbodies::render
         mutable std::vector<LabelObstacle> label_obstacles_;
         // Areas already taken by fixed annotations such as the scale bar.
         mutable std::vector<std::pair<Vec2, Vec2>> reserved_label_areas_;
+        std::optional<RelativityStage> relativity_stage_;
+        std::optional<RelativityStageLayout> relativity_layout_;
+        // The relativity band, clock faces, track and fixed plates, which the scale key keeps clear of.
+        std::vector<std::pair<Vec2, Vec2>> stage_instrument_areas_;
+        // How far the finish detector has filled after the light arrived; it fades with the
+        // presentation clock, so a repeated pass draws it the same.
+        double detector_fill_ {};
         std::vector<std::pair<Vec2, Vec2>> overlay_label_areas_;
         std::vector<std::pair<Vec2, double>> overlay_rings_;
         ScreenRect visible_stage_;
@@ -501,6 +536,9 @@ namespace rigidbodies::render
         Theme presentation_theme_;
         physics::BodyId presentation_selection_;
         double presentation_delta_s_ {}, selection_opacity_ { 1.0 };
+        // The fraction of the way cosmetic easing moves this frame: the step render() consumed from
+        // advance_presentation, 1 when transitions are off or on the first frame, 0 on a repeat pass.
+        double presentation_fraction_ {};
         bool presentation_initialized_ { false };
     };
 

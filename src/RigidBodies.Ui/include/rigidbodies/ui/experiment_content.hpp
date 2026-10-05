@@ -55,5 +55,7 @@ namespace rigidbodies::ui
         GuideContent guide;
         PresentationContent presentation;
         std::vector<BodyAnnotation> bodies;
+        // The document requires special_relativity, so its experiment is the relativistic probe.
+        bool special_relativity {};
     };
 }

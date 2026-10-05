@@ -214,8 +214,47 @@ namespace rigidbodies::ui
                 }
             builder.end_group();
         }
+        // What differs from the experiment as it was opened, each with its own revert. Lab settings
+        // do not affect a relativity experiment's probe, so there they are left out.
+        void changes_section(const UiModel& model, PanelBuilder& builder)
+        {
+            if (!builder.section("world.changes", "Changes", !model.changes.empty()))
+                return;
+            const auto lab_changes = model.relativity ? math::Span<const LabChange> {} : math::Span<const LabChange> { model.lab_changes };
+            if (model.changes.empty() && lab_changes.empty())
+                builder.paragraph("This setup matches the original.");
+            for (const auto& change : model.changes)
+            {
+                auto revert = request(UiCommandKind::revert_change);
+                revert.id = change.key;
+                builder.action_row(change.label + ": " + change.original_text + " → " + change.current_text, revert);
+                builder.present_last(presentation(icons::revert));
+            }
+            if (!lab_changes.empty())
+                builder.heading("Lab settings");
+            for (const auto& change : lab_changes)
+                builder.value_row(change.label, change.current_text);
+            if (!model.changes.empty())
+            {
+                builder.action_row("Restore original", request(UiCommandKind::restore_original));
+                builder.present_last(presentation(icons::reset));
+            }
+            if (!lab_changes.empty())
+            {
+                builder.action_row("Revert lab settings", request(UiCommandKind::revert_lab_settings));
+                builder.present_last(presentation(icons::revert));
+            }
+        }
+
         void world_target(const UiModel& model, PanelBuilder& builder)
         {
+            // A relativity experiment's world is the probe and its speed; its rail is not an object.
+            if (model.relativity)
+            {
+                relativity_world_section(model, builder);
+                changes_section(model, builder);
+                return;
+            }
             if (!model.world)
             {
                 builder.paragraph("No experiment is open.");
@@ -282,32 +321,7 @@ namespace rigidbodies::ui
                 builder.action_row("Compare methods", request(UiCommandKind::compare_integrators));
                 builder.present_last(presentation(icons::table));
             }
-            if (builder.section("world.changes", "Changes", !model.changes.empty()))
-            {
-                if (model.changes.empty() && model.lab_changes.empty())
-                    builder.paragraph("This setup matches the original.");
-                for (const auto& change : model.changes)
-                {
-                    auto revert = request(UiCommandKind::revert_change);
-                    revert.id = change.key;
-                    builder.action_row(change.label + ": " + change.original_text + " → " + change.current_text, revert);
-                    builder.present_last(presentation(icons::revert));
-                }
-                if (!model.lab_changes.empty())
-                    builder.heading("Lab settings");
-                for (const auto& change : model.lab_changes)
-                    builder.value_row(change.label, change.current_text);
-                if (!model.changes.empty())
-                {
-                    builder.action_row("Restore original", request(UiCommandKind::restore_original));
-                    builder.present_last(presentation(icons::reset));
-                }
-                if (!model.lab_changes.empty())
-                {
-                    builder.action_row("Revert lab settings", request(UiCommandKind::revert_lab_settings));
-                    builder.present_last(presentation(icons::revert));
-                }
-            }
+            changes_section(model, builder);
             if (builder.section("world.statistics", "Statistics", false))
             {
                 const auto& stats = model.world->statistics();
@@ -432,6 +446,12 @@ namespace rigidbodies::ui
         if (model.selected_connection)
         {
             connection_target(model, builder, *model.selected_connection);
+            return;
+        }
+        // Nothing in a relativity experiment can be selected, so World is its only page.
+        if (model.relativity)
+        {
+            world_target(model, builder);
             return;
         }
         static constexpr OptionSpec targets[] { { "selection", "Selection", {}, {} }, { "world", "World", {}, {} } };

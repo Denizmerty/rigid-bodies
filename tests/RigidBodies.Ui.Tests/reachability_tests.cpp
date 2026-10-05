@@ -2,6 +2,7 @@
 #include <rigidbodies/ui/overlay_backend.hpp>
 #include <rigidbodies/ui/panels.hpp>
 #include <rigidbodies/physics/scenario.hpp>
+#include "relativity_fixture.hpp"
 #include "test_framework.hpp"
 #include <array>
 #include <iostream>
@@ -62,7 +63,7 @@ namespace
         // the overlay backend the platform's title bar does their work.
         const std::set<K> window_title_bar { K::minimize_window, K::toggle_maximize_window };
         std::set<K> result;
-        for (int value = static_cast<int>(K::undo); value <= static_cast<int>(K::set_shape_node_position); ++value)
+        for (int value = static_cast<int>(K::undo); value <= static_cast<int>(K::set_relativity_speed); ++value)
             if (!developer_only.count(static_cast<K>(value)) && !window_title_bar.count(static_cast<K>(value)))
                 result.insert(static_cast<K>(value));
         // The combined velocity setter is emitted by the stage handle, not a panel row.
@@ -77,7 +78,7 @@ namespace
         render::DrawList draw;
         ui::ViewState view;
         view.open_transient("add_menu");
-        for (const auto* section : { "draw.node", "draw.snap", "draw.material", "draw.precision", "world.gravity", "world.air", "world.collisions", "world.advanced", "world.statistics", "show.arrows", "tools.reference" })
+        for (const auto* section : { "draw.node", "draw.snap", "draw.material", "draw.precision", "world.gravity", "world.air", "world.collisions", "world.advanced", "world.statistics", "world.relativity", "show.arrows", "tools.reference" })
             view.set_section_open(section, true);
         auto panels = ui::create_default_panels();
         std::vector<ui::Panel*> panel_views;
@@ -114,6 +115,9 @@ namespace
             Fixture { "spring_damping", "properties", "guide" },
             Fixture { "compound_object", "properties", "guide" },
             Fixture { "shape_workshop", "properties", "guide" },
+            // The probe's speed is set only in a relativity experiment: its World page and its
+            // Relativity tab.
+            Fixture { "chasing_light", "properties", "relativity" },
         };
         for (const auto& fixture : fixtures)
         {
@@ -192,6 +196,8 @@ namespace
             content.guide.focus = "Watch the scene.";
             model.scenario_content = std::move(content);
             model.changes.push_back({ "mass", "object.properties.mass", model.selection, "Mass", "1 kg", "2 kg", ui::EditCategory::parameter });
+            if (std::string_view(fixture.scenario) == "chasing_light")
+                model.relativity = testing::relativity_model_at(0.9, 3.0e-9);
             view.set_active_tab("inspector.object", fixture.object_tab);
             view.set_active_tab("measure.header.tabs", fixture.measure_tab);
             if (std::string_view(fixture.measure_tab) == "guide")

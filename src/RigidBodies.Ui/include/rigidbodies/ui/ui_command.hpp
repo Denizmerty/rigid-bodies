@@ -149,7 +149,11 @@ namespace rigidbodies::ui
         minimize_window,
         toggle_maximize_window,
 
-        set_shape_node_position
+        set_shape_node_position,
+
+        // Special relativity: value is the probe's speed fraction v/c, or ±1 with detail "nudge" (one
+        // rapidity step) or "preset" (the next or previous speed on the ladder).
+        set_relativity_speed
     };
 
     enum class UiEditPhase : std::uint8_t

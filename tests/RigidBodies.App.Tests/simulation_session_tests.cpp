@@ -357,6 +357,42 @@ namespace
         RIGIDBODIES_EXPECT(session.world().statistics().step_index == 1, "selected method runs from ordinary UI commands");
     }
 
+    RIGIDBODIES_TEST("a lab change during a run keeps Back to start at the start")
+    {
+        app::SimulationSession session;
+        core::ApplicationConfig config;
+        config.simulation.start_paused = false;
+        session.configure(config);
+        physics::BodyId ball;
+        for (const auto id : session.world().body_ids())
+            if (session.world().find_body(id)->type() == physics::BodyType::dynamic_body)
+                ball = id;
+        RIGIDBODIES_EXPECT(ball.is_valid(), "the experiment has a moving body");
+        const auto start = session.world().find_body(ball)->position_m();
+        ui::UiCommand integrator;
+        integrator.kind = ui::UiCommandKind::set_integrator;
+        integrator.id = "runge_kutta_4";
+        ui::UiCommand revert;
+        revert.kind = ui::UiCommandKind::revert_lab_settings;
+        for (const auto& lab : { integrator, revert })
+        {
+            if (session.stepper().is_paused())
+                apply_flag(session, ui::UiCommandKind::toggle_pause, false);
+            session.advance(0.25);
+            const auto elapsed = session.world().statistics().elapsed_time_s;
+            const auto moved = session.world().find_body(ball)->position_m();
+            RIGIDBODIES_EXPECT(elapsed > 0.0 && !(moved == start), "the run is under way");
+            session.apply(lab);
+            RIGIDBODIES_EXPECT(session.world().statistics().elapsed_time_s == elapsed && session.world().find_body(ball)->position_m() == moved && !session.stepper().is_paused(), "the run continues where it was");
+            RIGIDBODIES_EXPECT(session.build_model().changes.empty(), "the run's progress is not a change to the setup");
+            session.advance(0.25);
+            session.reset_scenario();
+            RIGIDBODIES_EXPECT(session.world().statistics().elapsed_time_s == 0.0 && session.build_model().run_state == ui::RunState::ready, "Back to start returns to t = 0 and Ready");
+            RIGIDBODIES_EXPECT(session.world().find_body(ball)->position_m() == start, "the body is back where the setup starts it");
+            RIGIDBODIES_EXPECT(session.world().integrator().name() == (lab.kind == ui::UiCommandKind::set_integrator ? "runge_kutta_4" : "semi_implicit_euler"), "with the lab setting in force");
+        }
+    }
+
     RIGIDBODIES_TEST("energy comparison is readable through the model and leaves the live session untouched")
     {
         app::SimulationSession session;
@@ -894,6 +930,10 @@ RIGIDBODIES_TEST("every experiment opens Ready at t zero and clears queued stepp
         RIGIDBODIES_EXPECT_NEAR(session.world().statistics().elapsed_time_s, 0.0, 0.0, "experiment opens at t zero");
         session.advance(1.0);
         RIGIDBODIES_EXPECT_NEAR(session.world().statistics().elapsed_time_s, 0.0, 0.0, "load cancels queued step");
+        // A relativity experiment's clocks open at zero and stay there with the world clock.
+        if (const auto* probe = session.relativity_probe())
+            RIGIDBODIES_EXPECT(probe->race().lab_time_s == 0.0 && probe->race().proper_time_s == 0.0 && probe->race().clock_lag_s == 0.0, "the probe's clocks open at zero and a queued step does not move them");
+        RIGIDBODIES_EXPECT(session.relativity_active() == (scenario.id == "chasing_light"), "only Chasing light is a relativity experiment");
     }
 }
 

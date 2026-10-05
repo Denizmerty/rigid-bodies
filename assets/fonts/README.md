@@ -10,8 +10,15 @@ The committed static faces are generated from that variable font with
 `python scripts/make_inter_fonts.py "Inter[opsz,wght].ttf"` (FontTools 4.53 or newer). The script
 generates the text optical size at weights 400, 500 and 600, uses fixed-width digits to keep
 changing measurements from shifting, and limits the character set to Latin, Greek,
-punctuation, arrows, mathematical operators and common symbols. Runtime builds never download or
-subset fonts.
+punctuation, arrows, mathematical operators and common symbols. It writes Inter-Regular.ttf,
+Inter-Medium.ttf and Inter-SemiBold.ttf to the working directory. In that same directory run
+`python scripts/add_thin_space.py Inter-Regular.ttf Inter-Medium.ttf Inter-SemiBold.ttf`, then
+move the three faces into this folder. The script gives each face a blank thin space (advance
+0.2 em) for U+2009 and U+202F when the face has none, so numbers grouped as "299 792 458" keep
+their gaps in the interface and on the stage. It leaves a face that already maps both code points
+untouched, and reports a thin space whose width differs from the 410 units the scene renderer
+assumes. Run with no arguments, it checks and patches the faces already in this folder. Runtime
+builds never download or subset fonts.
 
 Phosphor Regular 2.1.2 supplies the interface icons and is distributed under the MIT
 license in `../licenses/Phosphor-MIT.txt`. The pinned source is

@@ -11,6 +11,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <numeric>
 #include <vector>
 #include <fstream>
@@ -1285,11 +1286,38 @@ namespace rigidbodies::app
                     view.set_value("side.last_used", "guide");
                 }
             }
-            else if (state == "measure" || state == "graph" || state == "collisions" || state == "runs")
+            else if (state == "measure" || state == "graph" || state == "collisions" || state == "runs" || state == "relativity")
             {
                 view.set_surface_open("measure.open", true);
                 if (state != "measure")
                     view.set_active_tab("measure.header.tabs", state);
+            }
+            else if (state.rfind("speed=", 0) == 0)
+            {
+                // The probe's speed as v/c, committed as the speed field would commit it.
+                const auto text = state.substr(6);
+                char* end = nullptr;
+                const auto value = std::strtod(text.c_str(), &end);
+                if (text.empty() || end != text.c_str() + text.size())
+                    core::log_warning("screenshot: invalid speed \"{}\"", text);
+                else
+                {
+                    ui::UiCommand speed;
+                    speed.kind = ui::UiCommandKind::set_relativity_speed;
+                    speed.value = value;
+                    apply_command(speed);
+                }
+            }
+            else if (state.rfind("curve=", 0) == 0 || state.rfind("range=", 0) == 0)
+            {
+                // The Relativity plot's choosers, which belong to the view.
+                const auto curve = state.rfind("curve=", 0) == 0;
+                const auto value = state.substr(6);
+                const auto known = curve ? value == "energy" || value == "momentum" || value == "gamma" || value == "clock_rate" : value == "full" || value == "near";
+                if (known)
+                    view.set_value(curve ? "measure.relativity.curve" : "measure.relativity.range", value);
+                else
+                    core::log_warning("screenshot: unknown state \"{}\"", state);
             }
             else if (state == "world")
                 interface_.request(ui::ViewRequest::open_world);
@@ -1382,6 +1410,47 @@ namespace rigidbodies::app
                     play.kind = ui::UiCommandKind::toggle_pause;
                     apply_command(play);
                 }
+            }
+            else if (state == "keep" || state.rfind("keep=", 0) == 0 || state.rfind("play=", 0) == 0)
+            {
+                // Plays N sixtieths of a second (two seconds by default). "keep" then goes Back to
+                // start, which keeps them as a run, so the Runs table and the Graph's previous run
+                // have data; "play" leaves the run going, so a later state changes it mid-run.
+                const auto keep = state.rfind("play=", 0) != 0;
+                const auto text = state == "keep" ? std::string("120") : state.substr(5);
+                char* end = nullptr;
+                const auto frames = std::strtol(text.c_str(), &end, 10);
+                if (text.empty() || end != text.c_str() + text.size() || frames < 1 || frames > 36000)
+                    core::log_warning("screenshot: invalid frame count \"{}\"", text);
+                else
+                {
+                    if (session_.build_model().paused)
+                    {
+                        ui::UiCommand play;
+                        play.kind = ui::UiCommandKind::toggle_pause;
+                        apply_command(play);
+                    }
+                    for (long frame = 0; frame < frames; ++frame)
+                        render_frame(1.0 / 60.0);
+                    if (keep)
+                    {
+                        ui::UiCommand reset;
+                        reset.kind = ui::UiCommandKind::reset_scenario;
+                        apply_command(reset);
+                    }
+                }
+            }
+            else if (state.rfind("pin=", 0) == 0)
+            {
+                // A Runs table value, as Add value pins it: "pin=probe_clock" or "pin=lorentz:maximum".
+                const auto text = state.substr(4);
+                const auto colon = text.find(':');
+                ui::UiCommand pin;
+                pin.kind = ui::UiCommandKind::pin_run_value;
+                pin.id = text.substr(0, colon);
+                if (colon != std::string::npos)
+                    pin.detail = text.substr(colon + 1);
+                apply_command(pin);
             }
             else
                 core::log_warning("screenshot: unknown state \"{}\"", state);

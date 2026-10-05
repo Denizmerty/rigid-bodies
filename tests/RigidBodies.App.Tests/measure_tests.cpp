@@ -80,6 +80,37 @@ namespace
         session.apply(clear);
         RIGIDBODIES_EXPECT(session.build_model().undo_history.size() == before, "measurement organization is view/run state, not a physics edit");
     }
+
+    RIGIDBODIES_TEST("a refused pin gives the real reason")
+    {
+        app::SimulationSession session;
+        session.load_scenario("free_fall");
+        ui::UiCommand pin;
+        pin.kind = ui::UiCommandKind::pin_run_value;
+        pin.id = "not_recorded";
+        pin.detail = "at_end";
+        session.apply(pin);
+        auto model = session.build_model();
+        RIGIDBODIES_EXPECT(!model.notifications.empty() && model.notifications.back().text == "This value cannot be added to the runs table.", "a value the runs do not record is not blamed on the pin limit");
+        pin.id = "mechanical";
+        session.apply(pin);
+        session.apply(pin);
+        model = session.build_model();
+        RIGIDBODIES_EXPECT(model.pinned_values.size() == 1 && !model.notifications.empty() && model.notifications.back().text == "This value is already pinned.", "the same value is not pinned twice");
+        for (const auto* quantity : { "mechanical", "kinetic_moving", "kinetic_spinning", "potential_height" })
+            for (const auto* aggregator : { "at_end", "maximum", "minimum" })
+            {
+                pin.id = quantity;
+                pin.detail = aggregator;
+                session.apply(pin);
+            }
+        RIGIDBODIES_EXPECT(session.build_model().pinned_values.size() == 12, "twelve values can be pinned");
+        pin.id = "momentum_x";
+        pin.detail = "at_end";
+        session.apply(pin);
+        model = session.build_model();
+        RIGIDBODIES_EXPECT(!model.notifications.empty() && model.notifications.back().text == "At most 12 values can be pinned. Remove one first.", "a thirteenth value names the limit");
+    }
 }
 
 int main()

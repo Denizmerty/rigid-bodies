@@ -132,6 +132,9 @@
     <None Include="..\assets\scenarios\breakable_joint.scenario.json">
       <Filter>assets\scenarios</Filter>
     </None>
+    <None Include="..\assets\scenarios\chasing_light.scenario.json">
+      <Filter>assets\scenarios</Filter>
+    </None>
     <None Include="..\assets\scenarios\collision_comparison.scenario.json">
       <Filter>assets\scenarios</Filter>
     </None>

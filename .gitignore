@@ -94,6 +94,7 @@ Desktop.ini
 
 # Local planning and temporary working material
 /_development_archive/
+/BUGS_TO_FIX.md
 /notes*.md
 /plan*.md
 /scratch/
@@ -110,3 +111,6 @@ __pycache__/
 *.pyc
 
 # Build, release and asset-maintenance scripts are source and remain tracked.
+
+# Local physics mathematics document, its compiler, PDF, and build diagnostics.
+/output/pdf/

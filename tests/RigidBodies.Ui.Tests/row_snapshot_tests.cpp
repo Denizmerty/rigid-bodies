@@ -1,6 +1,7 @@
 #include <rigidbodies/ui/panels.hpp>
 #include <rigidbodies/physics/scenario.hpp>
 #include <rigidbodies/core/text_format.hpp>
+#include "relativity_fixture.hpp"
 #include "test_framework.hpp"
 #include <cstdlib>
 #include <filesystem>
@@ -163,6 +164,22 @@ namespace
         }
         if (model_name == "cgs")
             model.display_units = core::DisplayUnits::centimetre_gram;
+        if (model_name == "relativity")
+        {
+            // The probe at 0.99999 c after 12.45 ns of lab time, on its Relativity tab and World page.
+            model.scenario_id = "chasing_light";
+            model.scenario_title = "Chasing light";
+            model.run_state = ui::RunState::running;
+            model.elapsed_time_s = 12.45;
+            model.relativity = testing::relativity_model_at(0.99999, 12.45e-9);
+            model.changes.push_back({ "relativity:speed", "world.relativity.speed", {}, "Probe speed", "0\xC2\xA0"
+                                                                                                       "c",
+                "0.99999\xC2\xA0"
+                "c",
+                ui::EditCategory::parameter });
+            view.set_active_tab("measure.header.tabs", "relativity");
+            view.set_section_open("world.relativity", true);
+        }
         if (model_name == "multiple")
             for (const auto id : world.body_ids())
                 if (const auto* body = world.find_body(id); body && body->type() != physics::BodyType::static_body)
@@ -177,6 +194,9 @@ namespace
         model.lab_changes.push_back({ "integrator", "Integration method", "Semi-implicit Euler", "Runge–Kutta 4" });
         for (const auto& description : physics::available_scenarios())
             model.catalogue.push_back({ std::string(description.id), std::string(description.title), std::string(description.summary), std::string(description.collection), std::string(description.level), std::string(description.hook), description.collection_order, description.suggested_order, description.concepts, description.prerequisites, description.tags, description.lab });
+        if (model.relativity)
+            for (auto& card : model.catalogue)
+                card.special_relativity = card.id == "chasing_light";
     }
 }
 
@@ -186,7 +206,7 @@ RIGIDBODIES_TEST("standard model row goldens remain stable")
     const auto fixture_root = std::filesystem::path(RIGIDBODIES_SOURCE_ASSETS).parent_path() / "tests/fixtures/ui";
     const bool update = std::getenv("RIGIDBODIES_UPDATE_GOLDENS") != nullptr;
     const std::vector<std::pair<std::string, std::string>> fixtures {
-        { "nothing_selected", "free_fall" }, { "free_ready", "free_fall" }, { "free_running", "free_fall" }, { "fixed", "ramp" }, { "driven", "prescribed_motion" }, { "multiple", "stable_stack" }, { "joint", "revolute_drive" }, { "broken_joint", "breakable_joint" }, { "spring", "spring_damping" }, { "shape_valid", "shape_workshop" }, { "shape_invalid", "shape_workshop" }, { "paused_impact", "collision_comparison" }, { "comparisons", "collision_comparison" }, { "runs", "free_fall" }, { "graph_runs", "free_fall" }, { "cgs", "free_fall" }
+        { "nothing_selected", "free_fall" }, { "free_ready", "free_fall" }, { "free_running", "free_fall" }, { "fixed", "ramp" }, { "driven", "prescribed_motion" }, { "multiple", "stable_stack" }, { "joint", "revolute_drive" }, { "broken_joint", "breakable_joint" }, { "spring", "spring_damping" }, { "shape_valid", "shape_workshop" }, { "shape_invalid", "shape_workshop" }, { "paused_impact", "collision_comparison" }, { "comparisons", "collision_comparison" }, { "runs", "free_fall" }, { "graph_runs", "free_fall" }, { "cgs", "free_fall" }, { "relativity", "chasing_light" }
     };
     if (update)
         std::filesystem::create_directories(fixture_root);

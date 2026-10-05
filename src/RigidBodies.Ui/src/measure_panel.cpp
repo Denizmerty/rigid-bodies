@@ -1,9 +1,11 @@
 #include <rigidbodies/ui/icons.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 #include <rigidbodies/ui/panels.hpp>
 
 #include <rigidbodies/core/display_units.hpp>
 #include <rigidbodies/core/text_format.hpp>
 #include <rigidbodies/physics/education_accounting.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/ui/run_compare.hpp>
 
 #include <algorithm>
@@ -131,8 +133,48 @@ namespace rigidbodies::ui
                 return 13;
             return {};
         }
+        // A relativity experiment records the probe's clock, how far it trails the lab clock and its
+        // Lorentz factor (γ − 1) as RunSeries::relativity, three per sample. The lab clock has no
+        // channel of its own: a world second is a lab nanosecond, so it is the sample time.
+        static_assert(physics::relativity_lab_seconds_per_world_second == 1.0e-9, "the Graph reads recorded world seconds as lab nanoseconds");
+        constexpr std::size_t relativity_stride = 3;
+        std::optional<std::size_t> relativity_channel(std::string_view key)
+        {
+            if (key == "probe_clock")
+                return 0;
+            if (key == "clock_gap")
+                return 1;
+            if (key == "lorentz")
+                return 2;
+            return {};
+        }
+        bool relativity_quantity(std::string_view key)
+        {
+            return key == "lab_clock" || relativity_channel(key);
+        }
+        // What the Graph draws for a relativity quantity: a clock in nanoseconds of lab time, or γ
+        // itself. NaN for a run that recorded no relativity block.
+        float relativity_graph_value(const RunSeries& series, std::size_t sample, std::string_view key)
+        {
+            const auto channel = relativity_channel(key);
+            if ((sample + 1) * relativity_stride > series.relativity.size() || (!channel && key != "lab_clock"))
+                return std::numeric_limits<float>::quiet_NaN();
+            if (!channel)
+                return series.time_s[sample];
+            const auto value = static_cast<double>(series.relativity[sample * relativity_stride + *channel]);
+            return static_cast<float>(key == "lorentz" ? 1.0 + value : value * 1.0e9);
+        }
+
         std::string quantity_label(std::string_view key)
         {
+            if (key == "lab_clock")
+                return "Lab clock t";
+            if (key == "probe_clock")
+                return "Probe clock τ";
+            if (key == "clock_gap")
+                return "Lab − probe t − τ";
+            if (key == "lorentz")
+                return "Lorentz factor γ";
             if (key == "kinetic_moving")
                 return "Kinetic (moving)";
             if (key == "kinetic_spinning")
@@ -173,10 +215,22 @@ namespace rigidbodies::ui
                 return "kg·m/s";
             if (key == "speed")
                 return "m/s";
+            if (key == "lorentz")
+                return {};
+            if (relativity_quantity(key))
+                return "ns";
             return "J";
         }
         core::DisplayQuantity display_quantity(std::string_view key)
         {
+            // Clock readings keep nanoseconds so they compare digit for digit; the gap between them
+            // can be far smaller. The stored Lorentz factor is γ − 1.
+            if (key == "lab_clock" || key == "probe_clock")
+                return core::DisplayQuantity::fine_time;
+            if (key == "clock_gap")
+                return core::DisplayQuantity::duration;
+            if (key == "lorentz")
+                return core::DisplayQuantity::lorentz_factor_excess;
             if (key == "momentum_x" || key == "momentum_y")
                 return core::DisplayQuantity::momentum;
             if (key == "speed" || key == "velocity_x" || key == "velocity_y")
@@ -508,11 +562,25 @@ namespace rigidbodies::ui
         }
         std::string pinned_label(const UiModel& model, const PinnedValue& value)
         {
+            const auto when = value.aggregator == RunAggregator::at_time ? "At " + elapsed_text(model, value.time_s) : aggregator_label(value.aggregator);
+            // The probe's clocks belong to the whole experiment, so they name no object.
+            if (relativity_quantity(value.quantity))
+                return quantity_label(value.quantity) + " · " + when;
             const auto scope = value.body.is_valid() ? display_name(model, value.body) : "Whole scene";
-            const auto when = value.aggregator == RunAggregator::at_time
-                ? "At " + core::format_quantity(value.time_s, core::DisplayQuantity::time, model.display_units)
-                : aggregator_label(value.aggregator);
             return quantity_label(value.quantity) + " · " + scope + " · " + when;
+        }
+
+        // A pinned value as the Runs table reads it, and the difference between two runs' values.
+        // γ differs from run to run by a plain number, and its change is a share of γ, not of γ − 1.
+        std::string pinned_text(const UiModel& model, std::string_view quantity, double value)
+        {
+            return core::format_quantity(value, display_quantity(quantity), model.display_units);
+        }
+        std::string pinned_difference_text(const UiModel& model, std::string_view quantity, double difference)
+        {
+            if (quantity == "lorentz")
+                return core::format_significant(difference);
+            return pinned_text(model, quantity, difference);
         }
     }
 
@@ -541,12 +609,21 @@ namespace rigidbodies::ui
     {
         const auto impact_filter = std::string(builder.view_value("measure.collisions.filter", "all"));
         const auto run_count = model.runs.size() + (model.current_run ? 1 : 0);
-        tab_labels_ = { "Energy", "Graph", "Collisions (" + std::to_string(listed_impact_count(model, impact_filter)) + ")", "Runs (" + std::to_string(run_count) + ")", "Theory checks" };
-        static constexpr std::string_view tab_ids[] { "energy", "graph", "collisions", "runs", "theory" };
+        // A special-relativity experiment has no Newtonian energy, impacts or theory checks, so it
+        // offers its own tab in their place.
+        const auto relativity = model.relativity.has_value();
+        const auto tab_ids = measure_tab_ids(relativity);
+        tab_labels_.clear();
+        for (const auto id : tab_ids)
+            tab_labels_.push_back(id == "energy" ? std::string("Energy") : id == "graph" ? std::string("Graph")
+                    : id == "collisions"                                                 ? "Collisions (" + std::to_string(listed_impact_count(model, impact_filter)) + ")"
+                    : id == "runs"                                                       ? "Runs (" + std::to_string(run_count) + ")"
+                    : id == "relativity"                                                 ? std::string("Relativity")
+                                                                                         : std::string("Theory checks"));
         tab_options_.clear();
-        for (std::size_t index = 0; index < std::size(tab_ids); ++index)
+        for (std::size_t index = 0; index < tab_ids.size(); ++index)
             tab_options_.push_back({ tab_ids[index], tab_labels_[index], {}, {} });
-        const auto tab = builder.tabs("measure.header.tabs", tab_options_, "energy");
+        const auto tab = builder.tabs("measure.header.tabs", tab_options_, default_measure_tab(relativity));
         {
             auto close = action(UiCommandKind::none);
             close.detail = "view:measure";
@@ -769,30 +846,41 @@ namespace rigidbodies::ui
                 builder.value_row("Viewing", "Run " + std::to_string(reviewed_run->number));
                 builder.action_row("measure.graph.live", "Back to live graph", state_value("measure.graph.review_run", ""));
             }
-            static constexpr OptionSpec energy_quantities[] { { "mechanical", "Mechanical", {}, {} }, { "kinetic_moving", "Kinetic (moving)", {}, {} }, { "kinetic_spinning", "Kinetic (spinning)", {}, {} }, { "potential_height", "Potential (height)", {}, {} }, { "potential_springs", "Potential (springs)", {}, {} }, { "lost_impacts", "Lost in impacts", {}, {} }, { "lost_friction", "Lost to friction", {}, {} } };
-            static constexpr OptionSpec motion_quantities[] { { "momentum_x", "Momentum x", {}, {} }, { "momentum_y", "Momentum y", {}, {} }, { "speed", "Speed", {}, {} } };
-            // The other rows of the energy budget can be plotted wherever the Energy tab lists them.
-            std::array<bool, std::size(ledger_quantities)> ledger_offered {};
-            if (model.world)
+            if (relativity)
             {
-                const auto budget = physics::measure_energy_budget(*model.world);
-                const std::array<double, std::size(ledger_quantities)> ledger_values { budget.lost_to_air_j, budget.lost_in_dampers_j, budget.lost_in_joints_j, budget.added_by_drives_j, budget.added_by_forces_j, budget.added_by_changes_j };
-                const std::array<bool, std::size(ledger_quantities)> ledger_kinds { budget.has_air, budget.has_dampers, budget.has_joints, budget.has_drives, budget.has_applied_forces, false };
-                for (std::size_t index = 0; index < ledger_offered.size(); ++index)
-                    ledger_offered[index] = ledger_kinds[index] || std::abs(ledger_values[index]) >= 0.005;
+                // In a relativity experiment the graph follows the clocks over lab time. Its own
+                // checklist keeps a Newtonian experiment's choice of quantities as it was.
+                static constexpr OptionSpec clock_quantities[] { { "lab_clock", "Lab clock t", {}, {} }, { "probe_clock", "Probe clock τ", {}, {} }, { "clock_gap", "Lab − probe t − τ", {}, {} }, { "lorentz", "Lorentz factor γ", {}, {} } };
+                graph_quantity_options_.assign(std::begin(clock_quantities), std::end(clock_quantities));
             }
-            for (const auto& run : model.runs)
-                for (std::size_t index = 0; index < run.series.ledger.size(); ++index)
-                    if (std::isfinite(run.series.ledger[index]) && std::abs(run.series.ledger[index]) >= 0.005)
-                        ledger_offered[index % ledger_stride] = true;
-            graph_quantity_options_.assign(std::begin(energy_quantities), std::end(energy_quantities));
-            for (std::size_t index = 0; index < ledger_offered.size(); ++index)
-                if (ledger_offered[index])
-                    graph_quantity_options_.push_back({ ledger_quantities[index].key, ledger_quantities[index].label, {}, {} });
-            graph_quantity_options_.insert(graph_quantity_options_.end(), std::begin(motion_quantities), std::end(motion_quantities));
-            ControlSpec choices = spec("measure.graph.quantities");
+            else
+            {
+                static constexpr OptionSpec energy_quantities[] { { "mechanical", "Mechanical", {}, {} }, { "kinetic_moving", "Kinetic (moving)", {}, {} }, { "kinetic_spinning", "Kinetic (spinning)", {}, {} }, { "potential_height", "Potential (height)", {}, {} }, { "potential_springs", "Potential (springs)", {}, {} }, { "lost_impacts", "Lost in impacts", {}, {} }, { "lost_friction", "Lost to friction", {}, {} } };
+                static constexpr OptionSpec motion_quantities[] { { "momentum_x", "Momentum x", {}, {} }, { "momentum_y", "Momentum y", {}, {} }, { "speed", "Speed", {}, {} } };
+                // The other rows of the energy budget can be plotted wherever the Energy tab lists them.
+                std::array<bool, std::size(ledger_quantities)> ledger_offered {};
+                if (model.world)
+                {
+                    const auto budget = physics::measure_energy_budget(*model.world);
+                    const std::array<double, std::size(ledger_quantities)> ledger_values { budget.lost_to_air_j, budget.lost_in_dampers_j, budget.lost_in_joints_j, budget.added_by_drives_j, budget.added_by_forces_j, budget.added_by_changes_j };
+                    const std::array<bool, std::size(ledger_quantities)> ledger_kinds { budget.has_air, budget.has_dampers, budget.has_joints, budget.has_drives, budget.has_applied_forces, false };
+                    for (std::size_t index = 0; index < ledger_offered.size(); ++index)
+                        ledger_offered[index] = ledger_kinds[index] || std::abs(ledger_values[index]) >= 0.005;
+                }
+                for (const auto& run : model.runs)
+                    for (std::size_t index = 0; index < run.series.ledger.size(); ++index)
+                        if (std::isfinite(run.series.ledger[index]) && std::abs(run.series.ledger[index]) >= 0.005)
+                            ledger_offered[index % ledger_stride] = true;
+                graph_quantity_options_.assign(std::begin(energy_quantities), std::end(energy_quantities));
+                for (std::size_t index = 0; index < ledger_offered.size(); ++index)
+                    if (ledger_offered[index])
+                        graph_quantity_options_.push_back({ ledger_quantities[index].key, ledger_quantities[index].label, {}, {} });
+                graph_quantity_options_.insert(graph_quantity_options_.end(), std::begin(motion_quantities), std::end(motion_quantities));
+            }
+            ControlSpec choices = spec(relativity ? "measure.graph.clocks" : "measure.graph.quantities");
             choices.options = graph_quantity_options_;
-            static constexpr std::string_view defaults[] { "mechanical" };
+            static constexpr std::string_view energy_defaults[] { "mechanical" };
+            const auto defaults = relativity ? default_graph_clocks() : math::Span<const std::string_view>(energy_defaults);
             // The controls' values are read before the graph is built; their rows are recorded
             // around it once it is.
             auto selected = builder.view_checklist(choices.key, defaults);
@@ -804,8 +892,8 @@ namespace rigidbodies::ui
                                        });
                                }),
                 selected.end());
-            if (selected.size() > 3)
-                selected.resize(3);
+            if (selected.size() > maximum_graph_quantities)
+                selected.resize(maximum_graph_quantities);
             const auto window_text = builder.view_value("measure.graph.window", "10");
             auto compare = std::string(builder.view_value("measure.graph.compare_with", "none"));
             if (compare != "none" && !run_number(model.runs, compare))
@@ -851,7 +939,9 @@ namespace rigidbodies::ui
                     values.reserve(run->series.time_s.size());
                     for (std::size_t sample = 0; sample < run->series.time_s.size(); ++sample)
                     {
-                        if (!objects.empty())
+                        if (relativity)
+                            values.push_back(relativity_graph_value(run->series, sample, key));
+                        else if (!objects.empty())
                         {
                             const auto channel = object_channel(key);
                             if (!channel || (objects.size() > 1 && !additive(key)))
@@ -902,7 +992,9 @@ namespace rigidbodies::ui
             double x_min = std::max(0.0, x_max - window_s);
             if (current_run && !reviewed_run)
                 x_min = std::max(x_min, current_run->plot_start_s);
-            plot_.x = { "Time", "s", x_min, std::max(x_min + 1.0e-3, x_max) };
+            // A world second is a lab nanosecond, so in a relativity experiment the recorded times
+            // are read as lab time without conversion.
+            plot_.x = { relativity ? "Lab time" : "Time", relativity ? "ns" : "s", x_min, std::max(x_min + 1.0e-3, x_max) };
             double y_min = 0.0, y_max = 0.0;
             bool finite_value = false;
             std::vector<bool> key_has_data(selected.size(), false);
@@ -929,7 +1021,7 @@ namespace rigidbodies::ui
                 if (key_has_data[index])
                     drawn.push_back(selected[index]);
             const auto& axis_keys = drawn.empty() ? selected : drawn;
-            const auto y_key = axis_keys.empty() ? std::string { "mechanical" } : axis_keys.front();
+            const auto y_key = axis_keys.empty() ? std::string { relativity ? "lab_clock" : "mechanical" } : axis_keys.front();
             const auto y_unit = quantity_unit(y_key);
             const auto shared_unit = std::all_of(axis_keys.begin(), axis_keys.end(), [&](const auto& key)
                 {
@@ -939,6 +1031,7 @@ namespace rigidbodies::ui
             if (axis_keys.size() > 1)
                 y_label = !shared_unit ? "Value" : y_unit == "J" ? "Energy"
                     : y_unit == "m/s"                            ? "Speed"
+                    : y_unit == "ns"                             ? "Clock reading"
                                                                  : "Momentum";
             plot_.y = { y_label, shared_unit ? y_unit : std::string {}, y_min, y_max };
 
@@ -949,8 +1042,8 @@ namespace rigidbodies::ui
             const auto object_resolved = !resolved_objects.empty();
             const auto several_objects = resolved_objects.size() > 1;
             // Impacts are marked when they involve what is plotted: any of them for the whole
-            // scene, otherwise only those of the plotted objects.
-            if (model.current_run && !reviewed_run)
+            // scene, otherwise only those of the plotted objects. Nothing collides with the probe.
+            if (model.current_run && !reviewed_run && !relativity)
                 for (const auto& impact : model.impacts)
                 {
                     const auto involves = [&](physics::BodyId id)
@@ -964,7 +1057,9 @@ namespace rigidbodies::ui
                         plot_.markers.push_back({ impact.time_s, core::substitute("Impact {}", impact.index + 1), PlotMarkerKind::impact });
                 }
             // Name what is plotted, and why Follow selection fell back to the whole scene.
-            if (several_objects)
+            if (relativity)
+                plot_.subject = "Probe and lab clocks";
+            else if (several_objects)
                 plot_.subject = core::substitute("{} selected objects", resolved_objects.size());
             else if (object_resolved)
                 plot_.subject = display_name(model, reference_run->series.object_ids[resolved_objects.front()]);
@@ -990,8 +1085,15 @@ namespace rigidbodies::ui
                     text.front() = static_cast<char>(text.front() - 'A' + 'a');
                 return text;
             };
+            // Lorentz is a name, so it keeps its capital inside a sentence.
+            const auto named = [&](const std::string& key)
+            {
+                return key == "lorentz" ? quantity_label(key) : lowercase(quantity_label(key));
+            };
             const auto missing_reason = [&](const std::string& key) -> std::string
             {
+                if (relativity)
+                    return {};
                 if (object_resolved && !object_channel(key))
                     return quantity_label(key) + " is measured for the whole scene only.";
                 if (several_objects && !additive(key))
@@ -1000,16 +1102,16 @@ namespace rigidbodies::ui
                     return "Select an object to plot " + lowercase(quantity_label(key)) + ".";
                 return {};
             };
-            const auto window_seconds = static_cast<int>(window_s);
+            const auto window_shown = std::to_string(static_cast<int>(window_s)) + (relativity ? "\xC2\xA0ns" : " s");
             if (selected.empty())
             {
                 plot_.empty_title = "Choose a quantity to plot";
-                plot_.empty_detail = "Pick one or more under Quantities.";
+                plot_.empty_detail = relativity ? "Pick one or more under Clocks." : "Pick one or more under Quantities.";
             }
             else if (!current_run && !previous_run && compare == "none")
             {
                 plot_.empty_title = "Run the experiment to record a graph";
-                plot_.empty_detail = core::substitute("Press Play. The graph follows the last {} s.", window_seconds);
+                plot_.empty_detail = "Press Play. The graph follows the last " + window_shown + ".";
             }
             else if (drawn.empty() && !missing_reason(selected.front()).empty())
             {
@@ -1022,14 +1124,14 @@ namespace rigidbodies::ui
             else if (drawn.empty())
             {
                 plot_.empty_title = "No samples in this window yet";
-                plot_.empty_detail = model.paused ? core::substitute("Press Play to keep recording. The graph follows the last {} s.", window_seconds) : "Recording as the experiment runs.";
+                plot_.empty_detail = model.paused ? "Press Play to keep recording. The graph follows the last " + window_shown + "." : "Recording as the experiment runs.";
             }
             else
                 for (std::size_t index = 0; index < selected.size(); ++index)
                     if (!key_has_data[index])
                     {
                         const auto reason = missing_reason(selected[index]);
-                        plot_.note += (plot_.note.empty() ? "" : " ") + (reason.empty() ? "No data yet for " + lowercase(quantity_label(selected[index])) + "." : reason);
+                        plot_.note += (plot_.note.empty() ? "" : " ") + (reason.empty() ? "No data yet for " + named(selected[index]) + "." : reason);
                     }
 
             // In a wide drawer the controls stand beside the graph, so what is plotted can be
@@ -1050,18 +1152,23 @@ namespace rigidbodies::ui
                 option_labels_.push_back(std::move(label));
                 options.push_back({ option_ids_.back(), option_labels_.back(), {}, {} });
             };
-            add_option(graph_scope_options_, "scene", "Whole scene");
-            add_option(graph_scope_options_, "selection", "Follow selection");
-            for (const auto id : graph_bodies)
-                add_option(graph_scope_options_, body_key(id), display_name(model, id));
-            ControlSpec scope_spec = spec("measure.graph.scope");
-            scope_spec.options = graph_scope_options_;
-            builder.select_row(scope_spec, graph_scope, state_choice("measure.graph.scope"));
+            // The probe is not one of the scene's objects, so there is no scope to choose.
+            if (!relativity)
+            {
+                add_option(graph_scope_options_, "scene", "Whole scene");
+                add_option(graph_scope_options_, "selection", "Follow selection");
+                for (const auto id : graph_bodies)
+                    add_option(graph_scope_options_, body_key(id), display_name(model, id));
+                ControlSpec scope_spec = spec("measure.graph.scope");
+                scope_spec.options = graph_scope_options_;
+                builder.select_row(scope_spec, graph_scope, state_choice("measure.graph.scope"));
+            }
 
             (void)builder.checklist(choices, defaults);
             static constexpr OptionSpec windows[] { { "10", "10 s", {}, {} }, { "30", "30 s", {}, {} }, { "60", "60 s", {}, {} } };
+            static constexpr OptionSpec lab_windows[] { { "10", "10\xC2\xA0ns", {}, {} }, { "30", "30\xC2\xA0ns", {}, {} }, { "60", "60\xC2\xA0ns", {}, {} } };
             ControlSpec window = spec("measure.graph.window");
-            window.options = windows;
+            window.options = relativity ? math::Span<const OptionSpec>(lab_windows) : math::Span<const OptionSpec>(windows);
             builder.segmented_row(window, window_text, state_choice("measure.graph.window"));
 
             add_option(graph_compare_options_, "none", "None");
@@ -1190,10 +1297,11 @@ namespace rigidbodies::ui
         }
         else if (tab == "runs")
         {
+            // The probe is not one of the scene's objects: its values belong to the experiment.
             std::vector<physics::BodyId> available_bodies;
             const auto add_body = [&](physics::BodyId id)
             {
-                if (std::find(available_bodies.begin(), available_bodies.end(), id) == available_bodies.end())
+                if (!relativity && std::find(available_bodies.begin(), available_bodies.end(), id) == available_bodies.end())
                     available_bodies.push_back(id);
             };
             if (model.world)
@@ -1225,8 +1333,9 @@ namespace rigidbodies::ui
                 add_option(run_options_, std::to_string(run.number), "Run " + std::to_string(run.number));
             if (model.current_run)
             {
-                // The run reads the stage's clock; its samples fall on a 40 Hz grid that trails it.
-                const auto played = core::format_quantity(model.elapsed_time_s, core::DisplayQuantity::time, model.display_units);
+                // The run reads the stage's clock (lab time in a relativity experiment); its samples
+                // fall on a 40 Hz grid that trails it.
+                const auto played = now_text(model);
                 builder.live_value_row(core::substitute("Run {} (this run)", model.current_run->number), model.paused ? "Paused at " + played : "Recording · " + played);
                 if (model.runs.empty())
                     builder.paragraph("Press Back to start (R) to keep this run in the table, then change one thing and play again.");
@@ -1235,7 +1344,7 @@ namespace rigidbodies::ui
                 builder.paragraph("Press Play to record a run. Back to start (R) keeps it in this table.");
             for (const auto& run : model.runs)
             {
-                auto summary = core::format_quantity(run.duration_s, core::DisplayQuantity::time, model.display_units);
+                auto summary = elapsed_text(model, run.duration_s);
                 if (!run.changes_from_previous.empty())
                     summary += " · " + run.changes_from_previous.front().label + " " + run.changes_from_previous.front().original_text + " → " + run.changes_from_previous.front().current_text;
                 if (run.changes_from_previous.size() > 1)
@@ -1266,7 +1375,7 @@ namespace rigidbodies::ui
                 inspect.options = run_options_;
                 builder.select_row(inspect, std::to_string(inspected_run->number), state_choice("measure.runs.inspect"));
                 if (!inspected_run->series.time_s.empty() && inspected_run->series.time_s.front() > 0.05f)
-                    builder.paragraph("Values use the retained samples from " + core::format_quantity(inspected_run->series.time_s.front(), core::DisplayQuantity::time, model.display_units) + " to " + core::format_quantity(inspected_run->series.time_s.back(), core::DisplayQuantity::time, model.display_units) + ". Earlier samples are no longer available.");
+                    builder.paragraph("Values use the retained samples from " + elapsed_text(model, inspected_run->series.time_s.front()) + " to " + elapsed_text(model, inspected_run->series.time_s.back()) + ". Earlier samples are no longer available.");
                 UiCommand show;
                 show.detail = "show-run-in-graph:" + std::to_string(inspected_run->number);
                 builder.action_row("measure.runs.inspect_graph", "Show this run in graph", show);
@@ -1279,7 +1388,7 @@ namespace rigidbodies::ui
                 const auto value = inspected_run && index < inspected_run->pinned_results.size() ? inspected_run->pinned_results[index] : std::optional<double> {};
                 const auto missing = !inspected_run ? "Keep a run to see its value" : pinned.aggregator == RunAggregator::at_first_impact && !inspected_run->first_impact_s ? "No impact recorded"
                                                                                                                                                                             : "Not recorded";
-                builder.value_row(pinned_label(model, pinned), value ? core::format_quantity(*value, display_quantity(pinned.quantity), model.display_units) : missing);
+                builder.value_row(pinned_label(model, pinned), value ? pinned_text(model, pinned.quantity, *value) : missing);
                 auto remove = action(UiCommandKind::unpin_run_value);
                 remove.id = pinned.key;
                 builder.action_row("measure.runs.remove_value." + pinned.key, "Remove " + quantity_label(pinned.quantity), remove);
@@ -1294,24 +1403,59 @@ namespace rigidbodies::ui
                 static constexpr OptionSpec aggregators[] {
                     { "at_end", "At end", {}, {} }, { "maximum", "Maximum", {}, {} }, { "minimum", "Minimum", {}, {} }, { "at_first_impact", "At first impact", {}, {} }, { "at_time", "At t = …", {}, {} }
                 };
+                // A relativity run records the clocks and γ, and nothing in it collides.
+                static constexpr OptionSpec clock_quantities[] {
+                    { "lab_clock", "Lab clock t", {}, {} }, { "probe_clock", "Probe clock τ", {}, {} }, { "clock_gap", "Lab − probe t − τ", {}, {} }, { "lorentz", "Lorentz factor γ", {}, {} }
+                };
+                static constexpr OptionSpec clock_aggregators[] {
+                    { "at_end", "At end", {}, {} }, { "maximum", "Maximum", {}, {} }, { "minimum", "Minimum", {}, {} }, { "at_time", "At t = …", {}, {} }
+                };
                 ControlSpec quantity = spec("measure.runs.add_quantity");
-                quantity.options = quantities;
+                quantity.options = relativity ? math::Span<const OptionSpec>(clock_quantities) : math::Span<const OptionSpec>(quantities);
                 ControlSpec aggregator = spec("measure.runs.add_aggregator");
-                aggregator.options = aggregators;
-                const auto quantity_id = std::string(builder.view_value("measure.runs.add_quantity", "mechanical"));
-                const auto aggregator_id = std::string(builder.view_value("measure.runs.add_aggregator", "at_end"));
+                aggregator.options = relativity ? math::Span<const OptionSpec>(clock_aggregators) : math::Span<const OptionSpec>(aggregators);
+                // A choice made in the other kind of experiment falls back to this one's default.
+                const auto offered = [](const ControlSpec& control, std::string_view id, std::string_view fallback)
+                {
+                    return std::any_of(control.options.begin(), control.options.end(), [&](const auto& option)
+                               {
+                                   return option.id == id;
+                               })
+                        ? std::string(id)
+                        : std::string(fallback);
+                };
+                const auto default_quantity = relativity ? "probe_clock" : "mechanical";
+                const auto quantity_id = offered(quantity, builder.view_value("measure.runs.add_quantity", default_quantity), default_quantity);
+                const auto aggregator_id = offered(aggregator, builder.view_value("measure.runs.add_aggregator", "at_end"), "at_end");
                 builder.select_row(quantity, quantity_id, state_choice("measure.runs.add_quantity"));
-                add_option(object_options_, "scene", "Whole scene");
-                for (const auto id : available_bodies)
-                    add_option(object_options_, body_key(id), display_name(model, id));
-                ControlSpec object = spec("measure.runs.add_object");
-                object.options = object_options_;
-                const auto object_id = std::string(builder.view_value("measure.runs.add_object", "scene"));
-                builder.select_row(object, object_id, state_choice("measure.runs.add_object"));
+                const auto object_id = relativity ? std::string("scene") : std::string(builder.view_value("measure.runs.add_object", "scene"));
+                if (!relativity)
+                {
+                    add_option(object_options_, "scene", "Whole scene");
+                    for (const auto id : available_bodies)
+                        add_option(object_options_, body_key(id), display_name(model, id));
+                    ControlSpec object = spec("measure.runs.add_object");
+                    object.options = object_options_;
+                    builder.select_row(object, object_id, state_choice("measure.runs.add_object"));
+                }
                 builder.select_row(aggregator, aggregator_id, state_choice("measure.runs.add_aggregator"));
                 double at_time = 0.0;
                 std::string invalid_reason;
-                if (aggregator_id == "at_time")
+                if (aggregator_id == "at_time" && relativity)
+                {
+                    // Typed in lab time and sent in the run's own world seconds, a billion times
+                    // longer. The division is rounded to a billionth of a second, so "5" pins
+                    // exactly 5 s and is recognised when it is pinned again.
+                    const auto text = builder.view_value("measure.runs.add_time", "0");
+                    builder.text_field("measure.runs.add_time", "Lab time (0–60\xC2\xA0ns)", text);
+                    const auto parsed = core::parse_quantity(text, core::DisplayQuantity::fine_time, model.display_units);
+                    const auto world_s = parsed ? *parsed / model.relativity->lab_seconds_per_world_second : 0.0;
+                    if (!parsed || !std::isfinite(world_s) || world_s < -1.0e-9 || world_s > 60.0 + 1.0e-9)
+                        invalid_reason = "Enter a lab time from 0 to 60\xC2\xA0ns.";
+                    else
+                        at_time = std::round(std::clamp(world_s, 0.0, 60.0) * 1.0e9) / 1.0e9 + 0.0;
+                }
+                else if (aggregator_id == "at_time")
                 {
                     builder.text_field("measure.runs.add_time", "Time (0–60 s)", builder.view_value("measure.runs.add_time", "0"));
                     const auto parsed = core::parse_quantity(builder.view_value("measure.runs.add_time", "0"), core::DisplayQuantity::time, model.display_units);
@@ -1386,13 +1530,11 @@ namespace rigidbodies::ui
                         builder.value_row(pinned_label(model, model.pinned_values[index]), "—");
                     else
                     {
-                        const auto percent = comparison.delta_percent ? core::format_quantity(*comparison.delta_percent, core::DisplayQuantity::scale, model.display_units) : "—";
-                        const auto quantity = display_quantity(model.pinned_values[index].quantity);
-                        const auto formatted = [&](double value)
-                        {
-                            return core::format_quantity(value, quantity, model.display_units);
-                        };
-                        builder.value_row(pinned_label(model, model.pinned_values[index]), core::substitute("{} · {} · {} · {}", formatted(*comparison.a), formatted(*comparison.b), formatted(*comparison.delta), percent));
+                        const auto& quantity = model.pinned_values[index].quantity;
+                        // γ − 1 is stored, but the change is read as a share of γ itself.
+                        const auto share = quantity == "lorentz" ? std::optional<double>(*comparison.delta / (1.0 + *comparison.a)) : comparison.delta_percent;
+                        const auto percent = share ? core::format_quantity(*share, core::DisplayQuantity::scale, model.display_units) : "—";
+                        builder.value_row(pinned_label(model, model.pinned_values[index]), core::substitute("{} · {} · {} · {}", pinned_text(model, quantity, *comparison.a), pinned_text(model, quantity, *comparison.b), pinned_difference_text(model, quantity, *comparison.delta), percent));
                     }
                 }
                 const auto differences = setup_difference_count(a, b);
@@ -1419,7 +1561,9 @@ namespace rigidbodies::ui
                 }
             }
         }
-        else
+        else if (tab == "relativity")
+            build_relativity_tab(model, builder);
+        else if (tab == "theory")
         {
             builder.paragraph("These checks run separate reference experiments with fixed inputs.");
             builder.heading("Collisions vs theory");

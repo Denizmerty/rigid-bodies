@@ -69,6 +69,7 @@
     <ClCompile Include="..\src\RigidBodies.App\src\run_recorder.cpp" />
     <ClCompile Include="..\src\RigidBodies.App\src\setup_changes.cpp" />
     <ClCompile Include="..\src\RigidBodies.App\src\stage_overlay_drawing.cpp" />
+    <ClCompile Include="..\src\RigidBodies.App\src\relativity_session.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="RigidBodies.Ui.vcxproj">

@@ -7,9 +7,11 @@
 #include <rigidbodies/app/experiment_content.hpp>
 #include <rigidbodies/app/run_recorder.hpp>
 #include <rigidbodies/core/application_config.hpp>
+#include <rigidbodies/physics/special_relativity.hpp>
 #include <rigidbodies/physics/time_stepper.hpp>
 #include <rigidbodies/physics/world.hpp>
 #include <rigidbodies/render/camera2d.hpp>
+#include <rigidbodies/render/relativity_stage.hpp>
 #include <rigidbodies/render/scene_renderer.hpp>
 #include <rigidbodies/ui/ui_command.hpp>
 #include <rigidbodies/ui/ui_model.hpp>
@@ -198,6 +200,27 @@ namespace rigidbodies::app
 
         [[nodiscard]] const std::string& scenario_id() const;
 
+        // A special-relativity experiment is open: the learner steers its probe, which the session
+        // advances beside the World.
+        [[nodiscard]] bool relativity_active() const
+        {
+            return relativity_.has_value();
+        }
+        [[nodiscard]] const physics::RelativisticProbe* relativity_probe() const
+        {
+            return relativity_ ? &*relativity_ : nullptr;
+        }
+        // The probe's starting setup, which Back to start returns to; present exactly when the probe is.
+        [[nodiscard]] const std::optional<physics::RelativitySetup>& relativity_setup() const
+        {
+            return setup_.relativity;
+        }
+        // The renderer as the last render left it, including the relativity stage it was handed.
+        [[nodiscard]] const render::SceneRenderer& scene_renderer() const
+        {
+            return scene_renderer_;
+        }
+
     private:
         [[nodiscard]] std::string setup_fingerprint() const;
         void publish_setup_file(const SetupFileAssociation& file);
@@ -263,6 +286,8 @@ namespace rigidbodies::app
         void populate_education_model(ui::UiModel& model) const;
         [[nodiscard]] LabSettings capture_lab_settings() const;
         void apply_lab_settings(const LabSettings& settings);
+        // Writes lab_ into the starting world without the run's progress.
+        void store_lab_settings_in_setup();
         void sync_setup_after_command(const ui::UiCommand& command);
         void merge_live_structure_into_setup();
         void rebuild_snapshot_views();
@@ -280,6 +305,41 @@ namespace rigidbodies::app
         [[nodiscard]] std::optional<std::pair<math::Vec2, math::Vec2>> connection_anchors_m(std::string_view key, std::string_view kind) const;
         [[nodiscard]] std::string handle_at(const math::Vec2& screen_point_px, double logical_scale = 1.0) const;
         bool handle_stage_handle_event(const ui::UiEvent& event, bool interface_consumed);
+        // Special relativity (relativity_session.cpp). The probe exists exactly when the open
+        // document requires special_relativity, and its speed is a parameter: the live speed and
+        // the starting speed are always the same.
+        void install_relativity(const std::optional<physics::RelativitySetup>& setup);
+        // True when a relativity experiment refuses a Newtonian command: nothing changes, no history
+        // entry is made and the first tool refused per opened experiment explains why.
+        [[nodiscard]] bool refuse_in_relativity(const ui::UiCommand& command);
+        // True when the command is the probe's speed command, which it consumes in any experiment.
+        [[nodiscard]] bool apply_relativity_command(const ui::UiCommand& command);
+        void change_relativity_speed(double speed_fraction);
+        // Marks the current run's graph where the probe's speed changed, "Speed 0.5 c → 0.9 c",
+        // when a run is being recorded and the two speeds differ.
+        void mark_relativity_speed_change(double before, double after, double world_time_s);
+        void advance_relativity(double world_substep_s, bool first_substep);
+        // Where between the last two fixed steps this frame is drawn: 1 while paused or stopped, so
+        // the stage, the status line and the panels read one sample.
+        [[nodiscard]] double render_alpha() const;
+        // The stage text scale the renderer draws the apparatus at: density times the text size.
+        [[nodiscard]] double relativity_text_pixel_scale() const;
+        // Chooses the stage's tier for a focus area: the largest that fits once the area has held
+        // still (`settled`), else the previous tier within the hysteresis margins.
+        void update_relativity_tier(const render::ScreenRect& focus, bool settled);
+        // The tier's frame-by-frame update from the published focus area, settling once it holds still.
+        void follow_relativity_stage_size(const render::ScreenRect& focus);
+        // Fits the track across the focus area's width and the apparatus below the instrument band.
+        void frame_relativity_stage();
+        // True when the focus area, text scale, units or tier differ from what was last framed.
+        [[nodiscard]] bool relativity_framing_stale(const render::ScreenRect& focus) const;
+        [[nodiscard]] std::optional<render::RelativityStage> relativity_stage() const;
+        // True when a screen point lies on the probe's marker or its riding clock face as the stage
+        // last drew them, within 4 logical pixels.
+        [[nodiscard]] bool hit_relativity_probe(const math::Vec2& screen_point_px, double logical_scale) const;
+        void populate_relativity_model(ui::UiModel& model) const;
+        // The World's setup changes and, in a relativity experiment, the probe's speed.
+        [[nodiscard]] std::vector<ui::SetupChange> setup_changes() const;
 
         physics::World world_;
         std::vector<physics::BodyId> selected_bodies_;
@@ -380,6 +440,33 @@ namespace rigidbodies::app
         // without making a physics edit or holding the simulation clock.
         std::optional<double> speed_preview_start_;
         double gravity_direction_degrees_ { -90.0 };
+        // Presence is relativity mode; setup_.relativity and original_.relativity are present with it.
+        std::optional<physics::RelativisticProbe> relativity_;
+        // One Newtonian-tool notice per opened experiment.
+        bool relativity_notice_shown_ {};
+        // The world time at which the pending edit first changed the probe's speed during a run. A
+        // dragged speed changes the clocks' rates live, long before the drag is committed, so its
+        // marker goes here.
+        std::optional<double> speed_change_time_s_;
+        render::RelativityStageTier relativity_tier_ { render::RelativityStageTier::full };
+        struct RelativityFraming
+        {
+            render::ScreenRect focus;
+            double text_pixel_scale {};
+            core::DisplayUnits units {};
+            render::RelativityStageTier tier {};
+        };
+        // What frame_relativity_stage last fitted, so an unmoved camera reframes only when it changes.
+        std::optional<RelativityFraming> relativity_framed_;
+        struct RelativityStageSize
+        {
+            render::ScreenRect focus;
+            double text_pixel_scale {};
+            core::DisplayUnits units {};
+        };
+        // The focus area, text scale and units published last frame, to tell a stage that holds
+        // still from one that is being resized.
+        std::optional<RelativityStageSize> relativity_stage_size_;
         physics::EnergyDriftSettings energy_comparison_settings_;
         std::vector<physics::EnergyDriftReport> energy_comparison_;
         std::string energy_comparison_error_;

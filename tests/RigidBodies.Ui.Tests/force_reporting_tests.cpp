@@ -1,3 +1,4 @@
+#include <rigidbodies/ui/measure_tabs.hpp>
 #include <rigidbodies/ui/panels.hpp>
 #include <rigidbodies/ui/ui_context.hpp>
 #include <rigidbodies/physics/body_properties.hpp>
@@ -12,7 +13,9 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace
 {
@@ -357,6 +360,57 @@ RIGIDBODIES_TEST("opening World brings the World page forward even while an obje
     context.reveal("object.motion.spin");
     const std::array<std::string_view, 5> pages { "properties", "motion", "forces", "joints", "shape" };
     RIGIDBODIES_EXPECT(context.view_state().active_tab("inspector.target", targets, "world") == "selection" && context.view_state().active_tab("inspector.object", pages, "properties") == "motion", "revealing an object setting opens its page");
+}
+
+RIGIDBODIES_TEST("revealing a Measure key selects its tab")
+{
+    using namespace rigidbodies;
+    RIGIDBODIES_EXPECT(ui::measure_tab_of_key("measure.graph") == std::optional<std::string_view> { "graph" } && ui::measure_tab_of_key("measure.collisions.list") == std::optional<std::string_view> { "collisions" } && ui::measure_tab_of_key("measure.relativity.curve") == std::optional<std::string_view> { "relativity" }, "a Measure key names its tab");
+    RIGIDBODIES_EXPECT(!ui::measure_tab_of_key("measure.header.tabs") && !ui::measure_tab_of_key("world.graph.scope") && !ui::measure_tab_of_key("measure.graphs"), "other keys name no tab");
+    RIGIDBODIES_EXPECT(ui::valid_guide_open_target("measure.relativity") && ui::valid_guide_open_target("measure.theory.collisions_run") && ui::valid_guide_open_target("world.gravity.strength") && !ui::valid_guide_open_target("measure.relativity.nothing") && !ui::valid_guide_open_target("measure.header"), "Guide steps open registered controls, Measure tabs or the legacy targets");
+
+    ui::UiContext context;
+    RIGIDBODIES_EXPECT(context.initialize(ui::UiBackendKind::overlay, {}), "overlay interface starts");
+    auto& view = context.view_state();
+    const auto newtonian = ui::measure_tab_ids(false);
+    const auto relativity = ui::measure_tab_ids(true);
+    view.set_active_tab("measure.header.tabs", "energy");
+    context.reveal("measure.graph");
+    RIGIDBODIES_EXPECT(view.surface_open("measure.open", false) && view.active_tab("measure.header.tabs", newtonian, "energy") == "graph", "Show me for the graph opens Measure on the Graph tab");
+    context.reveal("measure.collisions.list", "2");
+    RIGIDBODIES_EXPECT(view.active_tab("measure.header.tabs", newtonian, "energy") == "collisions", "revealing the impact list selects Collisions");
+    context.reveal("measure.theory.collisions_run");
+    RIGIDBODIES_EXPECT(view.active_tab("measure.header.tabs", newtonian, "energy") == "theory", "revealing a theory check selects Theory checks");
+    context.reveal("measure.relativity.curve");
+    RIGIDBODIES_EXPECT(view.active_tab("measure.header.tabs", relativity, "relativity") == "relativity", "revealing the curve chooser selects Relativity");
+    RIGIDBODIES_EXPECT(view.active_tab("measure.header.tabs", newtonian, "energy") == "energy", "a tab the model does not offer falls back to its default");
+    view.set_active_tab("measure.header.tabs", "runs");
+    context.reveal("measure.header.tabs");
+    RIGIDBODIES_EXPECT(view.active_tab("measure.header.tabs", newtonian, "energy") == "runs", "a key that names no tab leaves the tab alone");
+}
+
+RIGIDBODIES_TEST("reveal requests open Measure only for Measure keys")
+{
+    using namespace rigidbodies;
+    ui::UiContext context;
+    RIGIDBODIES_EXPECT(context.initialize(ui::UiBackendKind::overlay, {}), "overlay interface starts");
+    Device device;
+    render::DrawList list;
+    ui::UiModel model;
+    model.reveal_request = ui::RevealRequest { 1, "world.gravity.strength", {} };
+    context.build(model, device, list);
+    auto& view = context.view_state();
+    const std::array<std::string_view, 2> targets { "selection", "world" };
+    RIGIDBODIES_EXPECT(!view.surface_open("measure.open", false), "revealing a World setting leaves Measure closed");
+    RIGIDBODIES_EXPECT(view.surface_open("inspector.open", false) && view.active_tab("inspector.target", targets, "selection") == "world", "the World setting opens in the Inspector");
+
+    model.reveal_request = ui::RevealRequest { 2, "measure.collisions.list", "0" };
+    context.build(model, device, list);
+    RIGIDBODIES_EXPECT(view.surface_open("measure.open", false) && view.active_tab("measure.header.tabs", ui::measure_tab_ids(false), "energy") == "collisions", "an impact click opens Measure on its list");
+
+    view.set_surface_open("measure.open", false);
+    context.build(model, device, list);
+    RIGIDBODIES_EXPECT(!view.surface_open("measure.open", false), "a request is acted on once");
 }
 
 RIGIDBODIES_TEST("drawing tolerances read in one unit that never changes while editing")

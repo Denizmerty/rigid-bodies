@@ -1,7 +1,14 @@
 #include <rigidbodies/render/font_atlas.hpp>
+#include "scene_style.hpp"
 #include "test_framework.hpp"
 
+#include <cmath>
+#include <cstdint>
 #include <limits>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace
 {
@@ -49,6 +56,102 @@ namespace
         RIGIDBODIES_EXPECT(font.build({ std::numeric_limits<double>::infinity(), 0 }, "bad", {}).empty(), "nonfinite origin cannot poison geometry");
         const auto invalid = font.build({}, "safe", { std::numeric_limits<float>::quiet_NaN(), -1, 2, std::numeric_limits<float>::quiet_NaN() });
         RIGIDBODIES_EXPECT(!invalid.empty() && invalid[0].vertices[0].color.alpha == 0 && invalid[0].vertices[0].color.red == 0, "invalid colors cannot create nonfinite blend inputs");
+    }
+
+    // The scene renderer reserves label space from Inter Medium advances in font units; light hinting
+    // keeps each glyph's advance at round(units × pixels / 2048).
+    double design_advance(int units, float scale)
+    {
+        return std::round(units * static_cast<double>(std::lround(scale * 14.0f)) / 2048.0);
+    }
+
+    bool same_glyph(const render::IndexedMesh& a, const render::IndexedMesh& b)
+    {
+        return a.vertices.size() == b.vertices.size() && a.vertices[0].uv.x == b.vertices[0].uv.x && a.vertices[0].uv.y == b.vertices[0].uv.y && a.vertices[2].uv.x == b.vertices[2].uv.x && a.vertices[2].uv.y == b.vertices[2].uv.y;
+    }
+
+    RIGIDBODIES_TEST("gamma_and_tau_render_as_glyphs")
+    {
+        render::FontAtlas font;
+        RIGIDBODIES_EXPECT(font.load(font_path), "font loads");
+        const auto fallback = font.build({}, "?", {});
+        RIGIDBODIES_EXPECT(fallback.size() == 1 && fallback[0].vertices.size() == 4, "the fallback is one glyph");
+        // γ U+03B3 (1177 units), τ U+03C4 (984), µ U+00B5 (1229) and → U+2192 (1954).
+        const std::pair<std::string_view, int> letters[] { { "\xce\xb3", 1177 }, { "\xcf\x84", 984 }, { "\xc2\xb5", 1229 }, { "\xe2\x86\x92", 1954 } };
+        for (const auto& [letter, units] : letters)
+        {
+            const auto meshes = font.build({}, letter, {});
+            RIGIDBODIES_EXPECT(meshes.size() == 1 && meshes[0].vertices.size() == 4, "the letter draws one glyph");
+            RIGIDBODIES_EXPECT(!same_glyph(meshes[0], fallback[0]), "the letter is baked, not the '?' fallback");
+            for (const auto scale : { 12.0f / 14.0f, 1.0f, 1.5f, 2.0f })
+                RIGIDBODIES_EXPECT_NEAR(font.measure(letter, scale), design_advance(units, scale), 0.001, "the letter keeps the advance the scene renderer reserves");
+        }
+    }
+
+    std::string utf8(std::uint32_t code)
+    {
+        std::string text;
+        if (code < 0x80)
+            text += static_cast<char>(code);
+        else if (code < 0x800)
+        {
+            text += static_cast<char>(0xc0 | (code >> 6));
+            text += static_cast<char>(0x80 | (code & 0x3f));
+        }
+        else
+        {
+            text += static_cast<char>(0xe0 | (code >> 12));
+            text += static_cast<char>(0x80 | ((code >> 6) & 0x3f));
+            text += static_cast<char>(0x80 | (code & 0x3f));
+        }
+        return text;
+    }
+
+    RIGIDBODIES_TEST("the scene renderer reserves each glyph's own advance, and every listed code point is baked")
+    {
+        render::FontAtlas font;
+        RIGIDBODIES_EXPECT(font.load(font_path), "font loads");
+        const auto fallback = font.build({}, "?", {});
+        // Plates are sized from the scene renderer's table of advances, so it must be the font's.
+        std::vector<std::uint32_t> codes;
+        for (std::uint32_t code = 32; code < 127; ++code)
+            codes.push_back(code);
+        for (const auto code : { 0xa0u, 0x2009u, 0xb7u, 0xb2u, 0xb3u, 0xb9u, 0x2070u, 0x2074u, 0x2075u, 0x2076u, 0x2077u, 0x2078u, 0x2079u, 0x207bu, 0xb0u, 0xd7u, 0x2212u, 0x2013u, 0x2014u, 0xb5u, 0x3b3u, 0x3c4u, 0x3c9u, 0x2192u })
+            codes.push_back(code);
+        for (const auto code : codes)
+            for (const auto scale : { 12.0f / 14.0f, 1.0f, 1.5f, 2.0f })
+                RIGIDBODIES_EXPECT_NEAR(font.measure(utf8(code), scale), render::detail::text_width(utf8(code), scale), 0.001, "the reserved advance is the font's for code point " + std::to_string(code));
+        // Every code point the atlas lists is a glyph of its own, never the '?' fallback.
+        for (const auto code : render::font_atlas_extra_code_points())
+        {
+            const auto meshes = font.build({}, utf8(code), {});
+            if (code == 0x2009u)
+                RIGIDBODIES_EXPECT(meshes.empty() && font.measure(utf8(code)) > 0.0f, "the thin space is a blank advance");
+            else
+                RIGIDBODIES_EXPECT(meshes.size() == 1 && !same_glyph(meshes[0], fallback[0]), "a listed code point is baked: " + std::to_string(code));
+        }
+    }
+
+    RIGIDBODIES_TEST("thin_space_is_blank_with_its_own_advance")
+    {
+        // Core groups digits with U+2009 ("299 792 458"). Every bundled face maps it, so the interface
+        // and the stage show the same gap.
+        const std::string thin = "\xE2\x80\x89";
+        for (const auto* face : { "Inter-Regular.ttf", "Inter-Medium.ttf", "Inter-SemiBold.ttf" })
+        {
+            render::FontAtlas font;
+            RIGIDBODIES_EXPECT(font.load(font_path.parent_path() / face), "face loads");
+            for (const auto scale : { 12.0f / 14.0f, 1.0f, 1.5f, 2.0f })
+            {
+                const auto gap = design_advance(410, scale);
+                RIGIDBODIES_EXPECT(gap > 0.0 && std::abs(font.measure("?", scale) - gap) > 0.5, "the gap differs from the '?' fallback");
+                RIGIDBODIES_EXPECT_NEAR(font.measure("1" + thin + "2", scale), font.measure("12", scale) + gap, 0.001, "a thin space adds 0.2 em between two digit advances");
+                RIGIDBODIES_EXPECT_NEAR(font.measure(thin, scale), gap, 0.001, "a thin space alone is 0.2 em wide");
+            }
+            RIGIDBODIES_EXPECT(font.build({}, thin, {}).empty(), "a thin space draws nothing");
+            const auto grouped = font.build({}, "299" + thin + "792" + thin + "458", {});
+            RIGIDBODIES_EXPECT(grouped.size() == 1 && grouped[0].vertices.size() == 9 * 4, "a grouped number draws only its nine digits");
+        }
     }
 
     RIGIDBODIES_TEST("recorded_pages_survive_eviction_and_failed_reload")

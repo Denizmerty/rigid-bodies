@@ -1,6 +1,7 @@
 #include <rigidbodies/ui/ui_context.hpp>
 
 #include <rigidbodies/core/log.hpp>
+#include <rigidbodies/ui/measure_tabs.hpp>
 #include <rigidbodies/ui/overlay_backend.hpp>
 #if defined(RIGIDBODIES_HAS_RMLUI)
 #include <rigidbodies/ui/document_backend.hpp>
@@ -252,6 +253,7 @@ namespace rigidbodies::ui
 
         last_viewport_ = device.drawable_size();
         wall_time_s_ = wall_time_s;
+        relativity_active_ = model.relativity.has_value();
         view_state_.set_experiment_context(model.scenario_id);
         if (model.last_setup_file)
             view_state_.merge_setup_file(*model.last_setup_file);
@@ -296,6 +298,16 @@ namespace rigidbodies::ui
                 view_state_.set_value("side.last_used", "guide");
         }
         inspected_selection_ = model.selection;
+        // A reveal the session asks for (a probe click, a toast) opens its surface before this
+        // frame is laid out, so the revealed row is built, and focused, in the same frame.
+        if (model.reveal_request && model.reveal_request->serial != reveal_request_serial_)
+        {
+            reveal_request_serial_ = model.reveal_request->serial;
+            // Only a Measure key opens Measure; any other key opens the surface that owns it.
+            if (model.reveal_request->key.rfind("measure.", 0) == 0)
+                view_state_.set_surface_open("measure.open", true);
+            reveal(model.reveal_request->key, model.reveal_request->instance);
+        }
 
         UiFrameContext context;
         context.model = &model;
@@ -333,16 +345,10 @@ namespace rigidbodies::ui
         context.layout = &layout_;
         context.wall_time_s = wall_time_s;
         context.toasts = view_state_.toast_presenter().update(model.notifications, wall_time_s, view_state_.present().mode);
-        if (model.reveal_request && model.reveal_request->serial != reveal_request_serial_)
-        {
-            reveal_request_serial_ = model.reveal_request->serial;
-            view_state_.set_surface_open("measure.open", true);
-            reveal(model.reveal_request->key, model.reveal_request->instance);
-        }
         const auto next_hint = view_state_.next_hint();
         if (next_hint == "play" && !model.paused)
             view_state_.dismiss_hint("play");
-        else if (next_hint == "inspect" && !model.selected_bodies.empty())
+        else if (next_hint == "inspect" && (!model.selected_bodies.empty() || (model.relativity && model.relativity->speed_fraction != model.relativity->original_speed_fraction)))
             view_state_.dismiss_hint("inspect");
         else if (next_hint == "library" && view_state_.sheet_open("library"))
             view_state_.dismiss_hint("library");
@@ -451,6 +457,23 @@ namespace rigidbodies::ui
                                 view_state_.present().mode = false;
                                 reveal(std::string_view(command.detail).substr(15), command.kind == UiCommandKind::select_connection ? std::string_view(command.id) : std::string_view {});
                                 return command.kind == UiCommandKind::none;
+                            }
+                            if (command.detail.rfind("plot-clock:", 0) == 0)
+                            {
+                                // A clock reading's Plot over time: the Graph adds that clock to
+                                // the ones it plots, dropping the earliest chosen when full.
+                                const auto channel = std::string(std::string_view(command.detail).substr(11));
+                                constexpr std::string_view clocks = "measure.graph.clocks";
+                                auto shown = view_state_.checklist(clocks, default_graph_clocks());
+                                if (!channel.empty() && std::find(shown.begin(), shown.end(), channel) == shown.end())
+                                {
+                                    shown.push_back(channel);
+                                    if (shown.size() > maximum_graph_quantities)
+                                        shown.erase(shown.begin());
+                                    view_state_.set_checklist(clocks, std::move(shown));
+                                }
+                                reveal(clocks, {});
+                                return true;
                             }
                             if (command.detail.rfind("search-reveal:", 0) == 0)
                             {
@@ -786,7 +809,8 @@ namespace rigidbodies::ui
                 view_state_.set_surface_open("guide.sheet", false);
             }
             view_state_.set_value("side.last_used", "guide");
-            reveal(key.empty() ? "world.gravity.enabled" : key);
+            reveal(!key.empty() ? key : relativity_active_ ? "world.relativity.speed"
+                                                           : "world.gravity.enabled");
             break;
         case ViewRequest::toggle_guide:
             view_state_.set_surface_open("guide.available", true);
@@ -827,7 +851,9 @@ namespace rigidbodies::ui
             view_state_.open_sheet("save_details");
             break;
         case ViewRequest::open_add_menu:
-            open_menu("add_menu");
+            // Nothing can be added to a relativity experiment (Shift+A).
+            if (!relativity_active_)
+                open_menu("add_menu");
             break;
         case ViewRequest::open_about:
             view_state_.open_sheet("about");
@@ -903,7 +929,13 @@ namespace rigidbodies::ui
             }
         }
         else if (key.rfind("measure.", 0) == 0)
+        {
             view_state_.set_surface_open("measure.open", true);
+            // Measure builds only its active tab, so a key on another tab brings that tab forward.
+            // A tab the model does not offer falls back to its default when Measure is built.
+            if (const auto tab = measure_tab_of_key(key))
+                view_state_.set_active_tab("measure.header.tabs", *tab);
+        }
         else if (key.rfind("show.", 0) == 0 || key == "prefs.units.system" || key == "camera.scale.height")
         {
             close_menus();

@@ -60,6 +60,8 @@ namespace rigidbodies::ui
         [[nodiscard]] std::optional<std::string> element_for_key(std::string_view host, std::string_view key, std::string_view instance = {}) const;
         [[nodiscard]] std::vector<UiCommand> commands_for_key(std::string_view key) const;
         [[nodiscard]] std::optional<std::string> element_value(std::string_view id) const;
+        // The values of a select's options in order, as its widget holds them.
+        [[nodiscard]] std::vector<std::string> select_option_values(std::string_view id) const;
         [[nodiscard]] std::size_t structure_change_count() const;
         [[nodiscard]] std::size_t text_write_count(std::string_view id) const;
 
